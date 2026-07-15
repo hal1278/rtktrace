@@ -54,7 +54,7 @@ lightとfullは、同一実行ファイル内のlayout modeではなく、別の
 
 - POS parser
 - NMEA parser
-- source record位置の追跡
+- source line位置の追跡
 - parse diagnosticの生成
 - 入力形式ごとの一時表現生成
 
@@ -65,7 +65,8 @@ I/O componentはGUI、plot view stateおよびapplication targetへ依存しな�
 責務:
 
 - GPST時刻
-- 正規化sample
+- WGS 84 LLHおよびECEFを持つ正規化sample
+- sample source line
 - 読み込み済みfile
 - slot順
 - file visibility
@@ -166,7 +167,8 @@ plot componentがGUI frameworkまたはgraphics APIへ依存する場合も、da
 - quality filter
 - common time range
 - ENU基準
-- reference match tolerance
+- reference match tolerance checkの有効状態
+- reference match toleranceの最大時刻差
 - ENU cache
 - relative cache
 - Hz
@@ -213,9 +215,9 @@ fullだけが以下を保持する。
 ```text
 file input
   -> format-specific parse
-  -> time and quality normalization
+  -> time, LLH and quality normalization
   -> LLH to ECEF
-  -> record validation and normalization
+  -> record validation and source-line association
   -> file model
   -> Hz estimation
   -> common-time-range indexing
@@ -235,10 +237,10 @@ file input
 読み込み後の以下は原則として不変とする。
 
 - GPST時刻
+- WGS 84 LLH
 - ECEF
-- 楕円体高
 - quality
-- source record情報
+- source line情報
 - continuity
 
 ### 8.2 ENU cache
@@ -254,7 +256,8 @@ ECEFを保持し、parserを再実行しない。
 - slot 1
 - slot順
 - common time range
-- reference match tolerance
+- reference match tolerance checkの有効状態
+- reference match toleranceの最大時刻差
 - normalized data
 - ENU基準に依存するrelative成分
 

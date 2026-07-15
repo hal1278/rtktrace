@@ -44,14 +44,14 @@ GUIに依存しない共通データ処理を完成させる。
 
 - GPST整数nanosecond型
 - UTC civil timeおよび閏秒table
-- normalized sample
+- WGS 84 LLH、ECEFおよびsource lineを保持するnormalized sample
 - loaded fileおよびslot model
 - POS parser
 - NMEA parser
 - diagnostic
 - duplicate epochおよびtime reversal
 - WGS 84 LLH/ECEF変換
-- common time range
+- optional start/endを持つcommon time range
 - Hz推定およびoverride
 - Recorded/Expected統計
 
@@ -75,9 +75,9 @@ lightおよびfullで共有する座標処理と基準相対dataを完成させ�
 - ENU cache
 - common time range index
 - 直前のslot 1 epochとのmatching
-- tolerance
+- tolerance checkの有効・無効および最大時刻差
 - relative E/N/U/H
-- ECEF normによるdistance
+- ECEF normによる基準相対距離
 - relative cache
 - cache generation管理
 
@@ -85,7 +85,8 @@ lightおよびfullで共有する座標処理と基準相対dataを完成させ�
 
 - slot 1、common time rangeおよびENU基準変更に対する再計算結果がtestできる。
 - 未来のreference epochを使用しない。
-- toleranceを超えるcomparison sampleを除外する。
+- tolerance checkが有効な場合は最大時刻差を超えるcomparison sampleを除外する。
+- tolerance checkが無効な場合は最後のreference sampleを継続して使用する。
 - Normal dataとRelative dataを共有modelから取得できる。
 
 ## 5. Phase 3: Shared plotting components

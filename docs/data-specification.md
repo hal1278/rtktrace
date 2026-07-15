@@ -44,21 +44,33 @@ tab、floating area、window lifecycle、button配置その他のapplication固�
 
 ```text
 time_gpst_ns
+latitude_rad
+longitude_rad
+ellipsoidal_height_m
 ecef_x_m
 ecef_y_m
 ecef_z_m
 enu_e_m
 enu_n_m
 enu_u_m
-ellipsoidal_height_m
 quality
-source_record_number
+source_line_number
 continuous_from_previous
 ```
 
 `time_gpst_ns`はGPS epochからの整数nanosecondとする。
 
-ECEFを正規化後の基本位置表現とする。ENUは選択された共通ENU基準位置に対して計算し、保持する。
+latitude、longitudeおよびellipsoidal heightはWGS 84のLLHとし、latitudeおよびlongitudeをradian、ellipsoidal heightをmeterで保持する。
+
+ECEFを正規化後の基本計算表現とする。LLHおよびECEFは読み込み後に変更しない。ENUは選択された共通ENU基準位置に対して計算し、保持する。
+
+`source_line_number`は、sampleの生成元となった入力ファイル上の1始まりの物理行番号とする。
+
+- POSでは、採用したPOS data recordの行番号とする。
+- NMEAでは、採用したGGAの行番号とする。
+- duplicate epochまたはtalker優先順位によってrecordを置換した場合は、最終的に採用したrecordの行番号とする。
+
+`source_line_number`はsample番号またはepoch番号ではない。
 
 `quality`は`0`から`6`までの整数とする。
 
@@ -447,28 +459,46 @@ POSおよびNMEAからの変換後は、すべてこの値を使用する。
 
 ## 10. 共通処理時刻範囲
 
-### 10.1 閉区間
+### 10.1 union
 
-共通処理時刻範囲は次の閉区間とする。
-
-```text
-[start, end]
-```
-
-sampleは次を満たす場合に範囲内とする。
-
-```text
-start <= sample.time <= end
-```
-
-### 10.2 初期値と候補
-
-初期値は読み込み済み全ファイルのunionとする。
+読み込み済み全ファイルのunionを次で定義する。
 
 ```text
 union_start = min(file_start)
 union_end   = max(file_end)
 ```
+
+### 10.2 有効境界と実効時刻範囲
+
+startおよびendは個別に有効状態を持つ。
+
+```text
+effective_start =
+    entered_start, if start_enabled
+    union_start,   otherwise
+
+effective_end =
+    entered_end, if end_enabled
+    union_end,    otherwise
+```
+
+実効時刻範囲は次の閉区間とする。
+
+```text
+[effective_start, effective_end]
+```
+
+sampleは次を満たす場合に範囲内とする。
+
+```text
+effective_start <= sample.time <= effective_end
+```
+
+`start_enabled`および`end_enabled`の初期値はともに`false`とする。したがって初期の実効時刻範囲はunionとなる。
+
+境界を無効にしても入力欄の値は保持し、実効境界の計算にだけunion境界を使用する。
+
+### 10.3 intersection
 
 intersectionは次とする。
 
@@ -477,11 +507,20 @@ intersection_start = max(file_start)
 intersection_end   = min(file_end)
 ```
 
-`intersection_start > intersection_end`の場合はintersectionなしとする。dialogの`Intersection`操作では現在の入力値を変更せず、そのことを通知する。
+`intersection_start > intersection_end`の場合はintersectionなしとする。`Intersection`操作では現在の入力値および有効状態を変更せず、そのことを通知する。
 
-`Union`および`Intersection`操作は入力欄へ候補値を反映するだけとし、`OK`で適用する。
+intersectionが存在する場合、`Intersection`操作は次を行う。
 
-### 10.3 後段処理
+```text
+entered_start = intersection_start
+entered_end   = intersection_end
+start_enabled = true
+end_enabled   = true
+```
+
+dialog内の変更は`OK`で適用する。
+
+### 10.4 後段処理
 
 以下は共通時刻範囲内のsampleだけを対象とする。
 
@@ -509,18 +548,27 @@ comparison sampleより未来のreference sampleは使用しない。
 
 同一reference sampleを複数のcomparison sampleへ対応付けてよい。
 
+`t_cmp`以前のreference sampleが存在しない場合はmatched pairを生成しない。
+
 ### 11.2 tolerance
 
-次の時刻差を使用する。
+tolerance checkは設定により有効または無効へ切り替えられる。
+
+tolerance checkが有効な場合は次の時刻差を使用する。
 
 ```text
 dt = t_cmp - t_ref
 ```
 
-以下の場合はmatched pairを生成しない。
+```text
+dt > reference_match_tolerance
+```
 
-- `t_cmp`以前のreference sampleが存在しない
-- `dt > reference_match_tolerance`
+を満たす場合はmatched pairを生成しない。
+
+tolerance checkが無効な場合は`dt`を検査しない。`t_cmp`以前のreference sampleが存在する限り、その最新sampleを使用する。
+
+このため、comparison sampleがreference fileの最終epochより後にある場合も、その最終reference sampleを継続して使用する。
 
 相対表示データの時刻には`t_cmp`を使用する。
 
@@ -541,14 +589,20 @@ delta_h = comparison_ellipsoidal_height
         - reference_ellipsoidal_height
 ```
 
-### 11.4 距離
+### 11.4 基準相対距離
 
-相対距離はECEF差のEuclidean normとする。
+三次元基準相対距離はECEF差のEuclidean normとする。
 
 ```text
 delta_ecef = comparison_ecef - reference_ecef
-distance_3d = norm(delta_ecef)
+reference_relative_distance_3d = norm(delta_ecef)
 ```
+
+これは各matched pairにおけるcomparison sampleとreference sampleの空間距離である。
+
+連続するcomparison sample間の移動距離、軌跡に沿った道のりまたは累積距離ではない。
+
+基準相対距離時系列の時刻にはcomparison sampleの`t_cmp`を使用する。
 
 ## 12. ファイルrate
 
@@ -656,7 +710,7 @@ quality_percentage = quality_count / expected_count * 100
 severity
 code
 file_name
-source_record_number
+source_line_number
 time_optional
 message
 action
