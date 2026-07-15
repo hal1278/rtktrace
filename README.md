@@ -1,8 +1,15 @@
 # plotcore
 
-`plotcore` is a native desktop application for interactively visualizing GNSS positioning solutions.
+`plotcore` is a family of native desktop applications for interactively visualizing GNSS positioning solutions.
 
-The initial goal is to provide the subset of RTKPLOT-like functionality required for inspecting positioning trajectories and solution quality, without reproducing the complete RTKPLOT feature set.
+The application targets are:
+
+- **plotcore light** — a fixed, compact interface for quickly opening and inspecting positioning results
+- **plotcore full** — a workspace-style interface that can create an arbitrary number of independent floating plot areas
+
+The current implementation target is **plotcore light**. After the shared data-processing and plotting components have been validated through light, **plotcore full** will be implemented as an extension using the same shared components.
+
+The project goal is to provide the subset of RTKPLOT-like functionality required for inspecting positioning trajectories and solution quality, without reproducing the complete RTKPLOT feature set.
 
 ## Project status
 
@@ -10,9 +17,9 @@ Requirements definition and architecture planning.
 
 No stable application interface, file-format compatibility guarantee, or release is currently available.
 
-## Initial scope
+## Current implementation scope
 
-The initial implementation is intended to support:
+The initial `plotcore light` implementation is intended to support:
 
 - RTKLIB/MRTKLIB-style position solution files
 - NMEA position logs
@@ -56,19 +63,19 @@ The application is intended to run as a native desktop program and must not depe
 
 ## Documentation
 
-The project documentation will be organized by concern:
+The project documentation is organized by concern:
 
 - `docs/requirements.md`  
-  Functional requirements, non-functional requirements, and acceptance criteria.
+  Common functional requirements and application-specific requirements for plotcore light and plotcore full.
 
 - `docs/data-specification.md`  
-  Supported input formats and the semantics of time, coordinates, height, solution quality, and trajectory segmentation.
+  Input formats and the shared semantics of time, coordinates, height, solution quality, reference comparison, and statistics.
 
 - `docs/architecture.md`  
-  Processing pipeline, module responsibilities, implementation stack, dependency boundaries, and performance design.
+  Shared component boundaries, application targets, processing pipeline, implementation stack, dependency rules, and performance design.
 
 - `docs/roadmap.md`  
-  Development phases, dependencies, deliverables, and completion criteria.
+  The light-first implementation sequence, the subsequent full application extension, dependencies, deliverables, and completion criteria.
 
 These documents may be added incrementally as the corresponding decisions are finalized.
 
@@ -78,10 +85,11 @@ The implementation should prioritize:
 
 1. correct interpretation of input data
 2. interactive performance with multiple trajectories
-3. clear separation between file parsing, data normalization, and plotting
-4. limited implementation complexity
-5. readable and maintainable code
-6. portability between Linux and Windows where practical
+3. clear separation between file parsing, data normalization, plotting, and application-specific window composition
+4. reuse of the same data-processing and plotting components by plotcore light and plotcore full
+5. limited implementation complexity
+6. readable and maintainable code
+7. portability between Linux and Windows where practical
 
 Optimization should be based on measured bottlenecks. Complex level-of-detail processing or custom GPU rendering should not be introduced before the baseline implementation has been evaluated.
 

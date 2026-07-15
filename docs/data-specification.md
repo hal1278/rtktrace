@@ -2,7 +2,9 @@
 
 ## 1. 目的と対象範囲
 
-本書は、`plotcore`が対応ファイルを読み込み、入力形式に依存しない位置sampleへ正規化し、通常表示、基準相対表示および統計処理へ渡すまでのデータ規則を定義する。
+本書は、`plotcore light`および`plotcore full`が共通して使用するデータ仕様を定義する。
+
+対応ファイルを読み込み、入力形式に依存しない位置sampleへ正規化し、通常表示、基準相対表示および統計処理へ渡すまでの規則は、applicationのwindow layoutに依存しない。
 
 本書では、以下を定義する。
 
@@ -17,7 +19,9 @@
 - ステータス統計
 - diagnosticに保持する情報
 
-具体的なC++型、メモリ配置、探索アルゴリズムおよび並列化は`architecture.md`で定義する。
+tab、floating area、window lifecycle、button配置その他のapplication固有UIは本書の対象外とし、`requirements.md`で定義する。
+
+具体的なC++型、メモリ配置、探索アルゴリズム、並列化およびapplication target間の共有境界は`architecture.md`で定義する。
 
 ## 2. 用語
 

@@ -4,13 +4,26 @@
 
 `plotcore` provides fast, interactive visualization of GNSS positioning solution data for inspecting and comparing trajectories and solution quality.
 
-The initial product supports loading positioning solution files and NMEA position logs, displaying multiple trajectories in a common local coordinate system, and examining horizontal position and East/North/Up time-series plots.
+The project consists of multiple native applications that share file parsing, normalized data, coordinate processing, reference comparison, statistics, diagnostics, and plotting components.
+
+The first implementation target is `plotcore light`, which provides a fixed and compact interface. `plotcore full` is implemented after light as an extension that provides a workspace-style multi-area interface while reusing the same shared components.
 
 The project does not aim to perform positioning computations or reproduce the complete RTKPLOT feature set. It focuses on the plotting functions required for efficient inspection of recorded positioning results.
 
 ## 2. 対象範囲
 
-### 2.1 初期実装の対象
+### 2.1 製品構成と実装順
+
+`plotcore`は、共通のデータ処理、解析およびプロットcomponentを使用する複数のnative applicationで構成する。
+
+- `plotcore light`: 固定的で簡潔なwindow layoutを持つapplication
+- `plotcore full`: 任意個のfloating plot areaを扱うworkspace型application
+
+現在の実装対象は`plotcore light`とする。`plotcore full`は、lightで共通componentの機能、性能および境界を検証した後に、同じcomponentを再利用する拡張として実装する。
+
+lightとfullは同一application内の表示modeではなく、別のapplication targetとして定義する。
+
+### 2.2 plotcore lightの初期実装対象
 
 初期実装では、以下の機能を対象とする。
 
@@ -34,10 +47,11 @@ The project does not aim to perform positioning computations or reproduce the co
 
 対応する入力形式およびデータの解釈規則の詳細は、`data-specification.md`で定義する。
 
-### 2.2 初期実装の対象外
+### 2.3 plotcore lightの初期実装対象外
 
 初期実装では、以下の機能を対象外とする。
 
+- `plotcore full`固有の任意個のfloating plot areaおよびそのinstance管理
 - GNSS測位計算
 - 受信機からのリアルタイム入力
 - シリアルポートからの入力
@@ -55,7 +69,21 @@ The project does not aim to perform positioning computations or reproduce the co
 - RTKPLOTとの設定互換性
 - ブラウザ、ElectronまたはWebViewを利用した実行（恒久的に対象外）
 
-### 2.3 将来検討する機能
+### 2.4 plotcore fullの対象
+
+`plotcore full`では、共通機能に加えて以下を対象とする。
+
+- File/Slots areaの表示および非表示
+- Normal 2D、Normal Time Series、Relative 2DおよびRelative Time Seriesの4種類のplot area
+- 各種類のplot areaを任意個生成する機能
+- 各plot areaを独立したfloating areaとして配置する機能
+- plot areaごとの表示、非表示、再表示および削除
+- plot areaごとの軸範囲、描画領域長、表示縮尺、zoom/pan状態および表示成分
+- 全plot areaで共有するファイル、スロット、品質filter、共通時刻範囲、ENU基準およびrelative data
+
+`plotcore full`の実装は、`plotcore light`の初期実装完了後に行う。
+
+### 2.5 将来検討する機能
 
 以下の機能は、初期実装の表示機能および性能を検証した後に検討する。
 
@@ -64,8 +92,6 @@ The project does not aim to perform positioning computations or reproduce the co
 - プロット画像の保存
 - マウスオーバーしたsampleの時刻、座標および関連情報の表示
 - 同一sampleを時系列、水平軌跡および観測状態等の複数のプロット上で連動して強調表示する機能
-- 複数のプロットを配置するタイリングレイアウト
-- Multiple Document Interface（MDI）または同等の複数ビュー管理
 - プロット配置および表示設定の組合せをレイアウトセットとして保存する機能
 - 地理的背景地図上での軌跡表示
 - 緯度、経度および高さによる位置表示
@@ -77,7 +103,7 @@ The project does not aim to perform positioning computations or reproduce the co
 - RTKPLOTが提供する追加のプロット種別
 - Windows向け配布パッケージ
 
-本節に将来検討項目として記載した機能は、初期実装の要件には含めない。
+本節に将来検討項目として記載した機能は、`plotcore light`の初期実装要件には含めない。
 
 ## 3. 利用ワークフロー
 
@@ -109,9 +135,9 @@ The project does not aim to perform positioning computations or reproduce the co
 
 各ファイルは個別に表示または非表示へ切り替えられる。測位解品質による表示条件は、表示中の全ファイルに共通して適用する。
 
-### 3.4 表示モードを切り替える
+### 3.4 plotcore lightの表示モードを切り替える
 
-利用者は、通常表示および基準相対表示について、それぞれ水平軌跡、時系列または両方の表示をタブで選択できる。
+`plotcore light`の利用者は、通常表示および基準相対表示について、それぞれ水平軌跡、時系列または両方の表示をタブで選択できる。
 
 両方表示では、水平軌跡と時系列を左右に配置する。中央の境界線をドラッグして左右の表示幅を変更でき、境界線をダブルクリックすると中央へ戻る。
 
@@ -144,6 +170,14 @@ The project does not aim to perform positioning computations or reproduce the co
 ファイルを非表示または削除しても、現在の表示範囲を自動変更しない。削除後は後続スロットを前方へ詰め、スロット番号を`1`から再割り当てする。
 
 すべてのファイルを削除した場合は、データのない空のプロットを表示する。削除時の確認操作は必須としない。
+
+### 3.8 plotcore fullでplot areaを管理する
+
+`plotcore full`の利用者は、Normal 2D、Normal Time Series、Relative 2DおよびRelative Time Seriesのplot areaを任意個生成できる。
+
+各plot areaは独立したfloating areaとして配置し、個別に表示、非表示、再表示または削除できる。各instanceの軸範囲、描画領域長、表示縮尺、zoom/pan状態および表示成分は、他のinstanceから独立して保持する。
+
+File/Slots areaおよび全plot areaは同じ読み込み済みファイル、スロット順、品質filter、共通時刻範囲、ENU基準およびrelative dataを共有する。
 
 ## 4. 機能要件
 
@@ -193,7 +227,7 @@ The project does not aim to perform positioning computations or reproduce the co
 
 各スロットは個別に表示または非表示へ切り替えられる。非表示にした場合も読み込み済みデータを保持し、表示状態の変更によって表示範囲を自動変更しない。
 
-### 4.3 表示モード
+### 4.3 plotcore lightの表示モード
 
 #### FR-VIEW-001 タブ構成
 
@@ -577,13 +611,52 @@ dialogにはファイル時刻から取得した日付を入力欄へ反映す�
 
 `GP`および`GN`以外のtalker IDを持つGGA、RMCまたはZDAは読み飛ばし、警告する。
 
+### 4.19 plotcore fullのplot area
+
+#### FR-FULL-001 File/Slots area
+
+`plotcore full`は、読み込み済みファイルおよびスロットを操作するFile/Slots areaを持つ。File/Slots areaは表示および非表示を切り替えられるものとする。
+
+#### FR-FULL-002 plot areaの種類
+
+`plotcore full`は、以下の4種類のplot areaを生成できるものとする。
+
+- Normal 2D
+- Normal Time Series
+- Relative 2D
+- Relative Time Series
+
+`plotcore full`では、水平軌跡と時系列を1個のareaへ組み合わせるBoth表示を設けない。
+
+#### FR-FULL-003 任意個のinstance
+
+各種類のplot areaを任意個生成できるものとする。実装上の最大instance数を設定することは許容し、具体的な上限は性能検証に基づいて定める。
+
+#### FR-FULL-004 floating area
+
+各plot instanceはapplication内の独立したfloating areaとして表示し、利用者が移動および寸法変更できるものとする。
+
+#### FR-FULL-005 lifecycle
+
+各plot instanceは個別に表示、非表示、再表示および削除できるものとする。非表示状態ではinstanceおよびそのview stateを保持する。
+
+#### FR-FULL-006 instance固有状態
+
+各plot instanceは、軸範囲、描画領域長、表示縮尺、zoom/pan状態、auto-fit状態、描画形式および表示成分を独立して保持する。
+
+#### FR-FULL-007 共通状態
+
+読み込み済みファイル、スロット順、ファイル表示状態、品質filter、共通時刻範囲、ENU基準、基準epoch対応tolerance、正規化データおよびrelative dataは、すべてのplot instanceで共有する。
+
+plot instanceの追加によって、同一の正規化処理、ENU変換または基準epoch対応付けをinstanceごとに重複実行しない。
+
 ## 5. 表示要件
 
 本節では、機能要件で定義したデータおよび操作を画面上で識別し、操作するための表示要件を定義する。
 
 入力データの解釈、時刻の正規化、重複epochの処理、基準epochとの対応付けおよび測位解品質の分類規則は、`data-specification.md`で定義する。
 
-### 5.1 画面構成およびタブ
+### 5.1 plotcore lightの画面構成およびタブ
 
 #### DR-VIEW-001 タブバー
 
@@ -611,7 +684,7 @@ dialogにはファイル時刻から取得した日付を入力欄へ反映す�
 
 軸、目盛り、入力欄、操作ボタンその他のUIに必要な領域を除き、未使用の空白領域を設けない。
 
-### 5.2 ファイルスロットの表示と操作
+### 5.2 plotcore lightのファイルスロット表示と操作
 
 #### DR-SLOT-001 左サイドバー
 
@@ -824,7 +897,25 @@ caution indicatorは、通知履歴のClear操作によって消去する。
 
 部分読み込み、時刻逆行および時刻重複等、処理を継続できる警告は非modal通知として通知履歴へ追加する。
 
-### 5.10 RTKPLOT実装確認後に確定する事項
+### 5.10 plotcore fullのwindow表示
+
+#### DR-FULL-001 File/Slots area
+
+File/Slots areaは他のplot areaから独立して表示し、利用者が表示または非表示を切り替えられるものとする。
+
+#### DR-FULL-002 plot instanceの識別
+
+同じ種類のplot areaを複数表示した場合も、各instanceをwindow titleまたはinstance番号によって識別できるものとする。
+
+#### DR-FULL-003 独立した描画領域
+
+各plot instanceは固有の描画領域を持つ。描画領域長の数値指定、window resize、軸範囲および表示縮尺の関係には、共通のプロット要件を適用する。
+
+#### DR-FULL-004 非表示instance
+
+非表示のplot instanceは描画処理の対象外とする。再表示した場合は、非表示前のview stateを復元する。
+
+### 5.11 RTKPLOT実装確認後に確定する事項
 
 以下の具体仕様は、RTKPLOTの実装を確認した後に本節または`data-specification.md`へ追記する。
 
