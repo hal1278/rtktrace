@@ -83,6 +83,7 @@ analysis_library = static_library(
   'plotcore-analysis',
   [
     'src/analysis/coordinates.cpp',
+    'src/analysis/gps_time.cpp',
     'src/analysis/sample_rate.cpp',
   ],
   dependencies : model_dep,
@@ -137,3 +138,12 @@ sample_rate_test = executable(
 )
 
 test('plotcore-sample-rate', sample_rate_test)
+
+gps_time_test = executable(
+  'plotcore-gps-time-test',
+  'tests/gps_time.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+
+test('plotcore-gps-time', gps_time_test)
