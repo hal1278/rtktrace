@@ -81,7 +81,10 @@ model_dep = declare_dependency(
 
 analysis_library = static_library(
   'plotcore-analysis',
-  'src/analysis/coordinates.cpp',
+  [
+    'src/analysis/coordinates.cpp',
+    'src/analysis/sample_rate.cpp',
+  ],
   dependencies : model_dep,
   install : false,
 )
@@ -125,3 +128,12 @@ coordinates_test = executable(
 )
 
 test('plotcore-coordinates', coordinates_test)
+
+sample_rate_test = executable(
+  'plotcore-sample-rate-test',
+  'tests/sample_rate.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+
+test('plotcore-sample-rate', sample_rate_test)
