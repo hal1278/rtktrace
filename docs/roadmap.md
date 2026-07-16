@@ -19,11 +19,14 @@ lightの機能、性能およびcomponent境界を検証した後、同じshared
 - `requirements.md`の共通、lightおよびfull要件の整理
 - `data-specification.md`の入力・時刻・座標・品質・matching・統計仕様
 - `architecture.md`のapplication targetと共有境界
-- 言語およびbuild systemの確定
-- GUI frameworkの確定
-- window/input backendの確定
-- graphics APIの確定
-- plot backendのprototype検証
+- C++20、Nix flake、MesonおよびNinjaによるbuild stackの確定
+- Dear ImGui、SDL3、OpenGL3 renderer backendおよびImPlotによるGUI stackの確定
+- SDL3によるLinux native window作成確認
+- SDL3によるWindows x86-64 cross build確認
+- Dear ImGui公式SDL3/OpenGL3 backendのbuild確認
+- ImPlotのbuild確認
+- Linux GUI smoke確認
+- ImPlotによるaxis、auto-fit、equal scaleおよび性能の後続prototype
 - 初期threading modelの確定
 
 ### 完了条件
@@ -33,6 +36,8 @@ lightの機能、性能およびcomponent境界を検証した後、同じshared
 - parserおよび正規化の実装に必要なdata specificationが定義されている。
 - application固有UIがcoreへ依存逆流しない構成が定義されている。
 - 初期実装stackが確定している。
+- Linux native packageおよびWindows x86-64 cross packageが同じMeson projectからbuildできる。
+- graphical sessionを必要としないflake checkが実行できる。
 
 ## 3. Phase 1: Shared data foundation
 
@@ -113,6 +118,7 @@ application layoutに依存しないtrajectoryおよびtime-series componentを�
 - subplot
 - Up/ellipsoidal height
 - performance measurement
+- ImPlot baselineでのaxis、auto-fitおよびequal scaleのprototype評価
 
 ### 完了条件
 
@@ -221,4 +227,4 @@ full実装前に、light固有処理とshared componentの境界を検証する�
 - Windows配布
 - 追加plot種別
 
-本phaseの項目は、基本full applicationの完了条件には含めない。
+本phaseの項目は、基本full applicationの完了条件には含めない。docking、multi-viewportおよびcustom GPU rendererを採用するかは未確定であり、custom rendererはbaselineの測定結果に基づいてのみ検討する。

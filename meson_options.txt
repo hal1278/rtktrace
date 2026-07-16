@@ -1,0 +1,11 @@
+option(
+  'imgui_source_dir',
+  type : 'string',
+  description : 'Path to the pinned Dear ImGui source tree',
+)
+
+option(
+  'implot_source_dir',
+  type : 'string',
+  description : 'Path to the pinned ImPlot source tree',
+)

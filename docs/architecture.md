@@ -150,9 +150,11 @@ plotcore-light        plotcore-full
 
 循環依存を設けない。
 
-I/O、modelおよびanalysisからGUI frameworkの型を参照しない。
+I/O、modelおよびanalysisからDear ImGui、SDL3、OpenGLまたはImPlotの型を参照しない。
 
 plot componentがGUI frameworkまたはgraphics APIへ依存する場合も、data modelへその型を漏らさない。
+
+SDL3、OpenGL、Dear ImGuiおよびImPlotのcontext生成とbackend初期化はapplication composition側へ置く。plot componentはapplication window layoutを認識しない。
 
 ## 6. データ所有
 
@@ -313,22 +315,45 @@ PlotInstance
 
 非表示instanceはview stateを保持し、描画対象から除外する。
 
-## 11. Rendering backend
+## 11. Implementation stack and rendering backend
 
-GUI framework、window/input backend、graphics APIおよびplot libraryは未確定である。
+初期実装stackを次で確定する。
 
-候補の比較とprototype検証後に、以下を確定する。
+| Concern | Decision |
+|---|---|
+| implementation language | C++20 |
+| environment | Nix flake |
+| dependency management | Nix |
+| build definition | Meson |
+| build executor | Ninja |
+| GUI framework | Dear ImGui |
+| platform/window/input backend | SDL3 |
+| graphics API | OpenGL |
+| renderer backend | official `imgui_impl_opengl3.cpp` |
+| platform backend | official `imgui_impl_sdl3.cpp` |
+| plot backend | ImPlot |
+| initial Dear ImGui line | `master`系release/tagまたは固定commit |
+| initial docking | disabled |
+| initial multi-viewport | disabled |
+| OpenGL loader | Dear ImGui OpenGL3 backend embedded loader |
 
-- GUI framework
-- window/input backend
-- graphics API
-- Dear ImGuiを使用する場合のbranch
-- ImPlotまたは独自plot renderer
-- multi-viewportの初期対応有無
+初期GUI smoke targetはprototypeとしてOpenGL 3.3 core profileを要求する。この値は製品仕様上の恒久的minimum versionではない。
+
+window、event、keyboard、mouse、clipboard、IME、OpenGL contextおよびbuffer swapはSDL3へ委譲する。applicationからX11、Wayland、Win32 APIを直接選択または使用しない。
+
+初期実装ではDear ImGui dockingおよびmulti-viewportを有効にしない。full applicationで採用するかは将来拡張として未確定のままとする。custom OpenGL plot rendererはbaselineの測定結果によって必要性が示された場合だけ検討する。
 
 backend選定によって、I/O、model、analysisおよびdata specificationを変更しない構成とする。
 
-## 12. Threading
+## 12. Build and dependency policy
+
+Nix flakeがcompiler、linker、build tool、target sysrootおよび全external dependencyのversionとsource revisionを固定する。Linux native buildとLinuxからWindows x86-64へのcross buildは同じtop-level `meson.build`とsource listを使用する。
+
+`plotcore`本体のbuildにはCMakeを使用しない。external dependencyが自身のupstream build工程で使用するbuild systemは制限せず、Nix derivation内でCMakeを使用してよい。
+
+Mesonのexternal dependency探索方法はdependencyごとに明示的に固定する。Meson Wrap、subproject fallback、`method : 'auto'`およびbuild時downloadを使用しない。必要なdependencyを解決できない場合はconfigure時に失敗させる。
+
+## 13. Threading
 
 初期実装でworker threadを使用する範囲は未確定である。
 
@@ -342,9 +367,11 @@ backend選定によって、I/O、model、analysisおよびdata specificationを
 
 非同期処理を導入する場合はgenerationを結果へ付与し、古い設定に基づく完了結果を破棄する。
 
-## 13. Build target
+## 14. Build target
 
-想定するtarget構成は以下とする。具体的なtarget名はbuild system確定時に調整できる。
+application executable target名は`plotcore-light`とする。初期GUI build foundationではこのtargetへDear ImGui、SDL3、OpenGLおよびImPlotを直接組み込み、headless smoke testを別targetとしてbuildする。
+
+将来の想定target構成は以下とする。
 
 ```text
 shared libraries
@@ -361,7 +388,7 @@ executables
 
 最初は`plotcore-light`だけをbuild可能としてよい。shared libraryは必要以上に細分化せず、依存境界が明確になる最小単位で構成する。
 
-## 14. Testing
+## 15. Testing
 
 GUIを必要としない以下はunit test可能なcomponentとして実装する。
 
@@ -378,7 +405,9 @@ GUIを必要としない以下はunit test可能なcomponentとして実装す�
 
 plot renderingは、計算部分とgraphics API呼び出しを可能な範囲で分離する。
 
-## 15. 確定事項
+GUI executableはgraphical sessionを必要とするため通常のautomated testとして起動しない。Linux native checkではGUIを必要としないC++20 smoke testを実行する。Windows cross buildではtest executableをcompileしてよいが、Linux build machine上では実行しない。
+
+## 16. 確定事項
 
 - application targetは`plotcore light`および`plotcore full`とする。
 - lightを先に実装し、その後にfullを拡張として実装する。
@@ -386,16 +415,22 @@ plot renderingは、計算部分とgraphics API呼び出しを可能な範囲で
 - lightとfullは別のapplication targetとする。
 - fullは4種類のplot instanceを任意個保持できる。
 - coreはapplication固有window layoutを参照しない。
+- implementation languageはC++20とする。
+- environmentおよびdependency managementにはNix flakeを使用する。
+- build definitionにはMeson、build executorにはNinjaを使用する。
+- Linux native buildとWindows x86-64 cross buildを提供する。
+- GUIはDear ImGui、platform backendはSDL3、graphics APIはOpenGL、renderer backendは公式OpenGL3 backend、plot backendはImPlotとする。
+- Dear ImGuiは`master`系の固定release/tagまたはcommitを使用する。
+- 初期実装ではdockingおよびmulti-viewportを無効とする。
+- 初期OpenGL loaderはDear ImGui OpenGL3 backend内蔵loaderだけとする。
+- `plotcore`本体ではCMake、Meson Wrapおよびdependency fallbackを使用しない。
 
-## 16. 未確定事項
+## 17. 未確定事項
 
-- 実装言語の最終確定
-- GUI framework
-- window/input backend
-- graphics API
-- plot libraryまたは独自renderer
 - threading model
 - layout persistence
 - fullのdocking対応
 - fullのmulti-viewport対応
+- custom OpenGL plot rendererの将来追加
+- OpenGLの恒久的minimum version
 - 共有libraryの具体的な分割

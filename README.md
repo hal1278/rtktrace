@@ -13,9 +13,11 @@ The project goal is to provide the subset of RTKPLOT-like functionality required
 
 ## Project status
 
-Requirements definition and architecture planning.
+Requirements definition, architecture planning, and the common GUI build foundation.
 
 No stable application interface, file-format compatibility guarantee, or release is currently available.
+
+The current executable is a GUI smoke target only. It creates an SDL3/OpenGL window, initializes Dear ImGui and ImPlot, and displays a fixed four-point sample plot. It does not yet implement file loading, GNSS data types, coordinate conversion, or the application-specific `plotcore light` layout described below.
 
 ## Current implementation scope
 
@@ -55,9 +57,7 @@ These items may be reconsidered after the initial plotting functionality and per
 
 ## Platform direction
 
-The initial target platform is Linux.
-
-The design should not prevent later support for Windows.
+The native target platform is x86-64 Linux. The build foundation also supports cross-compiling an x86-64 Windows executable from x86-64 Linux; Windows packaging and distribution remain future work.
 
 The application is intended to run as a native desktop program and must not depend on Electron, WebView, or a browser runtime.
 
@@ -92,6 +92,54 @@ The implementation should prioritize:
 7. portability between Linux and Windows where practical
 
 Optimization should be based on measured bottlenecks. Complex level-of-detail processing or custom GPU rendering should not be introduced before the baseline implementation has been evaluated.
+
+## Build foundation
+
+The implementation language is C++20. A Nix flake fixes the build environment and dependency versions, Meson defines the `plotcore` build, and Ninja executes it. The GUI stack is Dear ImGui with the official SDL3 platform backend and official OpenGL3 renderer backend, plus ImPlot. The renderer uses the loader embedded in `imgui_impl_opengl3.cpp`; no additional OpenGL loader is used.
+
+Nix is the only dependency source. The project does not use Meson Wrap downloads or dependency fallbacks. CMake is not used to build `plotcore` itself. An external dependency may use its own upstream build system, including CMake, inside its Nix derivation.
+
+The canonical Linux native build is:
+
+```bash
+nix build .#plotcore-light-linux
+```
+
+The canonical Windows x86-64 cross build is:
+
+```bash
+nix build .#plotcore-light-windows
+```
+
+The Linux development environment provides the pinned sources through environment variables:
+
+```bash
+nix develop .#linux
+meson setup build/linux \
+  -Dimgui_source_dir="$IMGUI_SOURCE_DIR" \
+  -Dimplot_source_dir="$IMPLOT_SOURCE_DIR"
+meson compile -C build/linux
+meson test -C build/linux
+```
+
+The Windows cross development environment additionally provides a generated Meson cross file. Cross-built tests are compiled but are not run on Linux:
+
+```bash
+nix develop .#windows
+meson setup build/windows \
+  --cross-file "$PLOTCORE_MESON_CROSS_FILE" \
+  -Dimgui_source_dir="$IMGUI_SOURCE_DIR" \
+  -Dimplot_source_dir="$IMPLOT_SOURCE_DIR"
+meson compile -C build/windows
+```
+
+Run all sandbox build checks with:
+
+```bash
+nix flake check
+```
+
+The GUI smoke executable is installed as `bin/plotcore-light` for Linux and `bin/plotcore-light.exe` for Windows. Its OpenGL 3.3 core-profile request is a prototype choice, not a permanent product minimum.
 
 ## License
 
