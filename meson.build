@@ -86,6 +86,7 @@ analysis_library = static_library(
     'src/analysis/coordinates.cpp',
     'src/analysis/gps_time.cpp',
     'src/analysis/sample_rate.cpp',
+    'src/analysis/statistics.cpp',
   ],
   dependencies : model_dep,
   install : false,
@@ -157,3 +158,12 @@ common_time_range_test = executable(
 )
 
 test('plotcore-common-time-range', common_time_range_test)
+
+statistics_test = executable(
+  'plotcore-statistics-test',
+  'tests/statistics.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+
+test('plotcore-statistics', statistics_test)
