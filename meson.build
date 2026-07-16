@@ -96,6 +96,17 @@ analysis_dep = declare_dependency(
   link_with : analysis_library,
 )
 
+io_library = static_library(
+  'plotcore-io',
+  'src/io/pos_parser.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+io_dep = declare_dependency(
+  dependencies : analysis_dep,
+  link_with : io_library,
+)
+
 gui_dependencies = static_library(
   'plotcore-gui-dependencies',
   imgui_sources,
@@ -167,3 +178,16 @@ statistics_test = executable(
 )
 
 test('plotcore-statistics', statistics_test)
+
+pos_parser_test = executable(
+  'plotcore-pos-parser-test',
+  'tests/pos_parser.cpp',
+  dependencies : io_dep,
+  install : false,
+)
+
+test(
+  'plotcore-pos-parser',
+  pos_parser_test,
+  args : join_paths(meson.project_source_root(), 'tests', 'data', 'fictional.pos'),
+)

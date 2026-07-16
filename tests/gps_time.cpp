@@ -136,6 +136,24 @@ void test_invalid_utc()
         "nanosecond outside one second is rejected");
 }
 
+void test_gps_civil_time()
+{
+    using plotcore::GpsCivilTime;
+    using plotcore::gps_civil_to_gps_time;
+
+    check(gps_civil_to_gps_time(GpsCivilTime{1980, 1, 6, 0, 0, 0, 0})
+            == plotcore::GpsTime{0},
+        "GPS civil epoch maps to zero without a UTC offset");
+    check(gps_civil_to_gps_time(GpsCivilTime{1980, 1, 7, 0, 0, 0, 25})
+            == plotcore::GpsTime{86'400 * second_ns + 25},
+        "GPS civil time is interpreted directly as GPST");
+    check(!gps_civil_to_gps_time(GpsCivilTime{2023, 2, 29, 0, 0, 0, 0}).has_value(),
+        "invalid GPS civil date is rejected");
+    check(!gps_civil_to_gps_time(GpsCivilTime{2016, 12, 31, 23, 59, 60, 0})
+               .has_value(),
+        "GPST civil time does not contain UTC leap seconds");
+}
+
 } // namespace
 
 int main()
@@ -144,6 +162,7 @@ int main()
     test_gps_epoch_and_current_offset();
     test_leap_second_continuity();
     test_invalid_utc();
+    test_gps_civil_time();
 
     if (failures != 0) {
         std::cerr << failures << " GPS-time test(s) failed\n";

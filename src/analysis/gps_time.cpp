@@ -130,4 +130,32 @@ std::optional<GpsTime> utc_civil_to_gps_time(UtcCivilTime utc) noexcept
         gps_seconds * nanoseconds_per_second + static_cast<std::int64_t>(utc.nanosecond)};
 }
 
+std::optional<GpsTime> gps_civil_to_gps_time(GpsCivilTime gps) noexcept
+{
+    const std::chrono::year_month_day date{
+        std::chrono::year{gps.year}, std::chrono::month{gps.month}, std::chrono::day{gps.day}};
+    if (!date.ok() || gps.hour >= 24 || gps.minute >= 60 || gps.second >= 60
+        || gps.nanosecond >= nanoseconds_per_second) {
+        return std::nullopt;
+    }
+
+    const std::chrono::sys_days day_point{date};
+    const std::chrono::sys_days gps_epoch{gps_epoch_date};
+    if (day_point < gps_epoch) {
+        return std::nullopt;
+    }
+
+    const std::int64_t days_since_gps_epoch = (day_point - gps_epoch).count();
+    const std::int64_t gps_seconds = days_since_gps_epoch * seconds_per_day
+        + static_cast<std::int64_t>(gps.hour) * 3'600
+        + static_cast<std::int64_t>(gps.minute) * 60 + static_cast<std::int64_t>(gps.second);
+    const std::int64_t maximum_seconds =
+        (std::numeric_limits<std::int64_t>::max() - gps.nanosecond) / nanoseconds_per_second;
+    if (gps_seconds > maximum_seconds) {
+        return std::nullopt;
+    }
+    return GpsTime{
+        gps_seconds * nanoseconds_per_second + static_cast<std::int64_t>(gps.nanosecond)};
+}
+
 } // namespace plotcore
