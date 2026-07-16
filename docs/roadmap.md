@@ -26,8 +26,11 @@ lightの機能、性能およびcomponent境界を検証した後、同じshared
 - Dear ImGui公式SDL3/OpenGL3 backendのbuild確認
 - ImPlotのbuild確認
 - Linux GUI smoke確認
-- ImPlotによるaxis、auto-fit、equal scaleおよび性能の後続prototype
-- 初期threading modelの確定
+- shared data-processing APIは同期APIとし、各処理は呼出元threadで完了する。
+- 初期実装ではworker threadを使用しない。
+- I/O、parse、normalization、ENUおよびrelative処理はGUI frameworkの型に依存させず、将来worker threadへdispatchできる境界を維持する。
+- 非同期job/result用generation IDは非同期処理を実際に導入する時点で追加する。
+- cache invalidationまたはcache version管理と、非同期job/resultのgeneration IDを混同しない。
 
 ### 完了条件
 
@@ -36,8 +39,11 @@ lightの機能、性能およびcomponent境界を検証した後、同じshared
 - parserおよび正規化の実装に必要なdata specificationが定義されている。
 - application固有UIがcoreへ依存逆流しない構成が定義されている。
 - 初期実装stackが確定している。
+- 初期threading modelが確定している。
 - Linux native packageおよびWindows x86-64 cross packageが同じMeson projectからbuildできる。
 - graphical sessionを必要としないflake checkが実行できる。
+
+現在のGUI/build foundationは上記の完了条件を満たしているため、Phase 0は完了とする。
 
 ## 3. Phase 1: Shared data foundation
 
@@ -84,7 +90,7 @@ lightおよびfullで共有する座標処理と基準相対dataを完成させ�
 - relative E/N/U/H
 - ECEF normによる基準相対距離
 - relative cache
-- cache generation管理
+- cache invalidationおよびcache revision管理
 
 ### 完了条件
 
@@ -102,7 +108,6 @@ application layoutに依存しないtrajectoryおよびtime-series componentを�
 
 ### 内容
 
-- axis layout
 - tickおよびgrid
 - Normal/Relative 2D trajectory
 - Normal/Relative Time Series
@@ -110,15 +115,11 @@ application layoutに依存しないtrajectoryおよびtime-series componentを�
 - quality color
 - slot marker
 - drawing order
-- auto-fit
-- equal scale
 - m/px
 - numeric rangeおよびaxis length
-- panおよびzoom
-- subplot
 - Up/ellipsoidal height
-- performance measurement
-- ImPlot baselineでのaxis、auto-fitおよびequal scaleのprototype評価
+- ImPlot baseline prototypeによるaxis behavior、auto-fit、equal scale、subplotおよびpan/zoomの実装・評価
+- 数万点を持つ複数fileでの描画性能測定
 
 ### 完了条件
 

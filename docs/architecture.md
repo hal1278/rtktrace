@@ -14,7 +14,9 @@
 - light固有の固定layoutをcoreおよびplot componentへ混入させない。
 - full固有のplot instance管理をlightおよびcoreへ混入させない。
 - 数万点規模の複数ファイルを対話的に操作できる性能を確保する。
-- Linuxを初期対象とし、Windows対応を妨げない。
+- native targetはx86-64 Linuxとする。
+- x86-64 Linuxからx86-64 Windows executableをcross buildする。
+- Windows packaging、installer、code signingおよび配布形式は将来事項とする。
 - browser、ElectronおよびWebViewへ依存しない。
 
 ## 3. Application target
@@ -74,7 +76,6 @@ I/O componentはGUI、plot view stateおよびapplication targetへ依存しな�
 - ENU基準設定
 - estimated Hzおよびoverride Hz
 - diagnostic
-- generation情報
 
 data modelはapplication固有windowを保持しない。
 
@@ -355,9 +356,11 @@ Mesonのexternal dependency探索方法はdependencyごとに明示的に固定�
 
 ## 13. Threading
 
-初期実装でworker threadを使用する範囲は未確定である。
+初期実装はsingle-threadedとする。shared data-processing functionは同期的に実行し、呼出元threadへ結果を返す。初期`plotcore light`ではapplicationのUI threadからこれらのfunctionを呼び出してよい。
 
-少なくとも、将来以下をUI thread外へ移動できる境界を維持する。
+初期実装へworker thread、task queue、future、callbackまたは非同期job stateを導入しない。
+
+将来必要に応じて非同期化できるよう、I/O、modelおよびanalysisはDear ImGui、SDL3、OpenGLおよびImPlotから分離する。特に以下の処理をGUI frameworkの型へ依存させない。
 
 - file I/O
 - parseおよびnormalization
@@ -365,7 +368,9 @@ Mesonのexternal dependency探索方法はdependencyごとに明示的に固定�
 - relative cache生成
 - statistics
 
-非同期処理を導入する場合はgenerationを結果へ付与し、古い設定に基づく完了結果を破棄する。
+非同期処理を導入する場合は、その時点でjob/resultへgeneration IDを付与し、古い設定に基づく完了結果を破棄する。初期状態では非同期処理のためだけのgeneration fieldをdata modelへ必須化しない。
+
+Phase 2で必要となるcache invalidation、cache revisionまたは再計算管理は、非同期job/resultのgeneration IDとは別概念として扱う。
 
 ## 14. Build target
 
@@ -418,19 +423,21 @@ GUI executableはgraphical sessionを必要とするため通常のautomated tes
 - implementation languageはC++20とする。
 - environmentおよびdependency managementにはNix flakeを使用する。
 - build definitionにはMeson、build executorにはNinjaを使用する。
-- Linux native buildとWindows x86-64 cross buildを提供する。
+- native targetはx86-64 Linuxとし、x86-64 Linuxからx86-64 Windows executableをcross buildする。
 - GUIはDear ImGui、platform backendはSDL3、graphics APIはOpenGL、renderer backendは公式OpenGL3 backend、plot backendはImPlotとする。
 - Dear ImGuiは`master`系の固定release/tagまたはcommitを使用する。
 - 初期実装ではdockingおよびmulti-viewportを無効とする。
 - 初期OpenGL loaderはDear ImGui OpenGL3 backend内蔵loaderだけとする。
 - `plotcore`本体ではCMake、Meson Wrapおよびdependency fallbackを使用しない。
+- 初期実装はsingle-threadedとし、shared data-processing functionは同期的に実行する。
 
 ## 17. 未確定事項
 
-- threading model
+- worker threadを将来導入する対象および条件（性能測定後に判断する）
 - layout persistence
 - fullのdocking対応
 - fullのmulti-viewport対応
 - custom OpenGL plot rendererの将来追加
 - OpenGLの恒久的minimum version
+- Windows packaging、installer、code signingおよび配布形式
 - 共有libraryの具体的な分割
