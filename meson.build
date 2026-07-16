@@ -67,6 +67,29 @@ gui_include_directories = include_directories(
   implot_source_dir,
 )
 
+model_include_directories = include_directories('include')
+model_library = static_library(
+  'plotcore-model',
+  'src/model/loaded_file.cpp',
+  include_directories : model_include_directories,
+  install : false,
+)
+model_dep = declare_dependency(
+  include_directories : model_include_directories,
+  link_with : model_library,
+)
+
+analysis_library = static_library(
+  'plotcore-analysis',
+  'src/analysis/coordinates.cpp',
+  dependencies : model_dep,
+  install : false,
+)
+analysis_dep = declare_dependency(
+  dependencies : model_dep,
+  link_with : analysis_library,
+)
+
 gui_dependencies = static_library(
   'plotcore-gui-dependencies',
   imgui_sources,
@@ -80,15 +103,25 @@ executable(
   'plotcore-light',
   'src/light/main.cpp',
   include_directories : gui_include_directories,
-  dependencies : [sdl3_dep, opengl_dep],
+  dependencies : [analysis_dep, sdl3_dep, opengl_dep],
   link_with : gui_dependencies,
   install : true,
 )
 
-smoke_test = executable(
-  'plotcore-smoke-test',
-  'tests/smoke.cpp',
+model_test = executable(
+  'plotcore-model-test',
+  'tests/model.cpp',
+  dependencies : model_dep,
   install : false,
 )
 
-test('plotcore-smoke', smoke_test)
+test('plotcore-model', model_test)
+
+coordinates_test = executable(
+  'plotcore-coordinates-test',
+  'tests/coordinates.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+
+test('plotcore-coordinates', coordinates_test)
