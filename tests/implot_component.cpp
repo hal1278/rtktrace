@@ -1,6 +1,8 @@
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -96,6 +98,34 @@ int main()
         "trajectory rendering reports range, axis length, and meters per pixel");
     check(component.time_series_metrics().size() == 3,
         "normal time-series rendering produces linked East, North, and vertical panels");
+
+    const double requested_scale = component.trajectory_metrics()->meters_per_pixel * 2.0;
+    const std::optional<TimeRange> rendered_time = component.time_series_time_range();
+    check(component.set_trajectory_meters_per_pixel(requested_scale)
+            && !component.set_trajectory_ranges(NumericRange{1.0, 0.0},
+                NumericRange{0.0, 1.0}),
+        "numeric trajectory scale accepts positive values and rejects reversed ranges");
+    check(rendered_time.has_value()
+            && component.set_time_series_time_range(
+                TimeRange{rendered_time->start, rendered_time->start})
+            && component.set_time_series_position_range(
+                PositionComponent::East, NumericRange{0.0, 0.0001}),
+        "time-series numeric ranges are accepted and clamped to minimum spans");
+
+    ImGui::NewFrame();
+    ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+    ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::Begin("plot numeric ranges", nullptr,
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
+    component.render_time_series("Time series", PlotAreaSize{1500.0, 700.0});
+    ImGui::End();
+    ImGui::Render();
+    check(component.trajectory_metrics().has_value()
+            && std::abs(component.trajectory_metrics()->meters_per_pixel
+                    - requested_scale)
+                < requested_scale * 0.01,
+        "numeric trajectory scale is applied on the next frame");
 
     const auto prepare_ms = std::chrono::duration<double, std::milli>(
         prepare_end - prepare_start).count();

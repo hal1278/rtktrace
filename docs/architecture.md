@@ -383,8 +383,9 @@ Phase 2で必要となるcache invalidation、cache revisionまたは再計算�
 
 application executable target名は`plotcore-light`とする。ImPlot依存の共有描画componentは
 `plotcore-plot-gui`、graphics API非依存のdata view、axisおよびbatch処理は
-`plotcore-plot`へ分離する。headless ImPlot regression testはapplicationと同じ
-`plotcore-plot-gui`を使用する。
+`plotcore-plot`へ分離する。light固有のfile workflowと共有処理pipelineの状態管理は、
+GUI frameworkへ依存しない`plotcore-light-state`へ分離する。headless ImPlot regression
+testはapplicationと同じ`plotcore-plot-gui`を使用する。
 
 将来の想定target構成は以下とする。
 
@@ -395,6 +396,7 @@ shared libraries
   plotcore-analysis
   plotcore-plot
   plotcore-plot-gui
+  plotcore-light-state
   plotcore-ui-common
 
 executables

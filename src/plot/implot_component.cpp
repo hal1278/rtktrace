@@ -407,7 +407,7 @@ void draw_rtkplot_grid(
 } // namespace
 
 void ImPlotComponent::prepare(const PlotDataView& data, const QualityFilter& filter,
-    const ImPlotComponentOptions& options)
+    const ImPlotComponentOptions& options, bool fit_axes)
 {
     data_kind_ = data.kind;
     options_ = options;
@@ -425,9 +425,11 @@ void ImPlotComponent::prepare(const PlotDataView& data, const QualityFilter& fil
         time_series_.push_back(build_time_series_plot_batch(data, filter,
             PositionComponent::ReferenceRelativeDistance3d, options_.batch));
     }
-    request_fit();
-    trajectory_metrics_.reset();
-    time_series_metrics_.clear();
+    if (fit_axes) {
+        request_fit();
+        trajectory_metrics_.reset();
+        time_series_metrics_.clear();
+    }
 }
 
 void ImPlotComponent::clear() noexcept
@@ -438,12 +440,115 @@ void ImPlotComponent::clear() noexcept
     time_series_.clear();
     trajectory_metrics_.reset();
     time_series_metrics_.clear();
+    requested_trajectory_limits_.reset();
+    requested_time_limits_seconds_.reset();
+    for (std::optional<NumericRange>& range : requested_position_limits_) {
+        range.reset();
+    }
 }
 
 void ImPlotComponent::request_fit() noexcept
 {
+    request_trajectory_fit();
+    request_time_series_fit();
+}
+
+void ImPlotComponent::request_trajectory_fit() noexcept
+{
     fit_trajectory_pending_ = true;
+}
+
+void ImPlotComponent::request_time_series_fit() noexcept
+{
     fit_time_pending_ = true;
+}
+
+bool ImPlotComponent::set_trajectory_ranges(
+    NumericRange east, NumericRange north) noexcept
+{
+    if (!trajectory_metrics_.has_value() || !std::isfinite(east.minimum)
+        || !std::isfinite(east.maximum) || !std::isfinite(north.minimum)
+        || !std::isfinite(north.maximum) || east.minimum >= east.maximum
+        || north.minimum >= north.maximum) {
+        return false;
+    }
+    const double east_pixels = std::max(trajectory_metrics_->east_axis_length_px, 1.0);
+    const double north_pixels = std::max(trajectory_metrics_->north_axis_length_px, 1.0);
+    double meters_per_pixel = std::max(
+        east.length() / east_pixels, north.length() / north_pixels);
+    meters_per_pixel = std::max(meters_per_pixel,
+        minimum_position_axis_range_m / std::min(east_pixels, north_pixels));
+    const double east_center = (east.minimum + east.maximum) * 0.5;
+    const double north_center = (north.minimum + north.maximum) * 0.5;
+    requested_trajectory_limits_ = TrajectoryPlotMetrics{
+        NumericRange{east_center - meters_per_pixel * east_pixels * 0.5,
+            east_center + meters_per_pixel * east_pixels * 0.5},
+        NumericRange{north_center - meters_per_pixel * north_pixels * 0.5,
+            north_center + meters_per_pixel * north_pixels * 0.5},
+        meters_per_pixel,
+        east_pixels,
+        north_pixels,
+    };
+    fit_trajectory_pending_ = false;
+    return true;
+}
+
+bool ImPlotComponent::set_trajectory_meters_per_pixel(double value) noexcept
+{
+    if (!trajectory_metrics_.has_value() || !std::isfinite(value) || value <= 0.0) {
+        return false;
+    }
+    const double east_pixels = std::max(trajectory_metrics_->east_axis_length_px, 1.0);
+    const double north_pixels = std::max(trajectory_metrics_->north_axis_length_px, 1.0);
+    value = std::max(value,
+        minimum_position_axis_range_m / std::min(east_pixels, north_pixels));
+    const double east_center =
+        (trajectory_metrics_->east.minimum + trajectory_metrics_->east.maximum) * 0.5;
+    const double north_center =
+        (trajectory_metrics_->north.minimum + trajectory_metrics_->north.maximum) * 0.5;
+    return set_trajectory_ranges(
+        NumericRange{east_center - value * east_pixels * 0.5,
+            east_center + value * east_pixels * 0.5},
+        NumericRange{north_center - value * north_pixels * 0.5,
+            north_center + value * north_pixels * 0.5});
+}
+
+bool ImPlotComponent::set_time_series_time_range(TimeRange range) noexcept
+{
+    if (time_series_.empty() || !time_series_.front().time_origin.has_value()
+        || range.start > range.end) {
+        return false;
+    }
+    const GpsTime origin = *time_series_.front().time_origin;
+    NumericRange seconds{
+        static_cast<double>(range.start - origin) / nanoseconds_per_second,
+        static_cast<double>(range.end - origin) / nanoseconds_per_second,
+    };
+    if (seconds.length() < 0.001) {
+        const double center = (seconds.minimum + seconds.maximum) * 0.5;
+        seconds = NumericRange{center - 0.0005, center + 0.0005};
+    }
+    requested_time_limits_seconds_ = seconds;
+    fit_time_pending_ = false;
+    return true;
+}
+
+bool ImPlotComponent::set_time_series_position_range(
+    PositionComponent component, NumericRange range) noexcept
+{
+    const std::size_t index = static_cast<std::size_t>(component);
+    if (index >= requested_position_limits_.size() || !std::isfinite(range.minimum)
+        || !std::isfinite(range.maximum) || range.minimum >= range.maximum) {
+        return false;
+    }
+    if (range.length() < minimum_position_axis_range_m) {
+        const double center = (range.minimum + range.maximum) * 0.5;
+        range = NumericRange{center - minimum_position_axis_range_m * 0.5,
+            center + minimum_position_axis_range_m * 0.5};
+    }
+    requested_position_limits_[index] = range;
+    fit_time_pending_ = false;
+    return true;
 }
 
 void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize requested_size)
@@ -461,10 +566,14 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     if (fit_trajectory_pending_) {
         requested_fit = fit_trajectory(trajectory_, frame_size);
     }
-    NumericRange east_ticks = requested_fit.has_value() ? requested_fit->east
+    const std::optional<TrajectoryPlotMetrics> requested_limits =
+        requested_trajectory_limits_.has_value()
+        ? requested_trajectory_limits_
+        : requested_fit;
+    NumericRange east_ticks = requested_limits.has_value() ? requested_limits->east
         : trajectory_metrics_.has_value() ? trajectory_metrics_->east
                                           : NumericRange{-1.0, 1.0};
-    NumericRange north_ticks = requested_fit.has_value() ? requested_fit->north
+    NumericRange north_ticks = requested_limits.has_value() ? requested_limits->north
         : trajectory_metrics_.has_value() ? trajectory_metrics_->north
                                           : NumericRange{-1.0, 1.0};
     const std::vector<double> x_ticks = make_numeric_ticks(east_ticks, frame_size.x);
@@ -483,13 +592,15 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         ImPlot::SetupAxisTicks(
             ImAxis_Y1, y_ticks.data(), static_cast<int>(y_ticks.size()));
     }
-    if (fit_trajectory_pending_) {
-        if (requested_fit.has_value()) {
-            ImPlot::SetupAxesLimits(requested_fit->east.minimum, requested_fit->east.maximum,
-                requested_fit->north.minimum, requested_fit->north.maximum,
+    if (fit_trajectory_pending_ || requested_trajectory_limits_.has_value()) {
+        if (requested_limits.has_value()) {
+            ImPlot::SetupAxesLimits(requested_limits->east.minimum,
+                requested_limits->east.maximum, requested_limits->north.minimum,
+                requested_limits->north.maximum,
                 ImPlotCond_Always);
         }
         fit_trajectory_pending_ = false;
+        requested_trajectory_limits_.reset();
     }
     ImPlot::SetupFinish();
     draw_rtkplot_grid(x_ticks, y_ticks);
@@ -527,6 +638,9 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         last_time_range_seconds_ = expand_time_range(
             combined->minimum_x, combined->maximum_x);
     }
+    if (requested_time_limits_seconds_.has_value()) {
+        last_time_range_seconds_ = *requested_time_limits_seconds_;
+    }
 
     ImVec2 frame_size = widget_size(requested_size);
     const ImVec2 available = ImGui::GetContentRegionAvail();
@@ -563,15 +677,26 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         if (!fit_time_pending_ && index < previous_metrics.size()) {
             y_tick_range = previous_metrics[index].position;
         }
-        if (fit_time_pending_ && combined.has_value()) {
+        const std::size_t component_index = static_cast<std::size_t>(component);
+        const std::optional<NumericRange> requested_y =
+            component_index < requested_position_limits_.size()
+            ? requested_position_limits_[component_index]
+            : std::nullopt;
+        if ((fit_time_pending_ && combined.has_value())
+            || requested_time_limits_seconds_.has_value()) {
             ImPlot::SetupAxisLimits(ImAxis_X1, last_time_range_seconds_.minimum,
                 last_time_range_seconds_.maximum, ImPlotCond_Always);
-            if (batch.bounds.has_value()) {
+            if (fit_time_pending_ && batch.bounds.has_value()) {
                 const NumericRange y = expand_position_range(
                     batch.bounds->minimum_y, batch.bounds->maximum_y);
                 ImPlot::SetupAxisLimits(
                     ImAxis_Y1, y.minimum, y.maximum, ImPlotCond_Always);
             }
+        }
+        if (requested_y.has_value()) {
+            ImPlot::SetupAxisLimits(ImAxis_Y1,
+                requested_y->minimum, requested_y->maximum, ImPlotCond_Always);
+            y_tick_range = *requested_y;
         }
         const GpsTime origin = batch.time_origin.value_or(GpsTime{0});
         TimeTicks ticks = make_time_ticks(last_time_range_seconds_,
@@ -600,6 +725,10 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         ImPlot::EndPlot();
     }
     fit_time_pending_ = false;
+    requested_time_limits_seconds_.reset();
+    for (std::optional<NumericRange>& range : requested_position_limits_) {
+        range.reset();
+    }
     ImPlot::EndSubplots();
 }
 
@@ -628,6 +757,29 @@ const std::vector<TimeSeriesPanelMetrics>& ImPlotComponent::time_series_metrics(
     const noexcept
 {
     return time_series_metrics_;
+}
+
+std::optional<TimeRange> ImPlotComponent::time_series_time_range() const noexcept
+{
+    if (time_series_.empty() || !time_series_.front().time_origin.has_value()) {
+        return std::nullopt;
+    }
+    const long double origin = static_cast<long double>(
+        time_series_.front().time_origin->nanoseconds_since_gps_epoch);
+    const long double minimum = origin
+        + static_cast<long double>(last_time_range_seconds_.minimum)
+            * nanoseconds_per_second;
+    const long double maximum = origin
+        + static_cast<long double>(last_time_range_seconds_.maximum)
+            * nanoseconds_per_second;
+    if (minimum < static_cast<long double>(std::numeric_limits<std::int64_t>::min())
+        || maximum > static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
+        return std::nullopt;
+    }
+    return TimeRange{
+        GpsTime{static_cast<std::int64_t>(std::llround(minimum))},
+        GpsTime{static_cast<std::int64_t>(std::llround(maximum))},
+    };
 }
 
 } // namespace plotcore

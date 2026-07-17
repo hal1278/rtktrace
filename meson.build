@@ -129,6 +129,17 @@ io_dep = declare_dependency(
   link_with : io_library,
 )
 
+light_state_library = static_library(
+  'plotcore-light-state',
+  'src/light/application_state.cpp',
+  dependencies : [io_dep, plot_dep],
+  install : false,
+)
+light_state_dep = declare_dependency(
+  dependencies : [io_dep, plot_dep],
+  link_with : light_state_library,
+)
+
 gui_dependencies = static_library(
   'plotcore-gui-dependencies',
   imgui_sources,
@@ -148,9 +159,12 @@ plot_gui_library = static_library(
 
 executable(
   'plotcore-light',
-  'src/light/main.cpp',
+  [
+    'src/light/gui.cpp',
+    'src/light/main.cpp',
+  ],
   include_directories : gui_include_directories,
-  dependencies : [plot_dep, sdl3_dep, opengl_dep],
+  dependencies : [light_state_dep, sdl3_dep, opengl_dep],
   link_with : [plot_gui_library, gui_dependencies],
   install : true,
 )
@@ -246,6 +260,15 @@ implot_component_test = executable(
 )
 
 test('plotcore-implot-component', implot_component_test, timeout : 30)
+
+light_application_state_test = executable(
+  'plotcore-light-application-state-test',
+  'tests/light_application_state.cpp',
+  dependencies : light_state_dep,
+  install : false,
+)
+
+test('plotcore-light-application-state', light_application_state_test)
 
 statistics_test = executable(
   'plotcore-statistics-test',

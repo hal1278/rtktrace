@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
@@ -6,9 +7,10 @@
 #include "imgui.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_sdl3.h"
+#include "gui.hpp"
 #include "implot.h"
 
-int main()
+int main(int argc, char** argv)
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
@@ -89,9 +91,16 @@ int main()
 
     SDL_ShowWindow(window);
 
+    plotcore::LightGui gui;
+    for (int index = 1; index < argc; ++index) {
+        gui.enqueue_file(argv[index]);
+    }
+    int smoke_frames = 0;
+    if (const char* configured_frames = std::getenv("PLOTCORE_SMOKE_FRAMES")) {
+        smoke_frames = std::atoi(configured_frames);
+    }
+
     bool done = false;
-    const float x[] = {0.0F, 1.0F, 2.0F, 3.0F};
-    const float y[] = {0.0F, 1.0F, 4.0F, 9.0F};
 
     while (!done) {
         SDL_Event event;
@@ -114,14 +123,7 @@ int main()
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("plotcore light");
-        ImGui::TextUnformatted("GUI build smoke target");
-        if (ImPlot::BeginPlot("Quadratic samples")) {
-            ImPlot::SetupAxes("x", "y", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-            ImPlot::PlotLine("y = x^2", x, y, 4);
-            ImPlot::EndPlot();
-        }
-        ImGui::End();
+        gui.render(window);
 
         ImGui::Render();
         int display_width = 0;
@@ -137,6 +139,9 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
+        if (smoke_frames > 0 && --smoke_frames == 0) {
+            done = true;
+        }
     }
 
     ImPlot::DestroyContext();

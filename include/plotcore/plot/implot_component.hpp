@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <array>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -33,9 +34,18 @@ struct TimeSeriesPanelMetrics {
 class ImPlotComponent {
 public:
     void prepare(const PlotDataView& data, const QualityFilter& filter,
-        const ImPlotComponentOptions& options = {});
+        const ImPlotComponentOptions& options = {}, bool fit_axes = true);
     void clear() noexcept;
     void request_fit() noexcept;
+    void request_trajectory_fit() noexcept;
+    void request_time_series_fit() noexcept;
+
+    [[nodiscard]] bool set_trajectory_ranges(
+        NumericRange east, NumericRange north) noexcept;
+    [[nodiscard]] bool set_trajectory_meters_per_pixel(double value) noexcept;
+    [[nodiscard]] bool set_time_series_time_range(TimeRange range) noexcept;
+    [[nodiscard]] bool set_time_series_position_range(
+        PositionComponent component, NumericRange range) noexcept;
 
     void render_trajectory(std::string_view id, PlotAreaSize widget_size);
     void render_time_series(std::string_view id, PlotAreaSize widget_size);
@@ -47,6 +57,7 @@ public:
         const noexcept;
     [[nodiscard]] const std::vector<TimeSeriesPanelMetrics>& time_series_metrics()
         const noexcept;
+    [[nodiscard]] std::optional<TimeRange> time_series_time_range() const noexcept;
 
 private:
     PlotDataKind data_kind_{PlotDataKind::Normal};
@@ -59,6 +70,9 @@ private:
     std::optional<TrajectoryPlotMetrics> trajectory_metrics_;
     std::vector<TimeSeriesPanelMetrics> time_series_metrics_;
     NumericRange last_time_range_seconds_{0.0, 1.0};
+    std::optional<TrajectoryPlotMetrics> requested_trajectory_limits_;
+    std::optional<NumericRange> requested_time_limits_seconds_;
+    std::array<std::optional<NumericRange>, 5> requested_position_limits_{};
 };
 
 } // namespace plotcore

@@ -174,6 +174,14 @@ trajectoryおよび3段time-seriesを含む1 frameの時間を継続的に測定
 - partial loadおよびwarningを利用者が確認できる。
 - Linux上で想定データ量に対する性能を確認できる。
 
+現在のlight applicationは、GUI framework非依存のapplication state、POS/NMEAのfile
+workflow、100 MiB以上の確認、形式およびNMEA補完dialog、固定layout、slot sidebar、
+6表示モード、Both splitter、共通時刻範囲、ENU基準、reference matching、Hz override、
+Recorded/Expected summary、diagnostic履歴、quality filter、描画設定、auto-fit、および
+trajectory・時系列の数値range/scale入力を実装済みである。追加読み込み、visibility、
+並べ替えおよび削除ではplot rangeを維持する。残る詳細なrange interactionとLinux上の
+想定データ量でのapplication-level性能確認を完了した時点でPhase 4完了とする。
+
 ## 7. Phase 5: Light validation and shared-boundary cleanup
 
 ### 目的
