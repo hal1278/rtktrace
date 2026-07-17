@@ -45,9 +45,17 @@ public:
     [[nodiscard]] bool set_trajectory_meters_per_pixel(double value) noexcept;
     [[nodiscard]] bool pan_trajectory_by_fraction(
         double east_fraction, double north_fraction) noexcept;
+    [[nodiscard]] bool zoom_trajectory_by_factor(double factor,
+        std::optional<double> fixed_east = std::nullopt,
+        std::optional<double> fixed_north = std::nullopt) noexcept;
     [[nodiscard]] bool set_time_series_time_range(TimeRange range) noexcept;
     [[nodiscard]] bool set_time_series_position_range(
         PositionComponent component, NumericRange range) noexcept;
+    [[nodiscard]] bool zoom_time_series_time_by_factor(double factor,
+        std::optional<GpsTime> fixed_time = std::nullopt) noexcept;
+    [[nodiscard]] bool zoom_time_series_position_by_factor(
+        PositionComponent component, double factor,
+        std::optional<double> fixed_position = std::nullopt) noexcept;
 
     void render_trajectory(std::string_view id, PlotAreaSize widget_size);
     void render_time_series(std::string_view id, PlotAreaSize widget_size);

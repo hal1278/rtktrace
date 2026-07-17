@@ -180,8 +180,10 @@ workflow、100 MiB以上の確認、形式およびNMEA補完dialog、固定layo
 Recorded/Expected summary、diagnostic履歴、quality filter、描画設定、auto-fit、および
 trajectory・時系列の数値range/scale入力を実装済みである。数値入力はEnter確定、
 無効値の赤表示、位置およびscale単位切替に対応し、時系列縦軸rangeの一回適用と
-trajectoryの矢印キーpanも提供する。追加読み込み、visibility、並べ替えおよび削除では
-plot rangeを維持する。残る詳細なwheel/range interactionとLinux上の想定データ量での
+trajectoryの矢印キーpanも提供する。trajectoryと時系列は通常ホイールの中心固定zoom、
+`Ctrl`ホイールのカーソル固定zoomに対応し、時系列ではhover中の縦軸または最下部の
+共有時刻軸だけを変更する。追加読み込み、visibility、並べ替えおよび削除ではplot rangeを
+維持する。残る描画領域寸法変更を含む詳細なrange interactionとLinux上の想定データ量での
 application-level性能確認を完了した時点でPhase 4完了とする。
 
 ## 7. Phase 5: Light validation and shared-boundary cleanup

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -65,6 +66,7 @@ int main()
     ImGui::CreateContext();
     ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = nullptr;
     io.DisplaySize = ImVec2{1600.0F, 1200.0F};
     io.DeltaTime = 1.0F / 60.0F;
     // The production OpenGL3 backend advertises this before rendering. Mirror
@@ -150,6 +152,66 @@ int main()
                   - east_span * 0.05)
             < east_span * 0.001,
         "trajectory pan moves only the requested axis by five percent");
+
+    const double pre_zoom_span = component.trajectory_metrics()->east.length();
+    const double pre_zoom_center =
+        (component.trajectory_metrics()->east.minimum
+            + component.trajectory_metrics()->east.maximum)
+        * 0.5;
+    check(component.zoom_trajectory_by_factor(0.5),
+        "trajectory zoom accepts a center-fixed factor");
+    ImGui::NewFrame();
+    ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+    ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::Begin("plot wheel zoom", nullptr,
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
+    ImGui::End();
+    ImGui::Render();
+    const double zoomed_center =
+        (component.trajectory_metrics()->east.minimum
+            + component.trajectory_metrics()->east.maximum)
+        * 0.5;
+    check(std::abs(component.trajectory_metrics()->east.length()
+                  - pre_zoom_span * 0.5)
+                < pre_zoom_span * 0.01
+            && std::abs(zoomed_center - pre_zoom_center) < pre_zoom_span * 0.001,
+        "trajectory center-fixed zoom preserves the center and scales the span");
+
+    const std::optional<TimeRange> pre_zoom_time = component.time_series_time_range();
+    const auto pre_zoom_east = std::find_if(component.time_series_metrics().begin(),
+        component.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
+            return metrics.component == PositionComponent::East;
+        });
+    check(pre_zoom_time.has_value()
+            && pre_zoom_east != component.time_series_metrics().end()
+            && component.zoom_time_series_time_by_factor(2.0)
+            && component.zoom_time_series_position_by_factor(
+                PositionComponent::East, 2.0),
+        "time-series zoom accepts independent shared-time and vertical factors");
+    const double pre_zoom_east_span = pre_zoom_east->position.length();
+    const std::int64_t pre_zoom_time_span = pre_zoom_time->end - pre_zoom_time->start;
+    ImGui::NewFrame();
+    ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+    ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::Begin("time-series wheel zoom", nullptr,
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    component.render_time_series("Time series", PlotAreaSize{1500.0, 700.0});
+    ImGui::End();
+    ImGui::Render();
+    const std::optional<TimeRange> zoomed_time = component.time_series_time_range();
+    const auto zoomed_east = std::find_if(component.time_series_metrics().begin(),
+        component.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
+            return metrics.component == PositionComponent::East;
+        });
+    check(zoomed_time.has_value()
+            && zoomed_east != component.time_series_metrics().end()
+            && std::abs(static_cast<double>(zoomed_time->end - zoomed_time->start)
+                    - static_cast<double>(pre_zoom_time_span) * 2.0)
+                < static_cast<double>(pre_zoom_time_span) * 0.001
+            && std::abs(zoomed_east->position.length() - pre_zoom_east_span * 2.0)
+                < pre_zoom_east_span * 0.001,
+        "time-series zoom changes only the requested vertical range and shared time range");
 
     const auto prepare_ms = std::chrono::duration<double, std::milli>(
         prepare_end - prepare_start).count();

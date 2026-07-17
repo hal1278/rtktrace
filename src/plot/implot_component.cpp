@@ -531,6 +531,28 @@ bool ImPlotComponent::pan_trajectory_by_fraction(
     return true;
 }
 
+bool ImPlotComponent::zoom_trajectory_by_factor(double factor,
+    std::optional<double> fixed_east, std::optional<double> fixed_north) noexcept
+{
+    if (!trajectory_metrics_.has_value() || !std::isfinite(factor) || factor <= 0.0
+        || fixed_east.has_value() != fixed_north.has_value()
+        || (fixed_east.has_value()
+            && (!std::isfinite(*fixed_east) || !std::isfinite(*fixed_north)))) {
+        return false;
+    }
+    const double east_anchor = fixed_east.value_or(
+        (trajectory_metrics_->east.minimum + trajectory_metrics_->east.maximum) * 0.5);
+    const double north_anchor = fixed_north.value_or(
+        (trajectory_metrics_->north.minimum + trajectory_metrics_->north.maximum) * 0.5);
+    return set_trajectory_ranges(
+        NumericRange{
+            east_anchor + (trajectory_metrics_->east.minimum - east_anchor) * factor,
+            east_anchor + (trajectory_metrics_->east.maximum - east_anchor) * factor},
+        NumericRange{
+            north_anchor + (trajectory_metrics_->north.minimum - north_anchor) * factor,
+            north_anchor + (trajectory_metrics_->north.maximum - north_anchor) * factor});
+}
+
 bool ImPlotComponent::set_time_series_time_range(TimeRange range) noexcept
 {
     if (time_series_.empty() || !time_series_.front().time_origin.has_value()
@@ -569,6 +591,58 @@ bool ImPlotComponent::set_time_series_position_range(
     return true;
 }
 
+bool ImPlotComponent::zoom_time_series_time_by_factor(
+    double factor, std::optional<GpsTime> fixed_time) noexcept
+{
+    if (time_series_.empty() || !time_series_.front().time_origin.has_value()
+        || !std::isfinite(factor) || factor <= 0.0) {
+        return false;
+    }
+    const GpsTime origin = *time_series_.front().time_origin;
+    const double anchor = fixed_time.has_value()
+        ? static_cast<double>(*fixed_time - origin) / nanoseconds_per_second
+        : (last_time_range_seconds_.minimum + last_time_range_seconds_.maximum) * 0.5;
+    if (!std::isfinite(anchor)) {
+        return false;
+    }
+    NumericRange range{
+        anchor + (last_time_range_seconds_.minimum - anchor) * factor,
+        anchor + (last_time_range_seconds_.maximum - anchor) * factor,
+    };
+    if (!std::isfinite(range.minimum) || !std::isfinite(range.maximum)) {
+        return false;
+    }
+    if (range.length() < 0.001) {
+        range = NumericRange{anchor - 0.0005, anchor + 0.0005};
+    }
+    requested_time_limits_seconds_ = range;
+    fit_time_pending_ = false;
+    return true;
+}
+
+bool ImPlotComponent::zoom_time_series_position_by_factor(
+    PositionComponent component, double factor,
+    std::optional<double> fixed_position) noexcept
+{
+    if (!std::isfinite(factor) || factor <= 0.0
+        || (fixed_position.has_value() && !std::isfinite(*fixed_position))) {
+        return false;
+    }
+    const auto metrics = std::find_if(time_series_metrics_.begin(),
+        time_series_metrics_.end(), [component](const TimeSeriesPanelMetrics& item) {
+            return item.component == component;
+        });
+    if (metrics == time_series_metrics_.end()) {
+        return false;
+    }
+    const double anchor = fixed_position.value_or(
+        (metrics->position.minimum + metrics->position.maximum) * 0.5);
+    return set_time_series_position_range(component,
+        NumericRange{
+            anchor + (metrics->position.minimum - anchor) * factor,
+            anchor + (metrics->position.maximum - anchor) * factor});
+}
+
 void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize requested_size)
 {
     const std::string plot_id{id};
@@ -596,8 +670,12 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
                                           : NumericRange{-1.0, 1.0};
     const std::vector<double> x_ticks = make_numeric_ticks(east_ticks, frame_size.x);
     const std::vector<double> y_ticks = make_numeric_ticks(north_ticks, frame_size.y);
+    ImPlotInputMap& input_map = ImPlot::GetInputMap();
+    const float previous_zoom_rate = input_map.ZoomRate;
+    input_map.ZoomRate = 0.0F;
     if (!ImPlot::BeginPlot(plot_id.c_str(), frame_size,
             ImPlotFlags_NoLegend | ImPlotFlags_Equal)) {
+        input_map.ZoomRate = previous_zoom_rate;
         return;
     }
     ImPlot::SetupAxes("E-W (m)", "N-S (m)",
@@ -621,6 +699,13 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         requested_trajectory_limits_.reset();
     }
     ImPlot::SetupFinish();
+    const ImGuiIO& io = ImGui::GetIO();
+    const bool plot_hovered = ImPlot::IsPlotHovered();
+    const bool custom_zoom_modifiers = io.KeyMods == ImGuiMod_None
+        || io.KeyMods == ImGuiMod_Ctrl;
+    if (plot_hovered && io.MouseWheel != 0.0F && custom_zoom_modifiers) {
+        ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
+    }
     draw_rtkplot_grid(x_ticks, y_ticks);
     draw_batch(trajectory_, options_.marker_size_px);
     const ImPlotRect limits = ImPlot::GetPlotLimits();
@@ -632,7 +717,17 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         actual_size.x,
         actual_size.y,
     };
-    if (ImPlot::IsPlotHovered()) {
+    if (plot_hovered && io.MouseWheel != 0.0F && custom_zoom_modifiers) {
+        const double factor = std::pow(1.2, -static_cast<double>(io.MouseWheel));
+        if (io.KeyMods == ImGuiMod_Ctrl) {
+            const ImPlotPoint mouse = ImPlot::GetPlotMousePos();
+            static_cast<void>(zoom_trajectory_by_factor(
+                factor, mouse.x, mouse.y));
+        } else {
+            static_cast<void>(zoom_trajectory_by_factor(factor));
+        }
+    }
+    if (plot_hovered) {
         double east_fraction = 0.0;
         double north_fraction = 0.0;
         if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
@@ -653,6 +748,7 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         }
     }
     ImPlot::EndPlot();
+    input_map.ZoomRate = previous_zoom_rate;
 }
 
 void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize requested_size)
@@ -679,6 +775,13 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
     if (requested_time_limits_seconds_.has_value()) {
         last_time_range_seconds_ = *requested_time_limits_seconds_;
     }
+    const std::optional<NumericRange> requested_time_limits =
+        requested_time_limits_seconds_;
+    requested_time_limits_seconds_.reset();
+    const auto requested_position_limits = requested_position_limits_;
+    for (std::optional<NumericRange>& range : requested_position_limits_) {
+        range.reset();
+    }
 
     ImVec2 frame_size = widget_size(requested_size);
     const ImVec2 available = ImGui::GetContentRegionAvail();
@@ -700,7 +803,11 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         PlotBatch& batch = time_series_[index];
         const PositionComponent component = batch.component.value_or(PositionComponent::Up);
         const std::string plot_id = "##panel" + std::to_string(index);
+        ImPlotInputMap& input_map = ImPlot::GetInputMap();
+        const float previous_zoom_rate = input_map.ZoomRate;
+        input_map.ZoomRate = 0.0F;
         if (!ImPlot::BeginPlot(plot_id.c_str(), ImVec2{-1.0F, 0.0F}, ImPlotFlags_NoLegend)) {
+            input_map.ZoomRate = previous_zoom_rate;
             continue;
         }
         const bool bottom = index + 1 == time_series_.size();
@@ -717,11 +824,11 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         }
         const std::size_t component_index = static_cast<std::size_t>(component);
         const std::optional<NumericRange> requested_y =
-            component_index < requested_position_limits_.size()
-            ? requested_position_limits_[component_index]
+            component_index < requested_position_limits.size()
+            ? requested_position_limits[component_index]
             : std::nullopt;
         if ((fit_time_pending_ && combined.has_value())
-            || requested_time_limits_seconds_.has_value()) {
+            || requested_time_limits.has_value()) {
             ImPlot::SetupAxisLimits(ImAxis_X1, last_time_range_seconds_.minimum,
                 last_time_range_seconds_.maximum, ImPlotCond_Always);
             if (fit_time_pending_ && batch.bounds.has_value()) {
@@ -750,6 +857,16 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
                 ImAxis_Y1, y_ticks.data(), static_cast<int>(y_ticks.size()));
         }
         ImPlot::SetupFinish();
+        const ImGuiIO& io = ImGui::GetIO();
+        const bool plot_hovered = ImPlot::IsPlotHovered();
+        const bool time_axis_hovered = bottom && ImPlot::IsAxisHovered(ImAxis_X1);
+        const bool custom_zoom_modifiers = io.KeyMods == ImGuiMod_None
+            || io.KeyMods == ImGuiMod_Ctrl;
+        const bool custom_zoom = io.MouseWheel != 0.0F && custom_zoom_modifiers
+            && (plot_hovered || time_axis_hovered);
+        if (custom_zoom) {
+            ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
+        }
         draw_rtkplot_grid(ticks.values, y_ticks);
         draw_batch(batch, options_.marker_size_px);
         const ImPlotRect limits = ImPlot::GetPlotLimits();
@@ -760,13 +877,36 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
             NumericRange{limits.Y.Min, limits.Y.Max},
             actual_size.y,
         });
+        if (custom_zoom) {
+            const double factor = std::pow(1.2, -static_cast<double>(io.MouseWheel));
+            const ImPlotPoint mouse = ImPlot::GetPlotMousePos();
+            if (plot_hovered) {
+                static_cast<void>(zoom_time_series_position_by_factor(component,
+                    factor, io.KeyMods == ImGuiMod_Ctrl
+                        ? std::optional<double>{mouse.y}
+                        : std::nullopt));
+            } else {
+                const GpsTime origin = batch.time_origin.value_or(GpsTime{0});
+                const long double mouse_nanoseconds =
+                    static_cast<long double>(origin.nanoseconds_since_gps_epoch)
+                    + static_cast<long double>(mouse.x) * nanoseconds_per_second;
+                std::optional<GpsTime> fixed_time;
+                if (io.KeyMods == ImGuiMod_Ctrl
+                    && mouse_nanoseconds
+                        >= static_cast<long double>(std::numeric_limits<std::int64_t>::min())
+                    && mouse_nanoseconds
+                        <= static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
+                    fixed_time = GpsTime{
+                        static_cast<std::int64_t>(std::llround(mouse_nanoseconds))};
+                }
+                static_cast<void>(zoom_time_series_time_by_factor(
+                    factor, fixed_time));
+            }
+        }
         ImPlot::EndPlot();
+        input_map.ZoomRate = previous_zoom_rate;
     }
     fit_time_pending_ = false;
-    requested_time_limits_seconds_.reset();
-    for (std::optional<NumericRange>& range : requested_position_limits_) {
-        range.reset();
-    }
     ImPlot::EndSubplots();
 }
 
