@@ -19,6 +19,7 @@ namespace plotcore {
 class LightGui {
 public:
     void enqueue_file(std::filesystem::path path);
+    [[nodiscard]] bool add_loaded_file(LoadedFile file);
     void open_file_dialog(SDL_Window* window);
     void render(SDL_Window* window);
 

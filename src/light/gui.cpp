@@ -143,6 +143,16 @@ void LightGui::enqueue_file(std::filesystem::path path)
     }
 }
 
+bool LightGui::add_loaded_file(LoadedFile file)
+{
+    const bool first_file = state_.files().empty();
+    if (!state_.add_loaded_file(std::move(file))) {
+        return false;
+    }
+    mark_plot_data_changed(first_file);
+    return true;
+}
+
 void LightGui::open_file_dialog(SDL_Window* window)
 {
     static constexpr std::array filters{

@@ -261,6 +261,20 @@ implot_component_test = executable(
 
 test('plotcore-implot-component', implot_component_test, timeout : 30)
 
+light_gui_test = executable(
+  'plotcore-light-gui-test',
+  [
+    'src/light/gui.cpp',
+    'tests/light_gui.cpp',
+  ],
+  include_directories : gui_include_directories,
+  dependencies : [light_state_dep, sdl3_dep, opengl_dep],
+  link_with : [plot_gui_library, gui_dependencies],
+  install : false,
+)
+
+test('plotcore-light-gui', light_gui_test, timeout : 30)
+
 light_application_state_test = executable(
   'plotcore-light-application-state-test',
   'tests/light_application_state.cpp',

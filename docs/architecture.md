@@ -421,9 +421,13 @@ GUIを必要としない以下はunit test可能なcomponentとして実装す�
 - Expected count
 - axis rangeおよびauto-fit計算
 
-plot renderingは、計算部分とgraphics API呼び出しを可能な範囲で分離する。
+plot renderingは、計算部分とgraphics API呼び出しを可能な範囲で分離する。固定済み
+Dear ImGui/ImPlot contextだけを使用するbackend-free testでは、light application stateへ
+4 slot × 10,000 sampleを投入し、固定layoutのheadless frameまで継続的に計測する。
 
-GUI executableはgraphical sessionを必要とするため通常のautomated testとして起動しない。Linux native checkではGUIを必要としないC++20 smoke testを実行する。Windows cross buildではtest executableをcompileしてよいが、Linux build machine上では実行しない。
+GUI executable自体はgraphical sessionを必要とするため通常のautomated testとして起動しない。
+Linux native checkではgraphics backendを必要としないC++20 componentおよびlight layout testを
+実行する。Windows cross buildではtest executableをcompileしてよいが、Linux build machine上では実行しない。
 
 ## 16. 確定事項
 
