@@ -214,6 +214,11 @@ full実装前に、light固有処理とshared componentの境界を検証する�
 - plot instanceごとに独立保持すべきstateが定義されている。
 - fullの実装開始条件と性能上限が明確になっている。
 
+Phase 5の最初の境界整理として、light配下に置かれていたGUI非依存のfile workflow、
+処理設定、ENU/relative cacheおよびdiagnostic ownershipを共有`PlotSessionState`と
+`plotcore-session` targetへ移した。light GUIはこの共有sessionをcompositionし、将来の
+fullもlight namespaceへ依存せず同じsessionとdata viewを利用できる。
+
 ## 8. Phase 6: plotcore full
 
 ### 目的

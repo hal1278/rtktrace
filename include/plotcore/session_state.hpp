@@ -30,7 +30,7 @@ struct FileLoadResult {
 [[nodiscard]] std::optional<InputFormat> infer_input_format(
     const std::filesystem::path& path);
 
-class LightApplicationState {
+class PlotSessionState {
 public:
     [[nodiscard]] FileLoadResult load_file(const std::filesystem::path& path,
         std::optional<InputFormat> format = std::nullopt,

@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string_view>
 
-#include "plotcore/light/application_state.hpp"
+#include "plotcore/session_state.hpp"
 
 namespace {
 
@@ -44,7 +44,7 @@ void test_format_detection()
 void test_processing_pipeline_and_slots()
 {
     using namespace plotcore;
-    LightApplicationState state;
+    PlotSessionState state;
     check(state.add_loaded_file(parsed_file("one.pos", 0.0))
             && state.add_loaded_file(parsed_file("two.pos", 0.00001)),
         "loaded files enter the shared processing pipeline");
@@ -77,7 +77,7 @@ void test_processing_pipeline_and_slots()
 void test_configuration_validation()
 {
     using namespace plotcore;
-    LightApplicationState state;
+    PlotSessionState state;
     static_cast<void>(state.add_loaded_file(parsed_file("one.pos", 0.0)));
     CommonTimeRange invalid;
     invalid.start_enabled = true;

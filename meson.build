@@ -129,15 +129,15 @@ io_dep = declare_dependency(
   link_with : io_library,
 )
 
-light_state_library = static_library(
-  'plotcore-light-state',
-  'src/light/application_state.cpp',
+session_library = static_library(
+  'plotcore-session',
+  'src/session_state.cpp',
   dependencies : [io_dep, plot_dep],
   install : false,
 )
-light_state_dep = declare_dependency(
+session_dep = declare_dependency(
   dependencies : [io_dep, plot_dep],
-  link_with : light_state_library,
+  link_with : session_library,
 )
 
 gui_dependencies = static_library(
@@ -164,7 +164,7 @@ executable(
     'src/light/main.cpp',
   ],
   include_directories : gui_include_directories,
-  dependencies : [light_state_dep, sdl3_dep, opengl_dep],
+  dependencies : [session_dep, sdl3_dep, opengl_dep],
   link_with : [plot_gui_library, gui_dependencies],
   install : true,
 )
@@ -268,21 +268,21 @@ light_gui_test = executable(
     'tests/light_gui.cpp',
   ],
   include_directories : gui_include_directories,
-  dependencies : [light_state_dep, sdl3_dep, opengl_dep],
+  dependencies : [session_dep, sdl3_dep, opengl_dep],
   link_with : [plot_gui_library, gui_dependencies],
   install : false,
 )
 
 test('plotcore-light-gui', light_gui_test, timeout : 30)
 
-light_application_state_test = executable(
-  'plotcore-light-application-state-test',
-  'tests/light_application_state.cpp',
-  dependencies : light_state_dep,
+session_state_test = executable(
+  'plotcore-session-state-test',
+  'tests/session_state.cpp',
+  dependencies : session_dep,
   install : false,
 )
 
-test('plotcore-light-application-state', light_application_state_test)
+test('plotcore-session-state', session_state_test)
 
 statistics_test = executable(
   'plotcore-statistics-test',

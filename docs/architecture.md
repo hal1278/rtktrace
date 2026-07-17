@@ -284,7 +284,8 @@ axis range、zoom、pan、draw modeその他のview state変更では、parser�
 lightは概念上、以下を保持する。
 
 ```text
-LightApplicationState
+PlotSessionState (shared files, processing configuration, caches and diagnostics)
+LightGui
   file/slot UI state
   normal trajectory view
   normal time-series view
@@ -302,6 +303,7 @@ fullは概念上、以下を保持する。
 
 ```text
 FullApplicationState
+  PlotSessionState
   file/slot area state
   plot instances [0..n]
 ```
@@ -322,6 +324,8 @@ PlotInstance
 同じ種類のinstanceを複数生成できるよう、表示名とは別に安定した一意IDを持つ。
 
 非表示instanceはview stateを保持し、描画対象から除外する。
+全instanceは1個の`PlotSessionState`が提供するNormalまたはRelative data viewを参照し、
+instanceの追加、非表示または削除によって正規化dataおよびcacheを複製しない。
 
 ## 11. Implementation stack and rendering backend
 
@@ -383,8 +387,8 @@ Phase 2で必要となるcache invalidation、cache revisionまたは再計算�
 
 application executable target名は`plotcore-light`とする。ImPlot依存の共有描画componentは
 `plotcore-plot-gui`、graphics API非依存のdata view、axisおよびbatch処理は
-`plotcore-plot`へ分離する。light固有のfile workflowと共有処理pipelineの状態管理は、
-GUI frameworkへ依存しない`plotcore-light-state`へ分離する。headless ImPlot regression
+`plotcore-plot`へ分離する。lightとfullが共有するfile workflowと処理pipelineの状態管理は、
+GUI frameworkへ依存しない`plotcore-session`へ分離する。headless ImPlot regression
 testはapplicationと同じ`plotcore-plot-gui`を使用する。
 
 将来の想定target構成は以下とする。
@@ -396,7 +400,7 @@ shared libraries
   plotcore-analysis
   plotcore-plot
   plotcore-plot-gui
-  plotcore-light-state
+  plotcore-session
   plotcore-ui-common
 
 executables

@@ -11,7 +11,7 @@
 
 #include <SDL3/SDL.h>
 
-#include "plotcore/light/application_state.hpp"
+#include "plotcore/session_state.hpp"
 #include "plotcore/plot/implot_component.hpp"
 
 namespace plotcore {
@@ -75,7 +75,7 @@ private:
     void render_match_dialog();
     void render_plot_range_dialog();
 
-    LightApplicationState state_;
+    PlotSessionState state_;
     QualityFilter quality_filter_;
     ImPlotComponentOptions plot_options_;
     ImPlotComponent normal_plot_;

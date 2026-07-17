@@ -1,4 +1,4 @@
-#include "plotcore/light/application_state.hpp"
+#include "plotcore/session_state.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -58,7 +58,7 @@ std::optional<InputFormat> infer_input_format(const std::filesystem::path& path)
     return std::nullopt;
 }
 
-FileLoadResult LightApplicationState::load_file(const std::filesystem::path& path,
+FileLoadResult PlotSessionState::load_file(const std::filesystem::path& path,
     std::optional<InputFormat> format, NmeaParseOptions nmea_options)
 {
     if (!format.has_value()) {
@@ -99,7 +99,7 @@ FileLoadResult LightApplicationState::load_file(const std::filesystem::path& pat
     return FileLoadResult{FileLoadStatus::Loaded, path, diagnostics};
 }
 
-bool LightApplicationState::add_loaded_file(LoadedFile file)
+bool PlotSessionState::add_loaded_file(LoadedFile file)
 {
     if (file.samples.empty()) {
         return false;
@@ -120,7 +120,7 @@ bool LightApplicationState::add_loaded_file(LoadedFile file)
     return true;
 }
 
-bool LightApplicationState::set_file_visible(
+bool PlotSessionState::set_file_visible(
     std::size_t slot_number, bool visible)
 {
     LoadedFile* file = file_at_slot(files_, slot_number);
@@ -136,7 +136,7 @@ bool LightApplicationState::set_file_visible(
     return true;
 }
 
-bool LightApplicationState::move_file(
+bool PlotSessionState::move_file(
     std::size_t from_slot_number, std::size_t to_slot_number)
 {
     if (!move_slot(files_, from_slot_number, to_slot_number)) {
@@ -145,7 +145,7 @@ bool LightApplicationState::move_file(
     return rebuild_processing_state();
 }
 
-bool LightApplicationState::erase_file(std::size_t slot_number)
+bool PlotSessionState::erase_file(std::size_t slot_number)
 {
     if (!erase_slot(files_, slot_number)) {
         return false;
@@ -153,7 +153,7 @@ bool LightApplicationState::erase_file(std::size_t slot_number)
     return rebuild_processing_state();
 }
 
-bool LightApplicationState::set_file_override_hz(
+bool PlotSessionState::set_file_override_hz(
     std::size_t slot_number, std::optional<double> hz)
 {
     LoadedFile* file = file_at_slot(files_, slot_number);
@@ -167,7 +167,7 @@ bool LightApplicationState::set_file_override_hz(
     return true;
 }
 
-bool LightApplicationState::set_common_time_range(CommonTimeRange range)
+bool PlotSessionState::set_common_time_range(CommonTimeRange range)
 {
     const std::optional<TimeRange> union_range = union_time_range(files_);
     if (!union_range.has_value()
@@ -184,7 +184,7 @@ bool LightApplicationState::set_common_time_range(CommonTimeRange range)
     return true;
 }
 
-bool LightApplicationState::use_intersection_time_range()
+bool PlotSessionState::use_intersection_time_range()
 {
     CommonTimeRange range = configured_time_range_;
     if (!apply_intersection(range, files_)) {
@@ -193,7 +193,7 @@ bool LightApplicationState::use_intersection_time_range()
     return set_common_time_range(range);
 }
 
-bool LightApplicationState::set_enu_reference_configuration(
+bool PlotSessionState::set_enu_reference_configuration(
     EnuReferenceConfiguration configuration)
 {
     if (!files_.empty()
@@ -212,7 +212,7 @@ bool LightApplicationState::set_enu_reference_configuration(
     return true;
 }
 
-bool LightApplicationState::set_reference_match_configuration(
+bool PlotSessionState::set_reference_match_configuration(
     ReferenceMatchConfiguration configuration)
 {
     if (configuration.maximum_time_difference_ns < 0) {
@@ -229,7 +229,7 @@ bool LightApplicationState::set_reference_match_configuration(
     return true;
 }
 
-std::optional<PlotDataView> LightApplicationState::normal_plot_data_view() const
+std::optional<PlotDataView> PlotSessionState::normal_plot_data_view() const
 {
     if (!enu_cache_.reference.has_value()) {
         return std::nullopt;
@@ -237,17 +237,17 @@ std::optional<PlotDataView> LightApplicationState::normal_plot_data_view() const
     return make_normal_plot_data_view(files_, time_index_);
 }
 
-std::optional<PlotDataView> LightApplicationState::relative_plot_data_view() const
+std::optional<PlotDataView> PlotSessionState::relative_plot_data_view() const
 {
     return make_relative_plot_data_view(files_, relative_cache_);
 }
 
-std::optional<TimeRange> LightApplicationState::effective_range() const noexcept
+std::optional<TimeRange> PlotSessionState::effective_range() const noexcept
 {
     return effective_range_;
 }
 
-std::vector<RecordedStatistics> LightApplicationState::recorded_statistics() const
+std::vector<RecordedStatistics> PlotSessionState::recorded_statistics() const
 {
     std::vector<RecordedStatistics> result;
     if (!effective_range_.has_value()) {
@@ -260,42 +260,42 @@ std::vector<RecordedStatistics> LightApplicationState::recorded_statistics() con
     return result;
 }
 
-const LoadedFiles& LightApplicationState::files() const noexcept
+const LoadedFiles& PlotSessionState::files() const noexcept
 {
     return files_;
 }
 
-const CommonTimeRange& LightApplicationState::configured_time_range() const noexcept
+const CommonTimeRange& PlotSessionState::configured_time_range() const noexcept
 {
     return configured_time_range_;
 }
 
-const EnuReferenceConfiguration& LightApplicationState::enu_configuration() const noexcept
+const EnuReferenceConfiguration& PlotSessionState::enu_configuration() const noexcept
 {
     return enu_configuration_;
 }
 
-const ReferenceMatchConfiguration& LightApplicationState::match_configuration() const noexcept
+const ReferenceMatchConfiguration& PlotSessionState::match_configuration() const noexcept
 {
     return match_configuration_;
 }
 
-const std::vector<Diagnostic>& LightApplicationState::diagnostic_history() const noexcept
+const std::vector<Diagnostic>& PlotSessionState::diagnostic_history() const noexcept
 {
     return diagnostic_history_;
 }
 
-std::uint64_t LightApplicationState::revision() const noexcept
+std::uint64_t PlotSessionState::revision() const noexcept
 {
     return revision_;
 }
 
-bool LightApplicationState::enu_available() const noexcept
+bool PlotSessionState::enu_available() const noexcept
 {
     return enu_cache_.reference.has_value();
 }
 
-bool LightApplicationState::rebuild_processing_state()
+bool PlotSessionState::rebuild_processing_state()
 {
     if (files_.empty()) {
         time_index_ = CommonTimeRangeIndex{};
@@ -328,7 +328,7 @@ bool LightApplicationState::rebuild_processing_state()
     return true;
 }
 
-void LightApplicationState::record_diagnostics(const LoadedFile& file)
+void PlotSessionState::record_diagnostics(const LoadedFile& file)
 {
     diagnostic_history_.insert(diagnostic_history_.end(),
         file.diagnostics.begin(), file.diagnostics.end());
