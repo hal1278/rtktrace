@@ -127,6 +127,30 @@ int main()
                 < requested_scale * 0.01,
         "numeric trajectory scale is applied on the next frame");
 
+    const double previous_east_center =
+        (component.trajectory_metrics()->east.minimum
+            + component.trajectory_metrics()->east.maximum)
+        * 0.5;
+    const double east_span = component.trajectory_metrics()->east.length();
+    check(component.pan_trajectory_by_fraction(0.05, 0.0),
+        "trajectory pan accepts a fractional axis displacement");
+    ImGui::NewFrame();
+    ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+    ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::Begin("plot keyboard pan", nullptr,
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
+    ImGui::End();
+    ImGui::Render();
+    const double moved_east_center =
+        (component.trajectory_metrics()->east.minimum
+            + component.trajectory_metrics()->east.maximum)
+        * 0.5;
+    check(std::abs((moved_east_center - previous_east_center)
+                  - east_span * 0.05)
+            < east_span * 0.001,
+        "trajectory pan moves only the requested axis by five percent");
+
     const auto prepare_ms = std::chrono::duration<double, std::milli>(
         prepare_end - prepare_start).count();
     const auto render_ms = std::chrono::duration<double, std::milli>(

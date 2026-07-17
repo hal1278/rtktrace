@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstddef>
 #include <array>
+#include <cstddef>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -43,6 +43,8 @@ public:
     [[nodiscard]] bool set_trajectory_ranges(
         NumericRange east, NumericRange north) noexcept;
     [[nodiscard]] bool set_trajectory_meters_per_pixel(double value) noexcept;
+    [[nodiscard]] bool pan_trajectory_by_fraction(
+        double east_fraction, double north_fraction) noexcept;
     [[nodiscard]] bool set_time_series_time_range(TimeRange range) noexcept;
     [[nodiscard]] bool set_time_series_position_range(
         PositionComponent component, NumericRange range) noexcept;

@@ -125,6 +125,10 @@ private:
     std::array<double, 5> plot_position_minimum_{};
     std::array<double, 5> plot_position_maximum_{};
     std::array<bool, 5> plot_position_present_{};
+    std::array<bool, 5> plot_range_copy_targets_{};
+    int plot_range_copy_source_{-1};
+    int plot_position_unit_index_{1};
+    int plot_scale_unit_index_{1};
 };
 
 } // namespace plotcore

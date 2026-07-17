@@ -513,6 +513,24 @@ bool ImPlotComponent::set_trajectory_meters_per_pixel(double value) noexcept
             north_center + value * north_pixels * 0.5});
 }
 
+bool ImPlotComponent::pan_trajectory_by_fraction(
+    double east_fraction, double north_fraction) noexcept
+{
+    if (!trajectory_metrics_.has_value() || !std::isfinite(east_fraction)
+        || !std::isfinite(north_fraction)) {
+        return false;
+    }
+    const double east_offset = trajectory_metrics_->east.length() * east_fraction;
+    const double north_offset = trajectory_metrics_->north.length() * north_fraction;
+    requested_trajectory_limits_ = *trajectory_metrics_;
+    requested_trajectory_limits_->east.minimum += east_offset;
+    requested_trajectory_limits_->east.maximum += east_offset;
+    requested_trajectory_limits_->north.minimum += north_offset;
+    requested_trajectory_limits_->north.maximum += north_offset;
+    fit_trajectory_pending_ = false;
+    return true;
+}
+
 bool ImPlotComponent::set_time_series_time_range(TimeRange range) noexcept
 {
     if (time_series_.empty() || !time_series_.front().time_origin.has_value()
@@ -614,6 +632,26 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         actual_size.x,
         actual_size.y,
     };
+    if (ImPlot::IsPlotHovered()) {
+        double east_fraction = 0.0;
+        double north_fraction = 0.0;
+        if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
+            east_fraction -= 0.05;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+            east_fraction += 0.05;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+            north_fraction -= 0.05;
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+            north_fraction += 0.05;
+        }
+        if (east_fraction != 0.0 || north_fraction != 0.0) {
+            static_cast<void>(pan_trajectory_by_fraction(
+                east_fraction, north_fraction));
+        }
+    }
     ImPlot::EndPlot();
 }
 
