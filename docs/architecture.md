@@ -267,6 +267,10 @@ Normal 2DおよびNormal Time Seriesはrelative cacheへ依存しない。
 
 Relative 2DおよびRelative Time Seriesは同じrelative sampleを共有する。
 
+relative cacheはslotに対応するsample列として保持し、comparison時刻、相対E/N/U/H、
+ECEF三次元距離およびcomparison品質を提供する。common time range index、ENU cache、
+matching設定およびslot構成が同じ場合は再matchingしない。
+
 ### 8.4 Plot view
 
 axis range、zoom、pan、draw modeその他のview state変更では、parser、座標正規化およびreference matchingを再実行しない。

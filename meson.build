@@ -88,6 +88,7 @@ analysis_library = static_library(
     'src/analysis/enu.cpp',
     'src/analysis/gps_time.cpp',
     'src/analysis/reference_matching.cpp',
+    'src/analysis/relative.cpp',
     'src/analysis/sample_rate.cpp',
     'src/analysis/statistics.cpp',
   ],
@@ -193,6 +194,15 @@ reference_matching_test = executable(
 )
 
 test('plotcore-reference-matching', reference_matching_test)
+
+relative_test = executable(
+  'plotcore-relative-test',
+  'tests/relative.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+
+test('plotcore-relative', relative_test)
 
 statistics_test = executable(
   'plotcore-statistics-test',

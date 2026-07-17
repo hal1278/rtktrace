@@ -589,6 +589,9 @@ delta_h = comparison_ellipsoidal_height
         - reference_ellipsoidal_height
 ```
 
+relative sampleの品質にはcomparison sampleの品質を使用する。品質filterおよび
+品質別描画ではreference sampleではなくこのcomparison品質を参照する。
+
 ### 11.4 基準相対距離
 
 三次元基準相対距離はECEF差のEuclidean normとする。

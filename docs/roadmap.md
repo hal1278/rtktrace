@@ -104,9 +104,10 @@ lightおよびfullで共有する座標処理と基準相対dataを完成させ�
 - tolerance checkが無効な場合は最後のreference sampleを継続して使用する。
 - Normal dataとRelative dataを共有modelから取得できる。
 
-現在、ENU基準方式、ECEF/ENU変換、全sampleのENU cache再生成、common time range
-index、未来epochを使用しないreference matching、tolerance checkおよびcache revision
-まで実装済みである。relative data生成およびrelative cacheは引き続き本phaseで実装する。
+現在のshared coordinate and relative processingは、ENU基準とcache、common time range
+index、reference matching、tolerance、relative E/N/U/H、ECEF三次元距離、slot対応の
+relative cacheおよびrevision管理を含み、上記の完了条件を満たしているため、Phase 2は
+完了とする。
 
 ## 5. Phase 3: Shared plotting components
 

@@ -13,6 +13,8 @@ namespace plotcore {
 struct ReferenceMatchConfiguration {
     bool tolerance_check_enabled;
     std::int64_t maximum_time_difference_ns;
+
+    bool operator==(const ReferenceMatchConfiguration&) const = default;
 };
 
 struct ReferenceMatch {

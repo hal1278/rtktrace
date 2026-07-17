@@ -16,8 +16,8 @@ The project goal is to provide the subset of RTKPLOT-like functionality required
 Phase 1 shared-data implementation is complete. The repository currently includes the
 normalized data model, UTC/GPST conversion, WGS 84 LLH/ECEF conversion, common time ranges,
 sample-rate estimation, Recorded/Expected statistics, and POS/NMEA parsers with diagnostics.
-Phase 2 coordinate processing is underway, with ENU reference selection, ECEF/ENU conversion,
-revisioned ENU and common-time-range caches, and slot 1 reference matching implemented.
+Phase 2 shared coordinate and relative processing is complete, including ENU reference
+selection, ECEF/ENU conversion, revisioned caches, slot 1 matching, and relative data.
 
 No stable application interface, file-format compatibility guarantee, or release is currently available.
 
