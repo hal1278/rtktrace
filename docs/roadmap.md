@@ -179,8 +179,9 @@ workflow、100 MiB以上の確認、形式およびNMEA補完dialog、固定layo
 6表示モード、Both splitter、共通時刻範囲、ENU基準、reference matching、Hz override、
 Recorded/Expected summary、diagnostic履歴、quality filter、描画設定、auto-fit、および
 trajectory・時系列の数値range/scale入力を実装済みである。数値入力はEnter確定、
-無効値の赤表示、位置およびscale単位切替に対応し、時系列縦軸rangeの一回適用と
-trajectoryの矢印キーpanも提供する。trajectoryと時系列は通常ホイールの中心固定zoom、
+非編集時3桁・編集中高精度表示、無効値の赤表示とfocus離脱時の有効値復帰、位置および
+scale単位切替に対応し、時系列縦軸rangeの一回適用とtrajectoryの矢印キーpanも提供する。
+trajectoryと時系列は通常ホイールの中心固定zoom、
 `Ctrl`ホイールのカーソル固定zoomに対応し、時系列ではhover中の縦軸または最下部の
 共有時刻軸だけを変更する。追加読み込み、visibility、並べ替えおよび削除ではplot rangeを
 維持する。4 file × 10,000 sampleのapplication-level headless testでは、全共有pipelineと

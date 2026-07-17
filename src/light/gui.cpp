@@ -92,9 +92,15 @@ constexpr std::array position_unit_scale_m{1000.0, 1.0, 0.001};
     return std::isfinite(minimum) && std::isfinite(maximum) && minimum < maximum;
 }
 
-[[nodiscard]] bool input_range_value(
+struct NumericInputResult {
+    bool entered;
+    bool deactivated_after_edit;
+};
+
+[[nodiscard]] NumericInputResult input_range_value(
     const char* label, double* value, bool range_is_valid, const char* format)
 {
+    static ImGuiID editing_input = 0;
     if (!range_is_valid) {
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{0.45F, 0.08F, 0.08F, 1.0F});
         ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,
@@ -102,12 +108,21 @@ constexpr std::array position_unit_scale_m{1000.0, 1.0, 0.001};
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive,
             ImVec4{0.68F, 0.12F, 0.12F, 1.0F});
     }
-    const bool entered = ImGui::InputDouble(label, value, 0.0, 0.0, format,
+    const ImGuiID input_id = ImGui::GetID(label);
+    const bool active = editing_input == input_id;
+    const bool entered = ImGui::InputDouble(label, value, 0.0, 0.0,
+        active ? format : "%.3g",
         ImGuiInputTextFlags_EnterReturnsTrue);
+    if (ImGui::IsItemActive()) {
+        editing_input = input_id;
+    } else if (editing_input == input_id) {
+        editing_input = 0;
+    }
+    const bool deactivated_after_edit = ImGui::IsItemDeactivatedAfterEdit();
     if (!range_is_valid) {
         ImGui::PopStyleColor(3);
     }
-    return entered;
+    return NumericInputResult{entered, deactivated_after_edit};
 }
 
 [[nodiscard]] double displayed_position(double meters, int unit_index) noexcept
@@ -971,6 +986,14 @@ void LightGui::render_plot_range_dialog()
                     metrics.position.maximum, plot_position_unit_index_);
             }
         }
+        for (std::size_t index = 0; index < 4; ++index) {
+            trajectory_range_backup_[index] = trajectory_range_values_[index];
+        }
+        trajectory_scale_backup_ = trajectory_scale_value_;
+        plot_time_backup_[0] = plot_time_values_[0];
+        plot_time_backup_[1] = plot_time_values_[1];
+        plot_position_minimum_backup_ = plot_position_minimum_;
+        plot_position_maximum_backup_ = plot_position_maximum_;
         plot_range_copy_source_ = -1;
         plot_range_copy_targets_.fill(false);
         plot_range_dialog_initialized_ = true;
@@ -986,30 +1009,50 @@ void LightGui::render_plot_range_dialog()
         rescale_displayed_positions(
             plot_position_unit_index_, next, trajectory_range_values_);
         rescale_displayed_positions(
+            plot_position_unit_index_, next, trajectory_range_backup_);
+        rescale_displayed_positions(
             plot_position_unit_index_, next, plot_position_minimum_);
         rescale_displayed_positions(
             plot_position_unit_index_, next, plot_position_maximum_);
+        rescale_displayed_positions(
+            plot_position_unit_index_, next, plot_position_minimum_backup_);
+        rescale_displayed_positions(
+            plot_position_unit_index_, next, plot_position_maximum_backup_);
         plot_position_unit_index_ = next;
     }
     const bool east_valid = valid_numeric_range(
         trajectory_range_values_[0], trajectory_range_values_[1]);
     const bool north_valid = valid_numeric_range(
         trajectory_range_values_[2], trajectory_range_values_[3]);
-    bool trajectory_entered = input_range_value("East minimum",
+    const NumericInputResult east_minimum = input_range_value("East minimum",
         &trajectory_range_values_[0], east_valid, "%.10g");
-    trajectory_entered = input_range_value("East maximum",
-        &trajectory_range_values_[1], east_valid, "%.10g") || trajectory_entered;
-    trajectory_entered = input_range_value("North minimum",
-        &trajectory_range_values_[2], north_valid, "%.10g") || trajectory_entered;
-    trajectory_entered = input_range_value("North maximum",
-        &trajectory_range_values_[3], north_valid, "%.10g") || trajectory_entered;
+    const NumericInputResult east_maximum = input_range_value("East maximum",
+        &trajectory_range_values_[1], east_valid, "%.10g");
+    const NumericInputResult north_minimum = input_range_value("North minimum",
+        &trajectory_range_values_[2], north_valid, "%.10g");
+    const NumericInputResult north_maximum = input_range_value("North maximum",
+        &trajectory_range_values_[3], north_valid, "%.10g");
+    if (!valid_numeric_range(trajectory_range_values_[0], trajectory_range_values_[1])
+        && (east_minimum.deactivated_after_edit
+            || east_maximum.deactivated_after_edit)) {
+        trajectory_range_values_[0] = trajectory_range_backup_[0];
+        trajectory_range_values_[1] = trajectory_range_backup_[1];
+    }
+    if (!valid_numeric_range(trajectory_range_values_[2], trajectory_range_values_[3])
+        && (north_minimum.deactivated_after_edit
+            || north_maximum.deactivated_after_edit)) {
+        trajectory_range_values_[2] = trajectory_range_backup_[2];
+        trajectory_range_values_[3] = trajectory_range_backup_[3];
+    }
+    const bool trajectory_entered = east_minimum.entered || east_maximum.entered
+        || north_minimum.entered || north_maximum.entered;
     const bool trajectory_valid = valid_numeric_range(
         trajectory_range_values_[0], trajectory_range_values_[1])
         && valid_numeric_range(
             trajectory_range_values_[2], trajectory_range_values_[3]);
     ImGui::BeginDisabled(!trajectory_valid);
     if (ImGui::Button("Apply trajectory ranges") || trajectory_entered) {
-        if (!component.set_trajectory_ranges(
+        if (component.set_trajectory_ranges(
                 NumericRange{
                     position_in_meters(
                         trajectory_range_values_[0], plot_position_unit_index_),
@@ -1020,14 +1063,24 @@ void LightGui::render_plot_range_dialog()
                         trajectory_range_values_[2], plot_position_unit_index_),
                     position_in_meters(
                         trajectory_range_values_[3], plot_position_unit_index_)})) {
+            for (std::size_t index = 0; index < 4; ++index) {
+                trajectory_range_backup_[index] = trajectory_range_values_[index];
+            }
+        } else {
             status_message_ = "Invalid trajectory range";
         }
     }
     ImGui::EndDisabled();
-    const bool scale_valid = std::isfinite(trajectory_scale_value_)
+    bool scale_valid = std::isfinite(trajectory_scale_value_)
         && trajectory_scale_value_ > 0.0;
-    const bool scale_entered = input_range_value("Scale##trajectory-scale",
+    const NumericInputResult scale_input = input_range_value("Scale##trajectory-scale",
         &trajectory_scale_value_, scale_valid, "%.10g");
+    scale_valid = std::isfinite(trajectory_scale_value_)
+        && trajectory_scale_value_ > 0.0;
+    if (!scale_valid && scale_input.deactivated_after_edit) {
+        trajectory_scale_value_ = trajectory_scale_backup_;
+        scale_valid = true;
+    }
     ImGui::SameLine();
     std::string scale_unit = position_unit_labels[
         static_cast<std::size_t>(plot_scale_unit_index_)];
@@ -1037,13 +1090,18 @@ void LightGui::render_plot_range_dialog()
             % static_cast<int>(position_unit_scale_m.size());
         rescale_displayed_positions(plot_scale_unit_index_, next,
             std::span<double>{&trajectory_scale_value_, 1});
+        rescale_displayed_positions(plot_scale_unit_index_, next,
+            std::span<double>{&trajectory_scale_backup_, 1});
         plot_scale_unit_index_ = next;
     }
     ImGui::BeginDisabled(!scale_valid);
-    if ((ImGui::Button("Apply scale") || scale_entered)
-        && !component.set_trajectory_meters_per_pixel(position_in_meters(
-            trajectory_scale_value_, plot_scale_unit_index_))) {
-        status_message_ = "Invalid trajectory scale";
+    if (ImGui::Button("Apply scale") || scale_input.entered) {
+        if (component.set_trajectory_meters_per_pixel(position_in_meters(
+                trajectory_scale_value_, plot_scale_unit_index_))) {
+            trajectory_scale_backup_ = trajectory_scale_value_;
+        } else {
+            status_message_ = "Invalid trajectory scale";
+        }
     }
     ImGui::EndDisabled();
 
@@ -1051,18 +1109,29 @@ void LightGui::render_plot_range_dialog()
     std::optional<GpsTime> start = seconds_to_gps_time(plot_time_values_[0]);
     std::optional<GpsTime> end = seconds_to_gps_time(plot_time_values_[1]);
     const bool time_valid = start.has_value() && end.has_value() && *start <= *end;
-    bool time_entered = input_range_value("GPST start (s)",
+    const NumericInputResult time_start = input_range_value("GPST start (s)",
         &plot_time_values_[0], time_valid, "%.9f");
-    time_entered = input_range_value("GPST end (s)",
-        &plot_time_values_[1], time_valid, "%.9f") || time_entered;
+    const NumericInputResult time_end = input_range_value("GPST end (s)",
+        &plot_time_values_[1], time_valid, "%.9f");
     start = seconds_to_gps_time(plot_time_values_[0]);
     end = seconds_to_gps_time(plot_time_values_[1]);
-    const bool entered_time_valid = start.has_value() && end.has_value()
-        && *start <= *end;
+    bool entered_time_valid = start.has_value() && end.has_value() && *start <= *end;
+    if (!entered_time_valid
+        && (time_start.deactivated_after_edit || time_end.deactivated_after_edit)) {
+        plot_time_values_[0] = plot_time_backup_[0];
+        plot_time_values_[1] = plot_time_backup_[1];
+        start = seconds_to_gps_time(plot_time_values_[0]);
+        end = seconds_to_gps_time(plot_time_values_[1]);
+        entered_time_valid = true;
+    }
+    const bool time_entered = time_start.entered || time_end.entered;
     ImGui::BeginDisabled(!entered_time_valid);
     const bool apply_time = ImGui::Button("Apply time range") || time_entered;
     if (entered_time_valid && apply_time) {
-        if (!component.set_time_series_time_range(TimeRange{*start, *end})) {
+        if (component.set_time_series_time_range(TimeRange{*start, *end})) {
+            plot_time_backup_[0] = plot_time_values_[0];
+            plot_time_backup_[1] = plot_time_values_[1];
+        } else {
             status_message_ = "Invalid time-series time range";
         }
     }
@@ -1079,25 +1148,38 @@ void LightGui::render_plot_range_dialog()
         ImGui::SetNextItemWidth(120.0F);
         const bool position_valid = valid_numeric_range(
             plot_position_minimum_[index], plot_position_maximum_[index]);
-        bool position_entered = input_range_value("##minimum",
+        const NumericInputResult position_minimum = input_range_value("##minimum",
             &plot_position_minimum_[index], position_valid, "%.10g");
         ImGui::SameLine();
         ImGui::SetNextItemWidth(120.0F);
-        position_entered = input_range_value("##maximum",
-            &plot_position_maximum_[index], position_valid, "%.10g")
-            || position_entered;
+        const NumericInputResult position_maximum = input_range_value("##maximum",
+            &plot_position_maximum_[index], position_valid, "%.10g");
         ImGui::SameLine();
-        const bool entered_position_valid = valid_numeric_range(
+        bool entered_position_valid = valid_numeric_range(
             plot_position_minimum_[index], plot_position_maximum_[index]);
+        if (!entered_position_valid
+            && (position_minimum.deactivated_after_edit
+                || position_maximum.deactivated_after_edit)) {
+            plot_position_minimum_[index] = plot_position_minimum_backup_[index];
+            plot_position_maximum_[index] = plot_position_maximum_backup_[index];
+            entered_position_valid = true;
+        }
+        const bool position_entered = position_minimum.entered
+            || position_maximum.entered;
         ImGui::BeginDisabled(!entered_position_valid);
         if (ImGui::Button("Apply") || position_entered) {
-            if (!component.set_time_series_position_range(
+            if (component.set_time_series_position_range(
                     static_cast<PositionComponent>(index),
                     NumericRange{
                         position_in_meters(
                             plot_position_minimum_[index], plot_position_unit_index_),
                         position_in_meters(
                             plot_position_maximum_[index], plot_position_unit_index_)})) {
+                plot_position_minimum_backup_[index] =
+                    plot_position_minimum_[index];
+                plot_position_maximum_backup_[index] =
+                    plot_position_maximum_[index];
+            } else {
                 status_message_ = "Invalid time-series position range";
             }
         }
@@ -1144,6 +1226,8 @@ void LightGui::render_plot_range_dialog()
                     && applied;
                 plot_position_minimum_[index] = source_display_range.minimum;
                 plot_position_maximum_[index] = source_display_range.maximum;
+                plot_position_minimum_backup_[index] = source_display_range.minimum;
+                plot_position_maximum_backup_[index] = source_display_range.maximum;
             }
             if (!applied) {
                 status_message_ = "Could not copy the time-series position range";

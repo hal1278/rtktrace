@@ -121,10 +121,15 @@ private:
     bool plot_range_dialog_open_requested_{false};
     bool plot_range_dialog_initialized_{false};
     double trajectory_range_values_[4]{-1.0, 1.0, -1.0, 1.0};
+    double trajectory_range_backup_[4]{-1.0, 1.0, -1.0, 1.0};
     double trajectory_scale_value_{1.0};
+    double trajectory_scale_backup_{1.0};
     double plot_time_values_[2]{0.0, 1.0};
+    double plot_time_backup_[2]{0.0, 1.0};
     std::array<double, 5> plot_position_minimum_{};
     std::array<double, 5> plot_position_maximum_{};
+    std::array<double, 5> plot_position_minimum_backup_{};
+    std::array<double, 5> plot_position_maximum_backup_{};
     std::array<bool, 5> plot_position_present_{};
     std::array<bool, 5> plot_range_copy_targets_{};
     int plot_range_copy_source_{-1};
