@@ -45,6 +45,8 @@ enum class SolutionQuality : std::uint8_t {
     Ppp = 6,
 };
 
+inline constexpr std::size_t solution_quality_count = 7;
+
 struct NormalizedSample {
     GpsTime time;
     Wgs84Llh llh;

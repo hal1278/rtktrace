@@ -100,6 +100,20 @@ analysis_dep = declare_dependency(
   link_with : analysis_library,
 )
 
+plot_library = static_library(
+  'plotcore-plot',
+  [
+    'src/plot/axis.cpp',
+    'src/plot/data_view.cpp',
+  ],
+  dependencies : analysis_dep,
+  install : false,
+)
+plot_dep = declare_dependency(
+  dependencies : analysis_dep,
+  link_with : plot_library,
+)
+
 io_library = static_library(
   'plotcore-io',
   [
@@ -127,7 +141,7 @@ executable(
   'plotcore-light',
   'src/light/main.cpp',
   include_directories : gui_include_directories,
-  dependencies : [analysis_dep, sdl3_dep, opengl_dep],
+  dependencies : [plot_dep, sdl3_dep, opengl_dep],
   link_with : gui_dependencies,
   install : true,
 )
@@ -203,6 +217,15 @@ relative_test = executable(
 )
 
 test('plotcore-relative', relative_test)
+
+plot_test = executable(
+  'plotcore-plot-test',
+  'tests/plot.cpp',
+  dependencies : plot_dep,
+  install : false,
+)
+
+test('plotcore-plot', plot_test)
 
 statistics_test = executable(
   'plotcore-statistics-test',

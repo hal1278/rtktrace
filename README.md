@@ -18,6 +18,8 @@ normalized data model, UTC/GPST conversion, WGS 84 LLH/ECEF conversion, common t
 sample-rate estimation, Recorded/Expected statistics, and POS/NMEA parsers with diagnostics.
 Phase 2 shared coordinate and relative processing is complete, including ENU reference
 selection, ECEF/ENU conversion, revisioned caches, slot 1 matching, and relative data.
+Phase 3 plotting work is underway with shared Normal/Relative data views, quality filtering,
+equal-scale trajectory fitting, and time-series axis fitting.
 
 No stable application interface, file-format compatibility guarantee, or release is currently available.
 

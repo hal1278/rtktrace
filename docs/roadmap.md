@@ -137,6 +137,10 @@ application layoutに依存しないtrajectoryおよびtime-series componentを�
 - 数万点を持つ複数fileで基本操作の性能を測定できる。
 - RTKPLOT確認済みのaxisおよびquality規則が反映されている。
 
+現在、Normal/Relative共通plot data view、file visibility、quality filter、水平軌跡の
+等縮尺auto-fitおよび時系列の位置・時刻axis auto-fitまで実装済みである。ImPlot描画、
+marker、drawing order、pan/zoomおよび性能測定は引き続き本phaseで実装する。
+
 ## 6. Phase 4: plotcore light
 
 ### 目的

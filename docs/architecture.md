@@ -112,6 +112,10 @@ analysisはUI操作ではなく、明示された入力値および設定値を�
 
 plot componentは、lightのtab構成およびfullのwindow instance管理を認識しない。
 
+NormalおよびRelative dataは同じplot sample viewへ投影し、file visibilityおよびquality
+filter適用後のdataをaxis計算と描画で共有する。auto-fitおよびrange制約はgraphics API
+呼出しから分離してunit test可能にする。
+
 ### 4.5 Shared UI
 
 共有可能なUI componentの候補:

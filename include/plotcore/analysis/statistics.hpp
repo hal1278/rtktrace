@@ -9,7 +9,6 @@
 
 namespace plotcore {
 
-inline constexpr std::size_t solution_quality_count = 7;
 using QualityCounts = std::array<std::size_t, solution_quality_count>;
 
 struct RecordedStatistics {
