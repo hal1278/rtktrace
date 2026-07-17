@@ -730,6 +730,7 @@ actionは、例えば以下を表す。
 - `SampleReplaced`
 - `LoadedAsQualityZero`
 - `UserDecisionRequired`
+- `LoadedAltitudeAsEllipsoidalHeight`
 - `FileRejected`
 
 少なくとも以下を区別できるcodeを設ける。
@@ -747,6 +748,8 @@ actionは、例えば以下を表す。
 - date validation mismatch
 - unknown POS quality
 - unknown NMEA quality
+- void RMC status
+- GGA time jump
 - rate estimation failure
 - empty ENU reference range
 - no common intersection

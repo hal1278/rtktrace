@@ -13,11 +13,18 @@ The project goal is to provide the subset of RTKPLOT-like functionality required
 
 ## Project status
 
-Requirements definition, architecture planning, and the common GUI build foundation.
+Phase 1 shared-data implementation is complete. The repository currently includes the
+normalized data model, UTC/GPST conversion, WGS 84 LLH/ECEF conversion, common time ranges,
+sample-rate estimation, Recorded/Expected statistics, and POS/NMEA parsers with diagnostics.
+Phase 2 coordinate processing is underway, with ENU reference selection, ECEF/ENU conversion,
+revisioned ENU and common-time-range caches, and slot 1 reference matching implemented.
 
 No stable application interface, file-format compatibility guarantee, or release is currently available.
 
-The current executable is a GUI smoke target only. It creates an SDL3/OpenGL window, initializes Dear ImGui and ImPlot, and displays a fixed four-point sample plot. It does not yet implement file loading, GNSS data types, coordinate conversion, or the application-specific `plotcore light` layout described below.
+The current executable remains a GUI smoke target only. It creates an SDL3/OpenGL window,
+initializes Dear ImGui and ImPlot, and displays a fixed four-point sample plot. The shared data
+components are not yet connected to file loading or the application-specific `plotcore light`
+layout described below.
 
 ## Current implementation scope
 

@@ -73,6 +73,10 @@ GUIに依存しない共通データ処理を完成させる。
 - UTC/GPST、日跨ぎ、quality変換、duplicateおよびtime reversalのunit testが通る。
 - GUIを起動せずに各fileの統計を算出できる。
 
+現在のshared data foundationは、POS/NMEAの正規化、diagnostic、時刻・座標変換、
+common time range、Hz推定およびRecorded/Expected統計とそのunit testを含み、上記の
+完了条件を満たしているため、Phase 1は完了とする。
+
 ## 4. Phase 2: Shared coordinate and relative processing
 
 ### 目的
@@ -99,6 +103,10 @@ lightおよびfullで共有する座標処理と基準相対dataを完成させ�
 - tolerance checkが有効な場合は最大時刻差を超えるcomparison sampleを除外する。
 - tolerance checkが無効な場合は最後のreference sampleを継続して使用する。
 - Normal dataとRelative dataを共有modelから取得できる。
+
+現在、ENU基準方式、ECEF/ENU変換、全sampleのENU cache再生成、common time range
+index、未来epochを使用しないreference matching、tolerance checkおよびcache revision
+まで実装済みである。relative data生成およびrelative cacheは引き続き本phaseで実装する。
 
 ## 5. Phase 3: Shared plotting components
 

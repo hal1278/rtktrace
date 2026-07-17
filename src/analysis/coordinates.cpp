@@ -94,4 +94,65 @@ std::optional<Wgs84Llh> wgs84_ecef_to_llh(Ecef ecef) noexcept
     };
 }
 
+std::optional<EnuReference> make_enu_reference(Wgs84Llh llh) noexcept
+{
+    if (!std::isfinite(llh.latitude_rad) || !std::isfinite(llh.longitude_rad)
+        || !std::isfinite(llh.ellipsoidal_height_m)) {
+        return std::nullopt;
+    }
+    const Ecef origin = wgs84_llh_to_ecef(llh);
+    if (!std::isfinite(origin.x_m) || !std::isfinite(origin.y_m)
+        || !std::isfinite(origin.z_m)) {
+        return std::nullopt;
+    }
+    return EnuReference{origin, llh.latitude_rad, llh.longitude_rad};
+}
+
+std::optional<EnuReference> make_enu_reference(Ecef ecef) noexcept
+{
+    const std::optional<Wgs84Llh> llh = wgs84_ecef_to_llh(ecef);
+    if (!llh.has_value()) {
+        return std::nullopt;
+    }
+    return EnuReference{ecef, llh->latitude_rad, llh->longitude_rad};
+}
+
+Enu ecef_to_enu(Ecef position, const EnuReference& reference) noexcept
+{
+    const double delta_x = position.x_m - reference.origin_ecef.x_m;
+    const double delta_y = position.y_m - reference.origin_ecef.y_m;
+    const double delta_z = position.z_m - reference.origin_ecef.z_m;
+    const double sin_latitude = std::sin(reference.latitude_rad);
+    const double cos_latitude = std::cos(reference.latitude_rad);
+    const double sin_longitude = std::sin(reference.longitude_rad);
+    const double cos_longitude = std::cos(reference.longitude_rad);
+
+    return Enu{
+        .east_m = -sin_longitude * delta_x + cos_longitude * delta_y,
+        .north_m = -sin_latitude * cos_longitude * delta_x
+            - sin_latitude * sin_longitude * delta_y + cos_latitude * delta_z,
+        .up_m = cos_latitude * cos_longitude * delta_x
+            + cos_latitude * sin_longitude * delta_y + sin_latitude * delta_z,
+    };
+}
+
+Ecef enu_to_ecef(Enu position, const EnuReference& reference) noexcept
+{
+    const double sin_latitude = std::sin(reference.latitude_rad);
+    const double cos_latitude = std::cos(reference.latitude_rad);
+    const double sin_longitude = std::sin(reference.longitude_rad);
+    const double cos_longitude = std::cos(reference.longitude_rad);
+
+    return Ecef{
+        .x_m = reference.origin_ecef.x_m - sin_longitude * position.east_m
+            - sin_latitude * cos_longitude * position.north_m
+            + cos_latitude * cos_longitude * position.up_m,
+        .y_m = reference.origin_ecef.y_m + cos_longitude * position.east_m
+            - sin_latitude * sin_longitude * position.north_m
+            + cos_latitude * sin_longitude * position.up_m,
+        .z_m = reference.origin_ecef.z_m + cos_latitude * position.north_m
+            + sin_latitude * position.up_m,
+    };
+}
+
 } // namespace plotcore

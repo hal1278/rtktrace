@@ -22,6 +22,7 @@ enum class DiagnosticAction : std::uint8_t {
     SampleReplaced,
     LoadedAsQualityZero,
     UserDecisionRequired,
+    LoadedAltitudeAsEllipsoidalHeight,
     FileRejected,
 };
 
@@ -39,6 +40,8 @@ enum class DiagnosticCode : std::uint8_t {
     DateValidationMismatch,
     UnknownPosQuality,
     UnknownNmeaQuality,
+    VoidRmcStatus,
+    TimeJump,
     RateEstimationFailure,
     EmptyEnuReferenceRange,
     NoCommonIntersection,

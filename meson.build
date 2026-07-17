@@ -83,8 +83,11 @@ analysis_library = static_library(
   'plotcore-analysis',
   [
     'src/analysis/common_time_range.cpp',
+    'src/analysis/common_time_index.cpp',
     'src/analysis/coordinates.cpp',
+    'src/analysis/enu.cpp',
     'src/analysis/gps_time.cpp',
+    'src/analysis/reference_matching.cpp',
     'src/analysis/sample_rate.cpp',
     'src/analysis/statistics.cpp',
   ],
@@ -98,7 +101,10 @@ analysis_dep = declare_dependency(
 
 io_library = static_library(
   'plotcore-io',
-  'src/io/pos_parser.cpp',
+  [
+    'src/io/nmea_parser.cpp',
+    'src/io/pos_parser.cpp',
+  ],
   dependencies : analysis_dep,
   install : false,
 )
@@ -143,6 +149,15 @@ coordinates_test = executable(
 
 test('plotcore-coordinates', coordinates_test)
 
+enu_test = executable(
+  'plotcore-enu-test',
+  'tests/enu.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+
+test('plotcore-enu', enu_test)
+
 sample_rate_test = executable(
   'plotcore-sample-rate-test',
   'tests/sample_rate.cpp',
@@ -170,6 +185,15 @@ common_time_range_test = executable(
 
 test('plotcore-common-time-range', common_time_range_test)
 
+reference_matching_test = executable(
+  'plotcore-reference-matching-test',
+  'tests/reference_matching.cpp',
+  dependencies : analysis_dep,
+  install : false,
+)
+
+test('plotcore-reference-matching', reference_matching_test)
+
 statistics_test = executable(
   'plotcore-statistics-test',
   'tests/statistics.cpp',
@@ -191,3 +215,12 @@ test(
   pos_parser_test,
   args : join_paths(meson.project_source_root(), 'tests', 'data', 'fictional.pos'),
 )
+
+nmea_parser_test = executable(
+  'plotcore-nmea-parser-test',
+  'tests/nmea_parser.cpp',
+  dependencies : io_dep,
+  install : false,
+)
+
+test('plotcore-nmea-parser', nmea_parser_test)

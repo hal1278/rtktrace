@@ -100,6 +100,41 @@ void test_undefined_inverse_inputs()
         "non-finite ECEF is rejected");
 }
 
+void test_ecef_enu_transform()
+{
+    using namespace plotcore;
+
+    const std::optional<EnuReference> reference =
+        make_enu_reference(Wgs84Llh{0.0, 0.0, 0.0});
+    check(reference.has_value(), "finite LLH creates an ENU reference");
+    if (!reference.has_value()) {
+        return;
+    }
+    const Ecef origin = reference->origin_ecef;
+    const Enu east = ecef_to_enu(Ecef{origin.x_m, origin.y_m + 2.0, origin.z_m}, *reference);
+    check(near(east.east_m, 2.0, 1.0e-12), "equatorial ECEF y maps to east");
+    check(near(east.north_m, 0.0, 1.0e-12), "east displacement has no north component");
+    check(near(east.up_m, 0.0, 1.0e-12), "east displacement has no up component");
+
+    const Enu north = ecef_to_enu(Ecef{origin.x_m, origin.y_m, origin.z_m + 3.0}, *reference);
+    check(near(north.north_m, 3.0, 1.0e-12), "equatorial ECEF z maps to north");
+    const Enu up = ecef_to_enu(Ecef{origin.x_m + 4.0, origin.y_m, origin.z_m}, *reference);
+    check(near(up.up_m, 4.0, 1.0e-12), "equatorial ECEF x maps to up");
+
+    const Enu arbitrary{12.5, -3.25, 8.75};
+    const Ecef converted = enu_to_ecef(arbitrary, *reference);
+    const Enu round_trip = ecef_to_enu(converted, *reference);
+    check(near(round_trip.east_m, arbitrary.east_m, 1.0e-12), "ENU/ECEF east round trip");
+    check(near(round_trip.north_m, arbitrary.north_m, 1.0e-12), "ENU/ECEF north round trip");
+    check(near(round_trip.up_m, arbitrary.up_m, 1.0e-9), "ENU/ECEF up round trip");
+
+    check(!make_enu_reference(Ecef{}).has_value(), "Earth centre cannot define ENU rotation");
+    check(!make_enu_reference(Wgs84Llh{
+               std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0})
+               .has_value(),
+        "non-finite LLH cannot define an ENU reference");
+}
+
 } // namespace
 
 int main()
@@ -107,6 +142,7 @@ int main()
     test_known_wgs84_points();
     test_round_trips();
     test_undefined_inverse_inputs();
+    test_ecef_enu_transform();
 
     if (failures != 0) {
         std::cerr << failures << " coordinate test(s) failed\n";

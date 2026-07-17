@@ -59,6 +59,7 @@ lightとfullは、同一実行ファイル内のlayout modeではなく、別の
 - source line位置の追跡
 - parse diagnosticの生成
 - 入力形式ごとの一時表現生成
+- analysisの時刻・座標変換を使用した`LoadedFile`の構築
 
 I/O componentはGUI、plot view stateおよびapplication targetへ依存しない。
 
@@ -137,16 +138,14 @@ application layerはdata modelおよび共有componentを利用するが、共�
 
 ## 5. 依存方向
 
-依存方向は概念上、以下とする。
+依存方向は概念上、以下とする。矢印は利用側から依存先を指す。
 
 ```text
-plotcore-light        plotcore-full
-       \                 /
-        shared UI / plot
-               |
-        model / analysis
-               |
-              I/O
+plotcore-light / plotcore-full -> shared UI / plot
+plotcore-light / plotcore-full -> I/O
+shared UI / plot              -> model / analysis
+I/O                           -> model / analysis
+analysis                      -> model
 ```
 
 循環依存を設けない。
