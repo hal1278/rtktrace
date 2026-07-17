@@ -445,6 +445,7 @@ void ImPlotComponent::clear() noexcept
     for (std::optional<NumericRange>& range : requested_position_limits_) {
         range.reset();
     }
+    pending_window_resize_wheel_ = 0.0;
 }
 
 void ImPlotComponent::request_fit() noexcept
@@ -654,6 +655,9 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     if (frame_size.y <= 0.0F) {
         frame_size.y = available.y;
     }
+    const std::optional<TrajectoryPlotMetrics> previous_metrics = trajectory_metrics_;
+    const bool limits_requested_this_frame = fit_trajectory_pending_
+        || requested_trajectory_limits_.has_value();
     std::optional<TrajectoryPlotMetrics> requested_fit;
     if (fit_trajectory_pending_) {
         requested_fit = fit_trajectory(trajectory_, frame_size);
@@ -703,7 +707,10 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     const bool plot_hovered = ImPlot::IsPlotHovered();
     const bool custom_zoom_modifiers = io.KeyMods == ImGuiMod_None
         || io.KeyMods == ImGuiMod_Ctrl;
-    if (plot_hovered && io.MouseWheel != 0.0F && custom_zoom_modifiers) {
+    const bool window_resize = plot_hovered && io.MouseWheel != 0.0F
+        && io.KeyMods == ImGuiMod_Alt;
+    if (plot_hovered && io.MouseWheel != 0.0F
+        && (custom_zoom_modifiers || window_resize)) {
         ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
     }
     draw_rtkplot_grid(x_ticks, y_ticks);
@@ -717,6 +724,12 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         actual_size.x,
         actual_size.y,
     };
+    if (previous_metrics.has_value() && !limits_requested_this_frame
+        && (std::abs(previous_metrics->east_axis_length_px - actual_size.x) > 0.5
+            || std::abs(previous_metrics->north_axis_length_px - actual_size.y) > 0.5)) {
+        static_cast<void>(set_trajectory_meters_per_pixel(
+            previous_metrics->meters_per_pixel));
+    }
     if (plot_hovered && io.MouseWheel != 0.0F && custom_zoom_modifiers) {
         const double factor = std::pow(1.2, -static_cast<double>(io.MouseWheel));
         if (io.KeyMods == ImGuiMod_Ctrl) {
@@ -726,6 +739,9 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         } else {
             static_cast<void>(zoom_trajectory_by_factor(factor));
         }
+    }
+    if (window_resize) {
+        pending_window_resize_wheel_ += io.MouseWheel;
     }
     if (plot_hovered) {
         double east_fraction = 0.0;
@@ -958,6 +974,16 @@ std::optional<TimeRange> ImPlotComponent::time_series_time_range() const noexcep
         GpsTime{static_cast<std::int64_t>(std::llround(minimum))},
         GpsTime{static_cast<std::int64_t>(std::llround(maximum))},
     };
+}
+
+std::optional<double> ImPlotComponent::consume_window_resize_factor() noexcept
+{
+    if (pending_window_resize_wheel_ == 0.0) {
+        return std::nullopt;
+    }
+    const double factor = std::pow(1.1, pending_window_resize_wheel_);
+    pending_window_resize_wheel_ = 0.0;
+    return factor;
 }
 
 } // namespace plotcore

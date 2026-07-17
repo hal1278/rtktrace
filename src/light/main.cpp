@@ -34,6 +34,26 @@ int main(int argc, char** argv)
         SDL_Quit();
         return 1;
     }
+    if (!SDL_SetWindowMinimumSize(window,
+            plotcore::light_minimum_window_width,
+            plotcore::light_minimum_window_height)) {
+        std::fprintf(stderr, "Window minimum size configuration failed: %s\n",
+            SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+    SDL_Rect usable_bounds;
+    const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
+    if (display != 0 && SDL_GetDisplayUsableBounds(display, &usable_bounds)) {
+        static_cast<void>(SDL_SetWindowMaximumSize(window,
+            usable_bounds.w < plotcore::light_minimum_window_width
+                ? plotcore::light_minimum_window_width
+                : usable_bounds.w,
+            usable_bounds.h < plotcore::light_minimum_window_height
+                ? plotcore::light_minimum_window_height
+                : usable_bounds.h));
+    }
 
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     if (gl_context == nullptr) {

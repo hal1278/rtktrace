@@ -16,6 +16,9 @@
 
 namespace plotcore {
 
+inline constexpr int light_minimum_window_width = 800;
+inline constexpr int light_minimum_window_height = 600;
+
 class LightGui {
 public:
     void enqueue_file(std::filesystem::path path);
@@ -62,6 +65,7 @@ private:
     bool render_expanded_sidebar();
     void render_view_tabs();
     void render_plot_content();
+    void apply_window_resize_request(SDL_Window* window);
     void render_both(ImPlotComponent& component, std::string_view id_prefix);
     void render_summary();
     void render_diagnostics_window();

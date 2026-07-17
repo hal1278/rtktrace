@@ -213,6 +213,23 @@ int main()
                 < pre_zoom_east_span * 0.001,
         "time-series zoom changes only the requested vertical range and shared time range");
 
+    const double scale_before_resize =
+        component.trajectory_metrics()->meters_per_pixel;
+    for (int frame = 0; frame < 2; ++frame) {
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGui::Begin("trajectory resize", nullptr,
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+        component.render_trajectory("Trajectory", PlotAreaSize{1200.0, 500.0});
+        ImGui::End();
+        ImGui::Render();
+    }
+    check(std::abs(component.trajectory_metrics()->meters_per_pixel
+                  - scale_before_resize)
+            < scale_before_resize * 0.01,
+        "trajectory keeps meters per pixel when its drawing area is resized");
+
     const auto prepare_ms = std::chrono::duration<double, std::milli>(
         prepare_end - prepare_start).count();
     const auto render_ms = std::chrono::duration<double, std::milli>(

@@ -769,6 +769,40 @@ void LightGui::render_file_workflow_modals()
     }
 }
 
+void LightGui::apply_window_resize_request(SDL_Window* window)
+{
+    std::optional<double> factor = normal_plot_.consume_window_resize_factor();
+    if (!factor.has_value()) {
+        factor = relative_plot_.consume_window_resize_factor();
+    }
+    if (!factor.has_value() || window == nullptr) {
+        return;
+    }
+    int width = 0;
+    int height = 0;
+    if (!SDL_GetWindowSize(window, &width, &height)) {
+        status_message_ = "Could not read the window size";
+        return;
+    }
+    int maximum_width = 7680;
+    int maximum_height = 4320;
+    SDL_Rect usable_bounds;
+    const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
+    if (display != 0 && SDL_GetDisplayUsableBounds(display, &usable_bounds)) {
+        maximum_width = std::max(usable_bounds.w, light_minimum_window_width);
+        maximum_height = std::max(usable_bounds.h, light_minimum_window_height);
+    }
+    const int requested_width = std::clamp(
+        static_cast<int>(std::lround(static_cast<double>(width) * *factor)),
+        light_minimum_window_width, maximum_width);
+    const int requested_height = std::clamp(
+        static_cast<int>(std::lround(static_cast<double>(height) * *factor)),
+        light_minimum_window_height, maximum_height);
+    if (!SDL_SetWindowSize(window, requested_width, requested_height)) {
+        status_message_ = "Could not resize the window";
+    }
+}
+
 void LightGui::render_time_range_dialog()
 {
     if (time_dialog_open_requested_) {
@@ -1270,6 +1304,7 @@ void LightGui::render(SDL_Window* window)
     ImGui::BeginGroup();
     render_view_tabs();
     render_plot_content();
+    apply_window_resize_request(window);
     render_summary();
     ImGui::EndGroup();
 

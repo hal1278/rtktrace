@@ -185,8 +185,9 @@ trajectoryと時系列は通常ホイールの中心固定zoom、
 `Ctrl`ホイールのカーソル固定zoomに対応し、時系列ではhover中の縦軸または最下部の
 共有時刻軸だけを変更する。追加読み込み、visibility、並べ替えおよび削除ではplot rangeを
 維持する。4 file × 10,000 sampleのapplication-level headless testでは、全共有pipelineと
-light固定layoutの1 frameを継続的に計測する。残る描画領域寸法変更を含む詳細なrange
-interactionを完了した時点でPhase 4完了とする。
+light固定layoutの1 frameを継続的に計測する。window/panel resize時のtrajectory scale維持と
+`Alt`ホイールによるwindow寸法変更も実装済みである。残る軸上の数値操作を完了した時点で
+Phase 4完了とする。
 
 ## 7. Phase 5: Light validation and shared-boundary cleanup
 

@@ -68,6 +68,7 @@ public:
     [[nodiscard]] const std::vector<TimeSeriesPanelMetrics>& time_series_metrics()
         const noexcept;
     [[nodiscard]] std::optional<TimeRange> time_series_time_range() const noexcept;
+    [[nodiscard]] std::optional<double> consume_window_resize_factor() noexcept;
 
 private:
     PlotDataKind data_kind_{PlotDataKind::Normal};
@@ -83,6 +84,7 @@ private:
     std::optional<TrajectoryPlotMetrics> requested_trajectory_limits_;
     std::optional<NumericRange> requested_time_limits_seconds_;
     std::array<std::optional<NumericRange>, 5> requested_position_limits_{};
+    double pending_window_resize_wheel_{0.0};
 };
 
 } // namespace plotcore
