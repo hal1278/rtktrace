@@ -26,6 +26,20 @@ constexpr double nanoseconds_per_second = 1'000'000'000.0;
     return ImVec2{static_cast<float>(size.width_px), static_cast<float>(size.height_px)};
 }
 
+[[nodiscard]] double axis_value_wheel(
+    const char* label, double value, const char* format)
+{
+    ImGui::TextUnformatted(label);
+    ImGui::SameLine(0.0F, 3.0F);
+    ImGui::Text(format, value);
+    if (!ImGui::IsItemHovered() || ImGui::GetIO().KeyMods != ImGuiMod_None
+        || ImGui::GetIO().MouseWheel == 0.0F) {
+        return 0.0;
+    }
+    ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
+    return ImGui::GetIO().MouseWheel;
+}
+
 [[nodiscard]] ImVec4 color(Rgba8 value) noexcept
 {
     constexpr float scale = 1.0F / 255.0F;
@@ -440,6 +454,7 @@ void ImPlotComponent::clear() noexcept
     time_series_.clear();
     trajectory_metrics_.reset();
     time_series_metrics_.clear();
+    last_time_axis_length_px_ = 0.0;
     requested_trajectory_limits_.reset();
     requested_time_limits_seconds_.reset();
     for (std::optional<NumericRange>& range : requested_position_limits_) {
@@ -644,9 +659,123 @@ bool ImPlotComponent::zoom_time_series_position_by_factor(
             anchor + (metrics->position.maximum - anchor) * factor});
 }
 
+void ImPlotComponent::render_trajectory_axis_controls(std::string_view id)
+{
+    if (!trajectory_metrics_.has_value()) {
+        return;
+    }
+    const std::string control_id = "trajectory-axis-controls##" + std::string{id};
+    ImGui::PushID(control_id.c_str());
+    NumericRange east = trajectory_metrics_->east;
+    NumericRange north = trajectory_metrics_->north;
+
+    ImGui::TextUnformatted("E");
+    ImGui::SameLine();
+    const double east_minimum_wheel = axis_value_wheel("min", east.minimum, "%.3g");
+    ImGui::SameLine();
+    const double east_maximum_wheel = axis_value_wheel("max", east.maximum, "%.3g");
+    ImGui::SameLine();
+    ImGui::TextDisabled("%.0f px", trajectory_metrics_->east_axis_length_px);
+    if (east_minimum_wheel != 0.0) {
+        east.minimum += east.length() * 0.01 * east_minimum_wheel;
+    }
+    if (east_maximum_wheel != 0.0) {
+        east.maximum += east.length() * 0.01 * east_maximum_wheel;
+    }
+
+    ImGui::SameLine(0.0F, 18.0F);
+    ImGui::TextUnformatted("N");
+    ImGui::SameLine();
+    const double north_minimum_wheel = axis_value_wheel("min", north.minimum, "%.3g");
+    ImGui::SameLine();
+    const double north_maximum_wheel = axis_value_wheel("max", north.maximum, "%.3g");
+    ImGui::SameLine();
+    ImGui::TextDisabled("%.0f px", trajectory_metrics_->north_axis_length_px);
+    ImGui::SameLine(0.0F, 18.0F);
+    ImGui::TextDisabled("%.3g m/px", trajectory_metrics_->meters_per_pixel);
+    if (north_minimum_wheel != 0.0) {
+        north.minimum += north.length() * 0.01 * north_minimum_wheel;
+    }
+    if (north_maximum_wheel != 0.0) {
+        north.maximum += north.length() * 0.01 * north_maximum_wheel;
+    }
+    if (east_minimum_wheel != 0.0 || east_maximum_wheel != 0.0
+        || north_minimum_wheel != 0.0 || north_maximum_wheel != 0.0) {
+        static_cast<void>(set_trajectory_ranges(east, north));
+    }
+    ImGui::PopID();
+}
+
+void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
+{
+    if (time_series_metrics_.empty()) {
+        return;
+    }
+    const std::string control_id = "time-axis-controls##" + std::string{id};
+    ImGui::PushID(control_id.c_str());
+    if (const std::optional<TimeRange> time = time_series_time_range()) {
+        const double start_seconds = static_cast<double>(
+            time->start.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
+        const double end_seconds = static_cast<double>(
+            time->end.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
+        ImGui::TextUnformatted("TIME (GPST)");
+        ImGui::SameLine();
+        const double start_wheel = axis_value_wheel("min", start_seconds, "%.9f");
+        ImGui::SameLine();
+        const double end_wheel = axis_value_wheel("max", end_seconds, "%.9f");
+        ImGui::SameLine();
+        ImGui::TextDisabled("%.0f px", last_time_axis_length_px_);
+        if (start_wheel != 0.0 || end_wheel != 0.0) {
+            TimeRange adjusted = *time;
+            const long double delta = static_cast<long double>(time->end - time->start)
+                * 0.01L * static_cast<long double>(
+                    start_wheel != 0.0 ? start_wheel : end_wheel);
+            const long double changed = static_cast<long double>(
+                start_wheel != 0.0
+                    ? adjusted.start.nanoseconds_since_gps_epoch
+                    : adjusted.end.nanoseconds_since_gps_epoch)
+                + delta;
+            if (changed >= static_cast<long double>(std::numeric_limits<std::int64_t>::min())
+                && changed <= static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
+                if (start_wheel != 0.0) {
+                    adjusted.start.nanoseconds_since_gps_epoch =
+                        static_cast<std::int64_t>(std::llround(changed));
+                } else {
+                    adjusted.end.nanoseconds_since_gps_epoch =
+                        static_cast<std::int64_t>(std::llround(changed));
+                }
+                static_cast<void>(set_time_series_time_range(adjusted));
+            }
+        }
+    }
+    for (const TimeSeriesPanelMetrics& metrics : time_series_metrics_) {
+        ImGui::TextUnformatted(component_label(metrics.component));
+        ImGui::SameLine();
+        const double minimum_wheel = axis_value_wheel(
+            "min", metrics.position.minimum, "%.3g");
+        ImGui::SameLine();
+        const double maximum_wheel = axis_value_wheel(
+            "max", metrics.position.maximum, "%.3g");
+        ImGui::SameLine();
+        ImGui::TextDisabled("%.0f px", metrics.position_axis_length_px);
+        NumericRange range = metrics.position;
+        if (minimum_wheel != 0.0) {
+            range.minimum += range.length() * 0.01 * minimum_wheel;
+        }
+        if (maximum_wheel != 0.0) {
+            range.maximum += range.length() * 0.01 * maximum_wheel;
+        }
+        if (minimum_wheel != 0.0 || maximum_wheel != 0.0) {
+            static_cast<void>(set_time_series_position_range(metrics.component, range));
+        }
+    }
+    ImGui::PopID();
+}
+
 void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize requested_size)
 {
     const std::string plot_id{id};
+    render_trajectory_axis_controls(id);
     ImVec2 frame_size = widget_size(requested_size);
     const ImVec2 available = ImGui::GetContentRegionAvail();
     if (frame_size.x <= 0.0F) {
@@ -772,6 +901,7 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
     if (time_series_.empty()) {
         return;
     }
+    render_time_series_axis_controls(id);
     std::optional<PlotBounds> combined;
     for (const PlotBatch& batch : time_series_) {
         if (!batch.bounds.has_value()) {
@@ -887,6 +1017,7 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         draw_batch(batch, options_.marker_size_px);
         const ImPlotRect limits = ImPlot::GetPlotLimits();
         const ImVec2 actual_size = ImPlot::GetPlotSize();
+        last_time_axis_length_px_ = actual_size.x;
         last_time_range_seconds_ = NumericRange{limits.X.Min, limits.X.Max};
         time_series_metrics_.push_back(TimeSeriesPanelMetrics{
             component,
