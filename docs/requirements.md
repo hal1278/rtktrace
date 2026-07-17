@@ -808,19 +808,20 @@ sampleの色は、測位解品質を表す。
 
 軸ラベルは英語表記とし、文字列、位置、数値表示および単位表記はRTKPLOTへ準拠する。
 
-具体的な表記は、RTKPLOTの実装を確認したうえで本節へ追記する。
+trajectoryは`E-W (m)`および`N-S (m)`、時系列は`TIME (GPST)`と位置成分名を
+使用する。位置成分名は`E-W (m)`、`N-S (m)`、`U-D (m)`、`Height (m)`または
+`Distance (m)`とする。
 
 #### DR-AXIS-002 時刻表記
 
 時系列の時刻軸には絶対GPSTを表示する。
 
-GPSTの具体的な表示書式はRTKPLOTへ準拠し、RTKPLOTの実装を確認したうえで本節へ追記する。
+具体的なtick間隔および表示書式は`data-specification.md`第17節に従う。
 
 #### DR-AXIS-003 tickおよびグリッド
 
-tickの生成規則、主目盛り、補助目盛りおよびグリッドの表示方法はRTKPLOTへ準拠する。
-
-ゼロ線とその他のグリッドの線種を含む具体的な描画規則は、RTKPLOTの実装を確認したうえで本節へ追記する。
+tickの生成規則およびgridの表示方法は`data-specification.md`第17節に従う。
+値0のgridは実線、その他は点線とする。
 
 ### 5.7 数値入力
 
@@ -935,12 +936,8 @@ File/Slots areaは他のplot areaから独立して表示し、利用者が表�
 
 非表示のplot instanceは描画処理の対象外とする。再表示した場合は、非表示前のview stateを復元する。
 
-### 5.11 RTKPLOT実装確認後に確定する事項
+### 5.11 RTKPLOT実装確認済み事項
 
-以下の具体仕様は、RTKPLOTの実装を確認した後に本節または`data-specification.md`へ追記する。
-
-- 測位解品質ごとの既定色
-- 軸ラベルの文字列、位置、数値表示および単位表記
-- tickの生成規則
-- 絶対GPSTの表示書式
-- ゼロ線、主グリッドおよび補助グリッドの描画規則
+測位解品質ごとの既定色、品質順、軸ラベル、tick生成、絶対GPST表示書式、および
+grid描画規則は、RTKLIBのRTKPLOT実装を確認し、`data-specification.md`第9節および
+第17節へ定義済みである。

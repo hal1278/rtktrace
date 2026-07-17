@@ -381,7 +381,10 @@ Phase 2で必要となるcache invalidation、cache revisionまたは再計算�
 
 ## 14. Build target
 
-application executable target名は`plotcore-light`とする。初期GUI build foundationではこのtargetへDear ImGui、SDL3、OpenGLおよびImPlotを直接組み込み、headless smoke testを別targetとしてbuildする。
+application executable target名は`plotcore-light`とする。ImPlot依存の共有描画componentは
+`plotcore-plot-gui`、graphics API非依存のdata view、axisおよびbatch処理は
+`plotcore-plot`へ分離する。headless ImPlot regression testはapplicationと同じ
+`plotcore-plot-gui`を使用する。
 
 将来の想定target構成は以下とする。
 
@@ -391,6 +394,7 @@ shared libraries
   plotcore-model
   plotcore-analysis
   plotcore-plot
+  plotcore-plot-gui
   plotcore-ui-common
 
 executables

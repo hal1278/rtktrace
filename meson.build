@@ -104,6 +104,7 @@ plot_library = static_library(
   'plotcore-plot',
   [
     'src/plot/axis.cpp',
+    'src/plot/batch.cpp',
     'src/plot/data_view.cpp',
   ],
   dependencies : analysis_dep,
@@ -137,12 +138,20 @@ gui_dependencies = static_library(
   install : false,
 )
 
+plot_gui_library = static_library(
+  'plotcore-plot-gui',
+  'src/plot/implot_component.cpp',
+  include_directories : gui_include_directories,
+  dependencies : plot_dep,
+  install : false,
+)
+
 executable(
   'plotcore-light',
   'src/light/main.cpp',
   include_directories : gui_include_directories,
   dependencies : [plot_dep, sdl3_dep, opengl_dep],
-  link_with : gui_dependencies,
+  link_with : [plot_gui_library, gui_dependencies],
   install : true,
 )
 
@@ -226,6 +235,17 @@ plot_test = executable(
 )
 
 test('plotcore-plot', plot_test)
+
+implot_component_test = executable(
+  'plotcore-implot-component-test',
+  'tests/implot_component.cpp',
+  include_directories : gui_include_directories,
+  dependencies : [plot_dep, sdl3_dep, opengl_dep],
+  link_with : [plot_gui_library, gui_dependencies],
+  install : false,
+)
+
+test('plotcore-implot-component', implot_component_test, timeout : 30)
 
 statistics_test = executable(
   'plotcore-statistics-test',

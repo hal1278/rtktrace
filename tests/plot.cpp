@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "plotcore/plot/axis.hpp"
+#include "plotcore/plot/batch.hpp"
 
 namespace {
 
@@ -211,6 +212,86 @@ void test_minimum_ranges_and_visibility()
         "invalid plot area cannot produce trajectory ranges");
 }
 
+void test_plot_batch_style_and_drawing_order()
+{
+    using namespace plotcore;
+    const std::vector slot_one{
+        sample_at(0, 0.0, 10.0, 20.0, 30.0, SolutionQuality::Fixed),
+        sample_at(1'000'000'000, 1.0, 11.0, 21.0, 31.0, SolutionQuality::Single),
+        sample_at(2'000'000'000, 2.0, 12.0, 22.0, 32.0, SolutionQuality::Float),
+    };
+    const std::vector slot_two{
+        sample_at(0, 3.0, 13.0, 23.0, 33.0, SolutionQuality::Dgps),
+    };
+    const PlotDataView data{PlotDataKind::Normal,
+        {
+            PlotSeriesView{1, true, std::span<const NormalizedSample>{slot_one}},
+            PlotSeriesView{2, true, std::span<const NormalizedSample>{slot_two}},
+        }};
+    QualityFilter filter;
+    filter.visible[static_cast<std::size_t>(SolutionQuality::Single)] = false;
+
+    PlotBatchOptions options;
+    options.bridge_hidden_quality_samples = true;
+    const PlotBatch trajectory = build_trajectory_plot_batch(data, filter, options);
+    check(trajectory.slots.size() == 2 && trajectory.slots[0].slot_number == 1
+            && trajectory.slots[1].slot_number == 2,
+        "larger slots are stored later for front-most drawing by default");
+    check(trajectory.visible_sample_count == 3
+            && trajectory.slots[0].line_strips.size() == 1
+            && trajectory.slots[0].line_strips[0].points.size() == 2,
+        "bridging joins visible samples across a hidden quality");
+    check(trajectory.slots[0].marker_batches.size() == 2
+            && trajectory.slots[0].marker_batches.back().quality
+                == SolutionQuality::Fixed,
+        "better quality marker batches are stored front-most by default");
+
+    options.bridge_hidden_quality_samples = false;
+    options.slot_order = SlotDrawingOrder::SmallerSlotInFront;
+    options.quality_order = QualityDrawingOrder::LowerQualityInFront;
+    const PlotBatch separated = build_trajectory_plot_batch(data, filter, options);
+    check(separated.slots.size() == 2 && separated.slots[0].slot_number == 2
+            && separated.slots[1].slot_number == 1,
+        "slot drawing order can put smaller slots in front");
+    check(separated.slots[1].line_strips.empty(),
+        "hidden intermediate samples break a line when bridging is disabled");
+    check(separated.slots[1].marker_batches.back().quality
+            == SolutionQuality::Float,
+        "quality drawing order can put lower quality in front");
+
+    check(rtkplot_file1_quality_colors[1] == Rgba8{0, 128, 0, 255}
+            && rtkplot_file1_quality_colors[2] == Rgba8{255, 170, 0, 255}
+            && rtkplot_file1_quality_colors[6] == Rgba8{0, 128, 128, 255},
+        "RTKPLOT File 1 quality colors are represented as RGB values");
+}
+
+void test_time_series_plot_batch()
+{
+    using namespace plotcore;
+    constexpr std::int64_t week_ns = 604'800'000'000'000;
+    const std::vector samples{
+        sample_at(week_ns + 500'000'000, 1.0, 2.0, 3.0, 4.0,
+            SolutionQuality::Fixed),
+        sample_at(week_ns + 1'500'000'000, 5.0, 6.0, 7.0, 8.0,
+            SolutionQuality::Float),
+    };
+    const PlotDataView data{PlotDataKind::Normal,
+        {PlotSeriesView{1, true, std::span<const NormalizedSample>{samples}}}};
+    const PlotBatch batch = build_time_series_plot_batch(data, QualityFilter{},
+        PositionComponent::EllipsoidalHeight, PlotBatchOptions{});
+    check(batch.time_origin == GpsTime{week_ns} && batch.slots.size() == 1,
+        "time-series batch uses a GPST week boundary as its precision-preserving origin");
+    check(batch.slots[0].line_strips.size() == 1
+            && near(batch.slots[0].line_strips[0].points[0].x, 0.5)
+            && near(batch.slots[0].line_strips[0].points[1].y, 8.0),
+        "time-series batch projects absolute GPST and the selected component");
+
+    const PlotBatch unavailable = build_time_series_plot_batch(data, QualityFilter{},
+        PositionComponent::ReferenceRelativeDistance3d, PlotBatchOptions{});
+    check(unavailable.slots.empty() && unavailable.visible_sample_count == 0,
+        "unavailable components do not produce drawable samples");
+}
+
 } // namespace
 
 int main()
@@ -218,6 +299,8 @@ int main()
     test_normal_and_relative_data_views();
     test_auto_fit_trajectory_and_components();
     test_minimum_ranges_and_visibility();
+    test_plot_batch_style_and_drawing_order();
+    test_time_series_plot_batch();
 
     if (failures != 0) {
         std::cerr << failures << " plot test(s) failed\n";

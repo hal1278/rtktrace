@@ -455,7 +455,27 @@ ECEF指定ではx、yおよびzをmeterとする。
 
 POSおよびNMEAからの変換後は、すべてこの値を使用する。
 
-品質分類間の「良品質から低品質」の厳密な順序、およびRTKPLOT File 1に準拠する既定色は、RTKPLOT実装確認後に確定する。
+品質分類間の「良品質から低品質」の順序は、RTKLIBがsolution statusの小さい
+非ゼロ値を優先する規則に合わせ、次のとおりとする。
+
+```text
+1 fixed → 2 float → 3 SBAS → 4 DGPS → 5 single → 6 PPP → 0 invalid/unknown
+```
+
+RTKPLOT File 1の既定配色をRGB値へ変換した品質色は次のとおりとする。
+
+| Quality | Color | RGB | Hex |
+|---:|---|---:|---:|
+| 0 | silver | `192, 192, 192` | `#C0C0C0` |
+| 1 | green | `0, 128, 0` | `#008000` |
+| 2 | orange | `255, 170, 0` | `#FFAA00` |
+| 3 | fuchsia | `255, 0, 255` | `#FF00FF` |
+| 4 | blue | `0, 0, 255` | `#0000FF` |
+| 5 | red | `255, 0, 0` | `#FF0000` |
+| 6 | teal | `0, 128, 128` | `#008080` |
+
+この確認にはRTKLIB masterのcommit
+`71db0ffa0d9735697c6adfd06fdf766d0e5ce807`にあるRTKPLOT実装を使用した。
 
 ## 10. 共通処理時刻範囲
 
@@ -764,6 +784,20 @@ actionは、例えば以下を表す。
 以下は本版では未確定とし、実装前またはRTKPLOT実装確認後に確定する。
 
 - `reference_match_tolerance`の既定値
-- 品質分類間の厳密な描画順序
-- 測位解品質ごとの既定表示色
-- 軸、tick、GPST表示書式およびグリッド規則
+
+## 17. RTKPLOT準拠の軸、tickおよびgrid
+
+RTKPLOT確認に使用する基準実装は、品質色と同じRTKLIB commitとする。
+
+- 時系列の内部x座標は、表示データ先頭を含むGPS週の先頭を原点とした秒数とする。
+- 時刻軸ラベルは絶対GPSTを表示し、軸名を`TIME (GPST)`とする。
+- 時刻tickは、`60 × seconds_per_pixel`以上となる最初の値を、RTKPLOTの
+  `0.1, 0.2, 0.5, 1, 3, 6, 12, 30, 60, 300, ... , 6048000`秒の候補列から選ぶ。
+  候補上限を超える場合は`12096000`秒とする。
+- 時刻tick labelはtick間隔に応じ、`HH:MM:SS.d`、`HH:MM:SS`、`HH:MM`、
+  `MM/DD`または`YY/MM`を使用する。
+- 数値tickは、`30 × units_per_pixel`を基準として`1, 2, 5, 10`系列から選ぶ。
+- gridはsilver `#C0C0C0`とし、値0のgridを実線、その他を点線とする。
+- trajectory軸名は`E-W (m)`および`N-S (m)`とする。時系列の位置成分軸名は
+  `E-W (m)`、`N-S (m)`、`U-D (m)`を基本とし、楕円体高は`Height (m)`、
+  基準相対距離は`Distance (m)`とする。

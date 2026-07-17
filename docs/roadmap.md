@@ -137,9 +137,11 @@ application layoutに依存しないtrajectoryおよびtime-series componentを�
 - 数万点を持つ複数fileで基本操作の性能を測定できる。
 - RTKPLOT確認済みのaxisおよびquality規則が反映されている。
 
-現在、Normal/Relative共通plot data view、file visibility、quality filter、水平軌跡の
-等縮尺auto-fitおよび時系列の位置・時刻axis auto-fitまで実装済みである。ImPlot描画、
-marker、drawing order、pan/zoomおよび性能測定は引き続き本phaseで実装する。
+Normal/Relative共通plot data view、file visibility、quality filter、水平軌跡の
+等縮尺auto-fit、時系列の位置・時刻axis auto-fit、ImPlot描画component、slot marker、
+quality/slot drawing order、pan/zoom後のaxis metrics、およびRTKPLOT準拠tick/gridを
+実装済みである。4 file × 10,000 sampleのheadless regression testは、描画batch準備と
+trajectoryおよび3段time-seriesを含む1 frameの時間を継続的に測定して出力する。
 
 ## 6. Phase 4: plotcore light
 
