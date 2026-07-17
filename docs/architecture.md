@@ -170,7 +170,6 @@ SDL3、OpenGL、Dear ImGuiおよびImPlotのcontext生成とbackend初期化はa
 - 正規化sample
 - slot順
 - file visibility
-- quality filter
 - common time range
 - ENU基準
 - reference match tolerance checkの有効状態
@@ -182,6 +181,10 @@ SDL3、OpenGL、Dear ImGuiおよびImPlotのcontext生成とbackend初期化はa
 - diagnostic
 
 plot instance数に応じてこれらを複製しない。
+
+これらは`PlotSessionState`が所有する。quality filterはparser、座標処理およびcacheを
+無効化しない共有表示設定であるためapplication compositionが1個所有し、全plot
+componentへ同じ値を渡す。
 
 ### 6.2 view固有状態
 
@@ -327,6 +330,25 @@ PlotInstance
 全instanceは1個の`PlotSessionState`が提供するNormalまたはRelative data viewを参照し、
 instanceの追加、非表示または削除によって正規化dataおよびcacheを複製しない。
 
+full実装では次のapplication-level APIを使用する。
+
+```text
+PlotWindowId = monotonic uint64 identifier (再利用しない)
+PlotType     = NormalTrajectory | NormalTimeSeries |
+               RelativeTrajectory | RelativeTimeSeries
+
+create_plot(PlotType) -> PlotWindowId
+set_plot_visible(PlotWindowId, bool)
+erase_plot(PlotWindowId)
+find_plot(PlotWindowId) -> PlotInstance
+```
+
+`PlotInstance`は`PlotWindowId`、`PlotType`、title、visible stateおよび1個の
+`ImPlotComponent`を所有する。create、visible変更およびeraseは`PlotSessionState::revision()`
+を変更せず、session revisionまたは共有quality filter revisionが変化した場合だけdata viewを
+再prepareする。非表示instanceはrenderおよびprepareを行わず、再表示時に保持中のview stateと
+最新session revisionを比較する。
+
 ## 11. Implementation stack and rendering backend
 
 初期実装stackを次で確定する。
@@ -382,6 +404,16 @@ Mesonのexternal dependency探索方法はdependencyごとに明示的に固定�
 非同期処理を導入する場合は、その時点でjob/resultへgeneration IDを付与し、古い設定に基づく完了結果を破棄する。初期状態では非同期処理のためだけのgeneration fieldをdata modelへ必須化しない。
 
 Phase 2で必要となるcache invalidation、cache revisionまたは再計算管理は、非同期job/resultのgeneration IDとは別概念として扱う。
+
+Phase 4のbackend-free継続計測では、4 slot × 10,000 sampleの共有pipelineは代表実行で
+約16 ms、light固定layoutの初回headless frameは約108 msであった。別のImPlot regression
+ではbatch prepareよりtrajectory/time-series描画の方が支配的である。数値は性能thresholdでは
+なく回帰時に継続出力する測定値とする。
+
+この規模では共有pipelineをworker thread化せず、Phase 5以降も同期APIを維持する。実データで
+file loadまたはcache rebuildが100 msを継続して超え、UI応答性へ影響する測定結果が得られた
+場合にだけworker threadを再評価する。描画側は先にbatch削減、可視範囲cullingまたは
+downsamplingを評価し、data-processing workerでrenderer bottleneckを隠さない。
 
 ## 14. Build target
 
@@ -454,7 +486,6 @@ Linux native checkではgraphics backendを必要としないC++20 componentお�
 
 ## 17. 未確定事項
 
-- worker threadを将来導入する対象および条件（性能測定後に判断する）
 - layout persistence
 - fullのdocking対応
 - fullのmulti-viewport対応

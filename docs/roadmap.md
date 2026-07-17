@@ -219,6 +219,13 @@ Phase 5の最初の境界整理として、light配下に置かれていたGUI�
 `plotcore-session` targetへ移した。light GUIはこの共有sessionをcompositionし、将来の
 fullもlight namespaceへ依存せず同じsessionとdata viewを利用できる。
 
+data/cacheと共有表示設定のownership、instance固有view state、monotonic `PlotWindowId`と
+4種類の`PlotType`を使用するfull application API、session/filter revisionによるprepare条件、
+非表示instanceの処理抑止、およびworker thread再評価条件を`architecture.md`へ確定した。
+4 file × 10,000 sampleの継続計測では共有pipelineより描画が支配的であり、full実装前に
+light固有layoutをshared sessionまたはplot componentから除去できている。上記の完了条件を
+満たしているため、Phase 5は完了とする。
+
 ## 8. Phase 6: plotcore full
 
 ### 目的
