@@ -28,8 +28,8 @@ void check(bool condition, std::string_view description)
         checksum ^= byte;
     }
     std::ostringstream output;
-    output << '$' << body << '*' << std::uppercase << std::hex << std::setfill('0')
-           << std::setw(2) << static_cast<unsigned>(checksum) << '\n';
+    output << '$' << body << '*' << std::uppercase << std::hex << std::setfill('0') << std::setw(2)
+           << static_cast<unsigned>(checksum) << '\n';
     return output.str();
 }
 
@@ -48,8 +48,7 @@ void check(bool condition, std::string_view description)
 void test_date_coordinates_quality_and_talker_priority()
 {
     using namespace plotcore;
-    std::istringstream input{
-        sentence("GPRMC,120000.000,A,,,,,,,010724,,")
+    std::istringstream input{sentence("GPRMC,120000.000,A,,,,,,,010724,,")
         + sentence("GPGGA,115959.000,3500.000,N,13900.000,E,1,12,0.8,10.0,M,30.0,M,,")
         + sentence("GPGGA,120000.000,3500.000,N,13900.000,E,4,12,0.8,11.0,M,31.0,M,,")
         + sentence("GNGGA,120000.001,3600.000,N,14000.000,E,5,12,0.8,12.0,M,32.0,M,,")};
@@ -62,12 +61,11 @@ void test_date_coordinates_quality_and_talker_priority()
     check(diagnostic_count(file, DiagnosticCode::DuplicateEpoch) == 1,
         "talker-priority replacement is diagnosed");
     if (file.samples.size() == 2) {
-        const std::optional<GpsTime> expected = utc_civil_to_gps_time(
-            UtcCivilTime{2024, 7, 1, 12, 0, 0, 1'000'000});
+        const std::optional<GpsTime> expected =
+            utc_civil_to_gps_time(UtcCivilTime{2024, 7, 1, 12, 0, 0, 1'000'000});
         check(expected.has_value() && file.samples[1].time == *expected,
             "GGA UTC is converted to GPST using the date reference");
-        check(std::abs(file.samples[1].llh.latitude_rad - 36.0 * std::acos(-1.0) / 180.0)
-                < 1.0e-15,
+        check(std::abs(file.samples[1].llh.latitude_rad - 36.0 * std::acos(-1.0) / 180.0) < 1.0e-15,
             "NMEA degrees/minutes latitude is normalized to radians");
         check(std::abs(file.samples[1].llh.ellipsoidal_height_m - 44.0) < 1.0e-12,
             "ellipsoidal height includes geoid separation");
@@ -128,10 +126,10 @@ void test_rollover_partial_loading_and_validation()
     check(file.samples.size() == 4,
         "checksum failure and time reversal are removed while later GGA records load");
     if (file.samples.size() == 4) {
-        const std::optional<GpsTime> before_midnight = utc_civil_to_gps_time(
-            UtcCivilTime{2024, 7, 1, 23, 59, 59, 0});
-        const std::optional<GpsTime> after_midnight = utc_civil_to_gps_time(
-            UtcCivilTime{2024, 7, 2, 0, 0, 1, 0});
+        const std::optional<GpsTime> before_midnight =
+            utc_civil_to_gps_time(UtcCivilTime{2024, 7, 1, 23, 59, 59, 0});
+        const std::optional<GpsTime> after_midnight =
+            utc_civil_to_gps_time(UtcCivilTime{2024, 7, 2, 0, 0, 1, 0});
         check(before_midnight.has_value() && file.samples[0].time == *before_midnight,
             "GGA before the first date sentence is assigned to the previous day");
         check(after_midnight.has_value() && file.samples[1].time == *after_midnight,
@@ -145,8 +143,7 @@ void test_rollover_partial_loading_and_validation()
     }
     check(diagnostic_count(file, DiagnosticCode::ChecksumError) == 1,
         "checksum mismatch is diagnosed");
-    check(diagnostic_count(file, DiagnosticCode::TimeReversal) == 1,
-        "time reversal is diagnosed");
+    check(diagnostic_count(file, DiagnosticCode::TimeReversal) == 1, "time reversal is diagnosed");
     check(diagnostic_count(file, DiagnosticCode::UnknownNmeaQuality) == 1,
         "unknown NMEA quality is diagnosed");
     check(diagnostic_count(file, DiagnosticCode::UnsupportedTalker) == 1,
@@ -158,8 +155,7 @@ void test_rollover_partial_loading_and_validation()
 void test_rejected_options_and_empty_input()
 {
     using namespace plotcore;
-    std::istringstream valid{
-        sentence("GPRMC,120000.000,A,,,,,,,010724,,")
+    std::istringstream valid{sentence("GPRMC,120000.000,A,,,,,,,010724,,")
         + sentence("GPGGA,120000.000,3500.000,N,13900.000,E,1,12,0.8,10.0,M,30.0,M,,")};
     NmeaParseOptions invalid_options;
     invalid_options.rollover_tolerance_ns = 86'400'000'000'000;

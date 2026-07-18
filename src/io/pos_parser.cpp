@@ -38,7 +38,7 @@ constexpr std::int64_t seconds_per_week = 604'800;
     return fields;
 }
 
-template<typename Integer>
+template <typename Integer>
 [[nodiscard]] bool parse_integer(std::string_view field, Integer& value) noexcept
 {
     const auto result = std::from_chars(field.data(), field.data() + field.size(), value);
@@ -56,13 +56,13 @@ template<typename Integer>
     std::string_view field) noexcept
 {
     const std::size_t decimal = field.find('.');
-    if (decimal != std::string_view::npos && field.find('.', decimal + 1) != std::string_view::npos) {
+    if (decimal != std::string_view::npos
+        && field.find('.', decimal + 1) != std::string_view::npos) {
         return std::nullopt;
     }
     const std::string_view whole_field = field.substr(0, decimal);
-    const std::string_view fraction_field = decimal == std::string_view::npos
-        ? std::string_view{}
-        : field.substr(decimal + 1);
+    const std::string_view fraction_field =
+        decimal == std::string_view::npos ? std::string_view{} : field.substr(decimal + 1);
     if (whole_field.empty() || (decimal != std::string_view::npos && fraction_field.empty())) {
         return std::nullopt;
     }
@@ -79,9 +79,8 @@ template<typename Integer>
 
     const std::int64_t carry = *fraction_ns / nanoseconds_per_second;
     const std::int64_t remainder = *fraction_ns % nanoseconds_per_second;
-    if (whole_seconds > (std::numeric_limits<std::int64_t>::max() - remainder)
-            / nanoseconds_per_second
-        - carry) {
+    if (whole_seconds
+        > (std::numeric_limits<std::int64_t>::max() - remainder) / nanoseconds_per_second - carry) {
         return std::nullopt;
     }
     return (whole_seconds + carry) * nanoseconds_per_second + remainder;
@@ -137,9 +136,8 @@ template<typename Integer>
     }
     unsigned second = 0;
     const std::string_view whole_second = seconds_field.substr(0, decimal);
-    const std::string_view fraction = decimal == std::string_view::npos
-        ? std::string_view{}
-        : seconds_field.substr(decimal + 1);
+    const std::string_view fraction =
+        decimal == std::string_view::npos ? std::string_view{} : seconds_field.substr(decimal + 1);
     if (!parse_fixed_unsigned(whole_second, second) || second >= 60
         || (decimal != std::string_view::npos && fraction.empty())) {
         return std::nullopt;
@@ -151,8 +149,8 @@ template<typename Integer>
     }
     const std::uint32_t nanosecond =
         static_cast<std::uint32_t>(*fraction_ns % nanoseconds_per_second);
-    std::optional<GpsTime> result = gps_civil_to_gps_time(
-        GpsCivilTime{year, month, day, hour, minute, second, nanosecond});
+    std::optional<GpsTime> result =
+        gps_civil_to_gps_time(GpsCivilTime{year, month, day, hour, minute, second, nanosecond});
     if (result.has_value() && *fraction_ns == nanoseconds_per_second) {
         if (result->nanoseconds_since_gps_epoch
             > std::numeric_limits<std::int64_t>::max() - nanoseconds_per_second) {
@@ -184,8 +182,8 @@ template<typename Integer>
 }
 
 void add_diagnostic(LoadedFile& file, DiagnosticSeverity severity, DiagnosticCode code,
-    std::optional<std::size_t> line_number, std::optional<GpsTime> time,
-    std::string message, DiagnosticAction action)
+    std::optional<std::size_t> line_number, std::optional<GpsTime> time, std::string message,
+    DiagnosticAction action)
 {
     file.diagnostics.push_back(Diagnostic{
         .severity = severity,
@@ -199,24 +197,20 @@ void add_diagnostic(LoadedFile& file, DiagnosticSeverity severity, DiagnosticCod
 }
 
 [[nodiscard]] std::optional<NormalizedSample> parse_record(
-    const std::vector<std::string_view>& fields, std::size_t line_number,
-    LoadedFile& file)
+    const std::vector<std::string_view>& fields, std::size_t line_number, LoadedFile& file)
 {
     if (fields.size() < 6) {
-        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::MissingField,
-            line_number, std::nullopt, "POS record has fewer than six fields",
-            DiagnosticAction::SampleRemoved);
+        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::MissingField, line_number,
+            std::nullopt, "POS record has fewer than six fields", DiagnosticAction::SampleRemoved);
         return std::nullopt;
     }
 
     const bool calendar_format = fields[0].find('/') != std::string_view::npos;
-    const std::optional<GpsTime> time = calendar_format
-        ? parse_calendar(fields[0], fields[1])
-        : parse_week_tow(fields[0], fields[1]);
+    const std::optional<GpsTime> time = calendar_format ? parse_calendar(fields[0], fields[1])
+                                                        : parse_week_tow(fields[0], fields[1]);
     if (!time.has_value()) {
-        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::InvalidTime,
-            line_number, std::nullopt, "POS record has an invalid time",
-            DiagnosticAction::SampleRemoved);
+        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::InvalidTime, line_number,
+            std::nullopt, "POS record has an invalid time", DiagnosticAction::SampleRemoved);
         return std::nullopt;
     }
 
@@ -226,17 +220,15 @@ void add_diagnostic(LoadedFile& file, DiagnosticSeverity severity, DiagnosticCod
     if (!parse_finite_double(fields[2], latitude_deg)
         || !parse_finite_double(fields[3], longitude_deg)
         || !parse_finite_double(fields[4], height_m)) {
-        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::ParseError,
-            line_number, time, "POS record has an invalid coordinate",
-            DiagnosticAction::SampleRemoved);
+        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::ParseError, line_number,
+            time, "POS record has an invalid coordinate", DiagnosticAction::SampleRemoved);
         return std::nullopt;
     }
 
     int input_quality = 0;
     if (!parse_integer(fields[5], input_quality)) {
-        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::ParseError,
-            line_number, time, "POS record has an invalid quality field",
-            DiagnosticAction::SampleRemoved);
+        add_diagnostic(file, DiagnosticSeverity::Warning, DiagnosticCode::ParseError, line_number,
+            time, "POS record has an invalid quality field", DiagnosticAction::SampleRemoved);
         return std::nullopt;
     }
     const SolutionQuality quality = normalize_quality(input_quality);
@@ -264,13 +256,13 @@ void add_diagnostic(LoadedFile& file, DiagnosticSeverity severity, DiagnosticCod
 
 } // namespace
 
-LoadedFile parse_pos(std::istream& input, std::filesystem::path source_path,
-    PosParseOptions options)
+LoadedFile parse_pos(
+    std::istream& input, std::filesystem::path source_path, PosParseOptions options)
 {
     LoadedFile file{std::move(source_path), InputFormat::Pos};
     if (options.duplicate_epoch_tolerance_ns < 0) {
-        add_diagnostic(file, DiagnosticSeverity::Fatal, DiagnosticCode::ParseError,
-            std::nullopt, std::nullopt, "Duplicate epoch tolerance must not be negative",
+        add_diagnostic(file, DiagnosticSeverity::Fatal, DiagnosticCode::ParseError, std::nullopt,
+            std::nullopt, "Duplicate epoch tolerance must not be negative",
             DiagnosticAction::FileRejected);
         return file;
     }
@@ -326,8 +318,8 @@ LoadedFile parse_pos(std::istream& input, std::filesystem::path source_path,
     }
 
     if (file.samples.empty()) {
-        add_diagnostic(file, DiagnosticSeverity::Fatal, DiagnosticCode::ParseError,
-            std::nullopt, std::nullopt, "POS file contains no valid position samples",
+        add_diagnostic(file, DiagnosticSeverity::Fatal, DiagnosticCode::ParseError, std::nullopt,
+            std::nullopt, "POS file contains no valid position samples",
             DiagnosticAction::FileRejected);
     }
     return file;

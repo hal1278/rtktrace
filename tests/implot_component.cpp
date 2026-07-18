@@ -54,12 +54,11 @@ int main()
         samples[slot].reserve(samples_per_slot);
         for (std::size_t index = 0; index < samples_per_slot; ++index) {
             samples[slot].push_back(sample_at(
-                1'400'000'000'000'000'000LL
-                    + static_cast<std::int64_t>(index) * 100'000'000,
+                1'400'000'000'000'000'000LL + static_cast<std::int64_t>(index) * 100'000'000,
                 slot + 1, index));
         }
-        data.series.push_back(PlotSeriesView{
-            slot + 1, true, std::span<const NormalizedSample>{samples[slot]}});
+        data.series.push_back(
+            PlotSeriesView{slot + 1, true, std::span<const NormalizedSample>{samples[slot]}});
     }
 
     IMGUI_CHECKVERSION();
@@ -86,8 +85,8 @@ int main()
     ImGui::NewFrame();
     ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("plot performance", nullptr,
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    ImGui::Begin(
+        "plot performance", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
     const auto render_start = std::chrono::steady_clock::now();
     component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
     component.render_time_series("Time series", PlotAreaSize{1500.0, 700.0});
@@ -106,8 +105,7 @@ int main()
     const double requested_scale = component.trajectory_metrics()->meters_per_pixel * 2.0;
     const std::optional<TimeRange> rendered_time = component.time_series_time_range();
     check(component.set_trajectory_meters_per_pixel(requested_scale)
-            && !component.set_trajectory_ranges(NumericRange{1.0, 0.0},
-                NumericRange{0.0, 1.0}),
+            && !component.set_trajectory_ranges(NumericRange{1.0, 0.0}, NumericRange{0.0, 1.0}),
         "numeric trajectory scale accepts positive values and rejects reversed ranges");
     check(rendered_time.has_value()
             && component.set_time_series_time_range(
@@ -119,21 +117,19 @@ int main()
     ImGui::NewFrame();
     ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("plot numeric ranges", nullptr,
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    ImGui::Begin(
+        "plot numeric ranges", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
     component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
     component.render_time_series("Time series", PlotAreaSize{1500.0, 700.0});
     ImGui::End();
     ImGui::Render();
     check(component.trajectory_metrics().has_value()
-            && std::abs(component.trajectory_metrics()->meters_per_pixel
-                    - requested_scale)
+            && std::abs(component.trajectory_metrics()->meters_per_pixel - requested_scale)
                 < requested_scale * 0.01,
         "numeric trajectory scale is applied on the next frame");
 
-    const double previous_east_center =
-        (component.trajectory_metrics()->east.minimum
-            + component.trajectory_metrics()->east.maximum)
+    const double previous_east_center = (component.trajectory_metrics()->east.minimum
+                                            + component.trajectory_metrics()->east.maximum)
         * 0.5;
     const double east_span = component.trajectory_metrics()->east.length();
     check(component.pan_trajectory_by_fraction(0.05, 0.0),
@@ -141,41 +137,36 @@ int main()
     ImGui::NewFrame();
     ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("plot keyboard pan", nullptr,
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    ImGui::Begin(
+        "plot keyboard pan", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
     component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
     ImGui::End();
     ImGui::Render();
-    const double moved_east_center =
-        (component.trajectory_metrics()->east.minimum
-            + component.trajectory_metrics()->east.maximum)
+    const double moved_east_center = (component.trajectory_metrics()->east.minimum
+                                         + component.trajectory_metrics()->east.maximum)
         * 0.5;
-    check(std::abs((moved_east_center - previous_east_center)
-                  - east_span * 0.05)
-            < east_span * 0.001,
+    check(
+        std::abs((moved_east_center - previous_east_center) - east_span * 0.05) < east_span * 0.001,
         "trajectory pan moves only the requested axis by five percent");
 
     const double pre_zoom_span = component.trajectory_metrics()->east.length();
-    const double pre_zoom_center =
-        (component.trajectory_metrics()->east.minimum
-            + component.trajectory_metrics()->east.maximum)
+    const double pre_zoom_center = (component.trajectory_metrics()->east.minimum
+                                       + component.trajectory_metrics()->east.maximum)
         * 0.5;
-    check(component.zoom_trajectory_by_factor(0.5),
-        "trajectory zoom accepts a center-fixed factor");
+    check(
+        component.zoom_trajectory_by_factor(0.5), "trajectory zoom accepts a center-fixed factor");
     ImGui::NewFrame();
     ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("plot wheel zoom", nullptr,
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    ImGui::Begin(
+        "plot wheel zoom", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
     component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
     ImGui::End();
     ImGui::Render();
-    const double zoomed_center =
-        (component.trajectory_metrics()->east.minimum
-            + component.trajectory_metrics()->east.maximum)
+    const double zoomed_center = (component.trajectory_metrics()->east.minimum
+                                     + component.trajectory_metrics()->east.maximum)
         * 0.5;
-    check(std::abs(component.trajectory_metrics()->east.length()
-                  - pre_zoom_span * 0.5)
+    check(std::abs(component.trajectory_metrics()->east.length() - pre_zoom_span * 0.5)
                 < pre_zoom_span * 0.01
             && std::abs(zoomed_center - pre_zoom_center) < pre_zoom_span * 0.001,
         "trajectory center-fixed zoom preserves the center and scales the span");
@@ -185,19 +176,17 @@ int main()
         component.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
             return metrics.component == PositionComponent::East;
         });
-    check(pre_zoom_time.has_value()
-            && pre_zoom_east != component.time_series_metrics().end()
+    check(pre_zoom_time.has_value() && pre_zoom_east != component.time_series_metrics().end()
             && component.zoom_time_series_time_by_factor(2.0)
-            && component.zoom_time_series_position_by_factor(
-                PositionComponent::East, 2.0),
+            && component.zoom_time_series_position_by_factor(PositionComponent::East, 2.0),
         "time-series zoom accepts independent shared-time and vertical factors");
     const double pre_zoom_east_span = pre_zoom_east->position.length();
     const std::int64_t pre_zoom_time_span = pre_zoom_time->end - pre_zoom_time->start;
     ImGui::NewFrame();
     ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
     ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("time-series wheel zoom", nullptr,
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    ImGui::Begin(
+        "time-series wheel zoom", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
     component.render_time_series("Time series", PlotAreaSize{1500.0, 700.0});
     ImGui::End();
     ImGui::Render();
@@ -206,98 +195,78 @@ int main()
         component.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
             return metrics.component == PositionComponent::East;
         });
-    check(zoomed_time.has_value()
-            && zoomed_east != component.time_series_metrics().end()
+    check(zoomed_time.has_value() && zoomed_east != component.time_series_metrics().end()
             && std::abs(static_cast<double>(zoomed_time->end - zoomed_time->start)
-                    - static_cast<double>(pre_zoom_time_span) * 2.0)
+                   - static_cast<double>(pre_zoom_time_span) * 2.0)
                 < static_cast<double>(pre_zoom_time_span) * 0.001
             && std::abs(zoomed_east->position.length() - pre_zoom_east_span * 2.0)
                 < pre_zoom_east_span * 0.001,
         "time-series zoom changes only the requested vertical range and shared time range");
 
-    const double scale_before_resize =
-        component.trajectory_metrics()->meters_per_pixel;
+    const double scale_before_resize = component.trajectory_metrics()->meters_per_pixel;
     for (int frame = 0; frame < 2; ++frame) {
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
         ImGui::SetNextWindowSize(io.DisplaySize);
-        ImGui::Begin("trajectory resize", nullptr,
-            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+        ImGui::Begin(
+            "trajectory resize", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         component.render_trajectory("Trajectory", PlotAreaSize{1200.0, 500.0});
         ImGui::End();
         ImGui::Render();
     }
-    check(std::abs(component.trajectory_metrics()->meters_per_pixel
-                  - scale_before_resize)
+    check(std::abs(component.trajectory_metrics()->meters_per_pixel - scale_before_resize)
             < scale_before_resize * 0.01,
         "trajectory keeps meters per pixel when its drawing area is resized");
 
     ImPlotComponentOptions display_scale_options;
-    display_scale_options.trajectory_range_priority =
-        TrajectoryRangePriority::DisplayScale;
+    display_scale_options.trajectory_range_priority = TrajectoryRangePriority::DisplayScale;
     component.prepare(data, QualityFilter{}, display_scale_options, false);
-    const TrajectoryPlotMetrics priority_metrics =
-        *component.trajectory_metrics();
+    const TrajectoryPlotMetrics priority_metrics = *component.trajectory_metrics();
     const NumericRange priority_east{-25.0, 35.0};
-    check(component.apply_trajectory_axis_range(
-            TrajectoryAxis::East, priority_east),
+    check(component.apply_trajectory_axis_range(TrajectoryAxis::East, priority_east),
         "display-scale priority accepts a numeric East trajectory range");
     const std::optional<TrajectoryResizeRequest> scale_priority_request =
         component.consume_trajectory_resize_request();
     check(scale_priority_request.has_value()
-            && scale_priority_request->fixed_target
-                == TrajectoryResizeFixedTarget::DisplayScale
+            && scale_priority_request->fixed_target == TrajectoryResizeFixedTarget::DisplayScale
             && std::abs(scale_priority_request->desired_east_axis_length_px
-                    - priority_east.length()
-                        / priority_metrics.meters_per_pixel)
+                   - priority_east.length() / priority_metrics.meters_per_pixel)
                 < 0.001
             && std::abs(scale_priority_request->desired_north_axis_length_px
-                    - priority_metrics.north_axis_length_px)
+                   - priority_metrics.north_axis_length_px)
                 < 0.001,
         "display-scale priority resizes only the target direction at the existing scale");
 
     ImPlotComponentOptions fixed_axis_options = display_scale_options;
-    fixed_axis_options.trajectory_scale_fixed_target =
-        TrajectoryScaleFixedTarget::AxisRange;
+    fixed_axis_options.trajectory_scale_fixed_target = TrajectoryScaleFixedTarget::AxisRange;
     component.prepare(data, QualityFilter{}, fixed_axis_options, false);
-    const TrajectoryPlotMetrics fixed_axis_metrics =
-        *component.trajectory_metrics();
+    const TrajectoryPlotMetrics fixed_axis_metrics = *component.trajectory_metrics();
     const double fixed_axis_scale = fixed_axis_metrics.meters_per_pixel * 0.5;
     check(component.apply_trajectory_meters_per_pixel(fixed_axis_scale),
         "axis-range fixed target accepts a numeric trajectory scale");
     const std::optional<TrajectoryResizeRequest> fixed_axis_request =
         component.consume_trajectory_resize_request();
     check(fixed_axis_request.has_value()
-            && fixed_axis_request->fixed_target
-                == TrajectoryResizeFixedTarget::AxisRange
-            && fixed_axis_request->east.minimum
-                == fixed_axis_metrics.east.minimum
-            && fixed_axis_request->east.maximum
-                == fixed_axis_metrics.east.maximum
-            && fixed_axis_request->north.minimum
-                == fixed_axis_metrics.north.minimum
-            && fixed_axis_request->north.maximum
-                == fixed_axis_metrics.north.maximum
+            && fixed_axis_request->fixed_target == TrajectoryResizeFixedTarget::AxisRange
+            && fixed_axis_request->east.minimum == fixed_axis_metrics.east.minimum
+            && fixed_axis_request->east.maximum == fixed_axis_metrics.east.maximum
+            && fixed_axis_request->north.minimum == fixed_axis_metrics.north.minimum
+            && fixed_axis_request->north.maximum == fixed_axis_metrics.north.maximum
             && std::abs(fixed_axis_request->desired_east_axis_length_px
-                    - fixed_axis_metrics.east.length() / fixed_axis_scale)
+                   - fixed_axis_metrics.east.length() / fixed_axis_scale)
                 < 0.001,
         "axis-range fixed target preserves both ranges and requests a new drawing size");
 
     ImPlotComponentOptions axis_priority_options;
-    axis_priority_options.trajectory_range_priority =
-        TrajectoryRangePriority::AxisRange;
+    axis_priority_options.trajectory_range_priority = TrajectoryRangePriority::AxisRange;
     component.prepare(data, QualityFilter{}, axis_priority_options, false);
-    const TrajectoryPlotMetrics before_axis_range =
-        *component.trajectory_metrics();
+    const TrajectoryPlotMetrics before_axis_range = *component.trajectory_metrics();
     const double requested_east_center =
-        (before_axis_range.east.minimum + before_axis_range.east.maximum) * 0.5
-        + 2.0;
+        (before_axis_range.east.minimum + before_axis_range.east.maximum) * 0.5 + 2.0;
     const double requested_east_span = before_axis_range.east.length() * 1.25;
-    const NumericRange requested_east{
-        requested_east_center - requested_east_span * 0.5,
+    const NumericRange requested_east{requested_east_center - requested_east_span * 0.5,
         requested_east_center + requested_east_span * 0.5};
-    check(component.apply_trajectory_axis_range(
-            TrajectoryAxis::East, requested_east),
+    check(component.apply_trajectory_axis_range(TrajectoryAxis::East, requested_east),
         "axis priority accepts a numeric East trajectory range");
     for (int frame = 0; frame < 3; ++frame) {
         ImGui::NewFrame();
@@ -309,16 +278,14 @@ int main()
         ImGui::End();
         ImGui::Render();
     }
-    check(std::abs(component.trajectory_metrics()->east.minimum
-                    - requested_east.minimum)
+    check(std::abs(component.trajectory_metrics()->east.minimum - requested_east.minimum)
                 < requested_east_span * 0.001
-            && std::abs(component.trajectory_metrics()->east.maximum
-                    - requested_east.maximum)
+            && std::abs(component.trajectory_metrics()->east.maximum - requested_east.maximum)
                 < requested_east_span * 0.001
             && std::abs(component.trajectory_metrics()->east.length()
-                        / component.trajectory_metrics()->east_axis_length_px
-                    - component.trajectory_metrics()->north.length()
-                        / component.trajectory_metrics()->north_axis_length_px)
+                       / component.trajectory_metrics()->east_axis_length_px
+                   - component.trajectory_metrics()->north.length()
+                       / component.trajectory_metrics()->north_axis_length_px)
                 < component.trajectory_metrics()->meters_per_pixel * 0.001,
         "axis priority fixes the target range and symmetrically updates the other axis");
 
@@ -331,13 +298,13 @@ int main()
     check(selected_panels.time_series_panel_count() == 1,
         "time-series selection prepares only enabled position components");
 
-    const auto prepare_ms = std::chrono::duration<double, std::milli>(
-        prepare_end - prepare_start).count();
-    const auto render_ms = std::chrono::duration<double, std::milli>(
-        render_end - render_start).count();
-    std::cout << "plot performance: " << slot_count << " slots x "
-              << samples_per_slot << " samples; prepare=" << prepare_ms
-              << " ms, headless frame=" << render_ms << " ms\n";
+    const auto prepare_ms =
+        std::chrono::duration<double, std::milli>(prepare_end - prepare_start).count();
+    const auto render_ms =
+        std::chrono::duration<double, std::milli>(render_end - render_start).count();
+    std::cout << "plot performance: " << slot_count << " slots x " << samples_per_slot
+              << " samples; prepare=" << prepare_ms << " ms, headless frame=" << render_ms
+              << " ms\n";
 
     ImPlot::DestroyContext();
     ImGui::DestroyContext();

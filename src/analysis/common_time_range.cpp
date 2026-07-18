@@ -59,12 +59,10 @@ std::optional<TimeRange> effective_time_range(
         return std::nullopt;
     }
 
-    const GpsTime effective_start = configured_range.start_enabled
-        ? *configured_range.entered_start
-        : union_range.start;
-    const GpsTime effective_end = configured_range.end_enabled
-        ? *configured_range.entered_end
-        : union_range.end;
+    const GpsTime effective_start =
+        configured_range.start_enabled ? *configured_range.entered_start : union_range.start;
+    const GpsTime effective_end =
+        configured_range.end_enabled ? *configured_range.entered_end : union_range.end;
     if (effective_start > effective_end) {
         return std::nullopt;
     }

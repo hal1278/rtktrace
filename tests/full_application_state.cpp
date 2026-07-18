@@ -31,21 +31,17 @@ int main()
             && normal_trajectory->value == 1 && relative_time->value == 4,
         "full state creates all four plot types with monotonic IDs");
     check(state.plots().size() == 4
-            && state.find_plot(*relative_trajectory)->title
-                == "Reference Trajectory 3",
+            && state.find_plot(*relative_trajectory)->title == "Reference Trajectory 3",
         "plot instances have stable default titles");
 
-    check(state.set_plot_visible(*normal_time, false)
-            && !state.find_plot(*normal_time)->visible
+    check(state.set_plot_visible(*normal_time, false) && !state.find_plot(*normal_time)->visible
             && state.set_plot_title(*normal_time, "Receiver time series")
             && state.find_plot(*normal_time)->title == "Receiver time series",
         "plot visibility and title are independently mutable");
-    check(state.erase_plot(*normal_trajectory)
-            && state.find_plot(*normal_trajectory) == nullptr
+    check(state.erase_plot(*normal_trajectory) && state.find_plot(*normal_trajectory) == nullptr
             && state.create_plot(PlotType::NormalTrajectory)->value == 5,
         "deleted plot IDs are not reused");
-    check(!state.erase_plot(PlotWindowId{999})
-            && !state.set_plot_visible(PlotWindowId{999}, true)
+    check(!state.erase_plot(PlotWindowId{999}) && !state.set_plot_visible(PlotWindowId{999}, true)
             && !state.set_plot_title(*relative_time, ""),
         "unknown plot IDs and empty titles are rejected");
 

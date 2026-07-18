@@ -35,11 +35,10 @@ void test_time_formats_and_quality()
 {
     using namespace plotcore;
 
-    std::istringstream input{
-        "  % ignored header\n"
-        "\n"
-        "0 0.1234567895 35.0 139.0 10.0 1 ignored\n"
-        "1980/01/06 00:00:01.9999999995 36.0 140.0 20.0 9\n"};
+    std::istringstream input{"  % ignored header\n"
+                             "\n"
+                             "0 0.1234567895 35.0 139.0 10.0 1 ignored\n"
+                             "1980/01/06 00:00:01.9999999995 36.0 140.0 20.0 9\n"};
     const LoadedFile file = parse_pos(input, "formats.pos");
 
     check(file.samples.size() == 2, "week/TOW and calendar records are accepted");
@@ -48,17 +47,13 @@ void test_time_formats_and_quality()
             "TOW fraction rounds to integer nanoseconds");
         check(file.samples[1].time == GpsTime{2'000'000'000},
             "calendar fractional carry advances the whole second");
-        check(std::abs(file.samples[0].llh.latitude_rad
-                    - 35.0 * std::acos(-1.0) / 180.0)
-                < 1.0e-15,
+        check(std::abs(file.samples[0].llh.latitude_rad - 35.0 * std::acos(-1.0) / 180.0) < 1.0e-15,
             "POS latitude degree is converted to radians");
         check(std::isfinite(file.samples[0].ecef.x_m), "POS LLH is converted to ECEF");
-        check(file.samples[0].quality == SolutionQuality::Fixed,
-            "known POS quality is preserved");
+        check(file.samples[0].quality == SolutionQuality::Fixed, "known POS quality is preserved");
         check(file.samples[1].quality == SolutionQuality::InvalidOrUnknown,
             "unknown POS quality is loaded as zero");
-        check(!file.samples[0].continuous_from_previous
-                && file.samples[1].continuous_from_previous,
+        check(!file.samples[0].continuous_from_previous && file.samples[1].continuous_from_previous,
             "ordinary consecutive records retain continuity");
     }
     check(diagnostic_count(file, DiagnosticCode::UnknownPosQuality) == 1,
@@ -75,15 +70,14 @@ void test_partial_loading_and_normalization()
 {
     using namespace plotcore;
 
-    std::istringstream input{
-        "0 0.000 35 139 10 1\n"
-        "0 0.500 invalid 139 10 1\n"
-        "0 1.000 35 139 10 2\n"
-        "0 1.001 36 140 20 3\n"
-        "0 2.000 35 139 10 4\n"
-        "0 1.500 35 139 10 5\n"
-        "0 3.000 35 139 10 6\n"
-        "0 4.000 35 139\n"};
+    std::istringstream input{"0 0.000 35 139 10 1\n"
+                             "0 0.500 invalid 139 10 1\n"
+                             "0 1.000 35 139 10 2\n"
+                             "0 1.001 36 140 20 3\n"
+                             "0 2.000 35 139 10 4\n"
+                             "0 1.500 35 139 10 5\n"
+                             "0 3.000 35 139 10 6\n"
+                             "0 4.000 35 139\n"};
     const LoadedFile file = parse_pos(input, "partial.pos");
 
     check(file.samples.size() == 4, "invalid, duplicate, and reversed records are normalized");
@@ -143,8 +137,7 @@ void test_pos_fixture(const char* path)
     check(file.diagnostics.empty(), "fictional POS fixture needs no diagnostic");
     if (!file.samples.empty()) {
         constexpr std::int64_t week_ns = 604'800'000'000'000;
-        check(file.samples.front().time
-                == GpsTime{2'324 * week_ns + 100'000'000'000'000},
+        check(file.samples.front().time == GpsTime{2'324 * week_ns + 100'000'000'000'000},
             "fictional POS first GPS week/TOW is normalized exactly");
         check(file.samples.front().quality == SolutionQuality::Fixed,
             "fictional POS quality is normalized");

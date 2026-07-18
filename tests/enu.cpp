@@ -25,8 +25,7 @@ void check(bool condition, std::string_view description)
     return std::abs(actual - expected) <= tolerance;
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(
-    std::int64_t time_ns, plotcore::Wgs84Llh llh,
+[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns, plotcore::Wgs84Llh llh,
     plotcore::SolutionQuality quality = plotcore::SolutionQuality::Fixed)
 {
     return plotcore::NormalizedSample{
@@ -68,17 +67,17 @@ void test_slot_reference_methods()
     const Wgs84Llh middle{35.1 * pi / 180.0, 139.1 * pi / 180.0, 20.0};
     const Wgs84Llh last{35.2 * pi / 180.0, 139.2 * pi / 180.0, 30.0};
     LoadedFiles files;
-    files.push_back(file_with_samples("slot1.pos", {
-        sample_at(0, first),
-        sample_at(10, middle, SolutionQuality::InvalidOrUnknown),
-        sample_at(20, last),
-    }));
+    files.push_back(file_with_samples("slot1.pos",
+        {
+            sample_at(0, first),
+            sample_at(10, middle, SolutionQuality::InvalidOrUnknown),
+            sample_at(20, last),
+        }));
     const TimeRange range{GpsTime{5}, GpsTime{20}};
 
     EnuReferenceConfiguration configuration;
     configuration.method = EnuReferenceMethod::Slot1Start;
-    const std::optional<EnuReference> start =
-        determine_enu_reference(files, range, configuration);
+    const std::optional<EnuReference> start = determine_enu_reference(files, range, configuration);
     check(start.has_value(), "slot 1 start reference is found");
     if (start.has_value()) {
         check(near(start->origin_ecef.x_m, files[0].samples[1].ecef.x_m),
@@ -99,11 +98,9 @@ void test_slot_reference_methods()
     check(average.has_value(), "slot 1 ECEF average reference is found");
     if (average.has_value()) {
         check(near(average->origin_ecef.x_m,
-                  (files[0].samples[1].ecef.x_m + files[0].samples[2].ecef.x_m) / 2.0,
-                  1.0e-6),
+                  (files[0].samples[1].ecef.x_m + files[0].samples[2].ecef.x_m) / 2.0, 1.0e-6),
             "average reference uses the arithmetic ECEF origin");
-        const std::optional<Wgs84Llh> rotation_llh =
-            wgs84_ecef_to_llh(average->origin_ecef);
+        const std::optional<Wgs84Llh> rotation_llh = wgs84_ecef_to_llh(average->origin_ecef);
         check(rotation_llh.has_value()
                 && near(average->latitude_rad, rotation_llh->latitude_rad, 1.0e-14),
             "average reference derives rotation latitude from averaged ECEF");
@@ -145,9 +142,8 @@ void test_user_specified_reference()
         .method = EnuReferenceMethod::UserSpecified,
         .user_position = std::nullopt,
     };
-    check(!determine_enu_reference(
-               LoadedFiles{}, TimeRange{GpsTime{0}, GpsTime{0}}, missing)
-               .has_value(),
+    check(!determine_enu_reference(LoadedFiles{}, TimeRange{GpsTime{0}, GpsTime{0}}, missing)
+              .has_value(),
         "missing user position cannot define an ENU reference");
 }
 
@@ -158,13 +154,15 @@ void test_cache_rebuild_and_retention()
     const Wgs84Llh first_reference{35.0 * pi / 180.0, 139.0 * pi / 180.0, 10.0};
     const Wgs84Llh second_reference{36.0 * pi / 180.0, 140.0 * pi / 180.0, 20.0};
     LoadedFiles files;
-    files.push_back(file_with_samples("one.pos", {
-        sample_at(0, first_reference),
-        sample_at(10, Wgs84Llh{35.001 * pi / 180.0, 139.002 * pi / 180.0, 15.0}),
-    }));
-    files.push_back(file_with_samples("two.pos", {
-        sample_at(0, second_reference),
-    }));
+    files.push_back(file_with_samples("one.pos",
+        {
+            sample_at(0, first_reference),
+            sample_at(10, Wgs84Llh{35.001 * pi / 180.0, 139.002 * pi / 180.0, 15.0}),
+        }));
+    files.push_back(file_with_samples("two.pos",
+        {
+            sample_at(0, second_reference),
+        }));
 
     EnuCache cache;
     const EnuReferenceConfiguration configuration;
@@ -173,8 +171,7 @@ void test_cache_rebuild_and_retention()
         "initial ENU cache build succeeds");
     check(cache.reference.has_value() && cache.revision == 1,
         "successful cache build stores a reference and advances revision");
-    check(near(files[0].samples[0].enu.east_m, 0.0)
-            && near(files[0].samples[0].enu.north_m, 0.0)
+    check(near(files[0].samples[0].enu.east_m, 0.0) && near(files[0].samples[0].enu.north_m, 0.0)
             && near(files[0].samples[0].enu.up_m, 0.0),
         "reference sample maps to the ENU origin");
     const Enu second_file_before = files[1].samples[0].enu;
@@ -184,8 +181,7 @@ void test_cache_rebuild_and_retention()
             == EnuCacheUpdateStatus::Updated,
         "slot 1 change rebuilds the ENU cache");
     check(cache.revision == 2, "second successful cache build advances revision");
-    check(near(files[0].samples[0].enu.east_m, 0.0)
-            && near(files[0].samples[0].enu.north_m, 0.0)
+    check(near(files[0].samples[0].enu.east_m, 0.0) && near(files[0].samples[0].enu.north_m, 0.0)
             && near(files[0].samples[0].enu.up_m, 0.0),
         "new slot 1 sample becomes the ENU origin");
     check(!near(second_file_before.east_m, files[0].samples[0].enu.east_m)
@@ -202,8 +198,8 @@ void test_cache_rebuild_and_retention()
         "empty slot 1 range produces a diagnostic");
 
     EnuCache empty_cache;
-    check(rebuild_enu_cache(files, TimeRange{GpsTime{100}, GpsTime{200}}, configuration,
-              empty_cache)
+    check(
+        rebuild_enu_cache(files, TimeRange{GpsTime{100}, GpsTime{200}}, configuration, empty_cache)
             == EnuCacheUpdateStatus::Unavailable,
         "empty range without a previous reference leaves ENU unavailable");
     check(!empty_cache.reference.has_value() && empty_cache.revision == 0,

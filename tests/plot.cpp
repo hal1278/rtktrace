@@ -26,9 +26,8 @@ void check(bool condition, std::string_view description)
     return std::abs(actual - expected) <= tolerance;
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns,
-    double east_m, double north_m, double up_m, double height_m,
-    plotcore::SolutionQuality quality)
+[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns, double east_m,
+    double north_m, double up_m, double height_m, plotcore::SolutionQuality quality)
 {
     return plotcore::NormalizedSample{
         .time = plotcore::GpsTime{time_ns},
@@ -53,34 +52,33 @@ void test_normal_and_relative_data_views()
 {
     using namespace plotcore;
     LoadedFiles files;
-    files.push_back(file_with_samples("one.pos", {
-        sample_at(0, 0.0, 1.0, 2.0, 3.0, SolutionQuality::Fixed),
-        sample_at(10, 4.0, 5.0, 6.0, 7.0, SolutionQuality::Float),
-        sample_at(20, 8.0, 9.0, 10.0, 11.0, SolutionQuality::Single),
-    }));
-    files.push_back(file_with_samples("two.pos", {
-        sample_at(10, -1.0, -2.0, -3.0, -4.0, SolutionQuality::Dgps),
-    }));
+    files.push_back(file_with_samples("one.pos",
+        {
+            sample_at(0, 0.0, 1.0, 2.0, 3.0, SolutionQuality::Fixed),
+            sample_at(10, 4.0, 5.0, 6.0, 7.0, SolutionQuality::Float),
+            sample_at(20, 8.0, 9.0, 10.0, 11.0, SolutionQuality::Single),
+        }));
+    files.push_back(file_with_samples("two.pos",
+        {
+            sample_at(10, -1.0, -2.0, -3.0, -4.0, SolutionQuality::Dgps),
+        }));
     files[1].visible = false;
     CommonTimeRangeIndex index;
-    static_cast<void>(rebuild_common_time_range_index(
-        files, TimeRange{GpsTime{10}, GpsTime{20}}, index));
+    static_cast<void>(
+        rebuild_common_time_range_index(files, TimeRange{GpsTime{10}, GpsTime{20}}, index));
 
     const std::optional<PlotDataView> normal = make_normal_plot_data_view(files, index);
-    check(normal.has_value() && normal->kind == PlotDataKind::Normal
-            && normal->series.size() == 2,
+    check(normal.has_value() && normal->kind == PlotDataKind::Normal && normal->series.size() == 2,
         "normal plot view exposes one zero-copy series per slot");
     if (normal.has_value()) {
-        check(plot_series_size(normal->series[0]) == 2
-                && normal->series[0].slot_number == 1,
+        check(plot_series_size(normal->series[0]) == 2 && normal->series[0].slot_number == 1,
             "normal plot view applies the common time range index");
         const std::optional<PlotSampleValue> value = plot_sample_at(normal->series[0], 0);
-        check(value.has_value() && value->time == GpsTime{10}
-                && near(value->east_m, 4.0) && near(value->ellipsoidal_height_m, 7.0)
+        check(value.has_value() && value->time == GpsTime{10} && near(value->east_m, 4.0)
+                && near(value->ellipsoidal_height_m, 7.0)
                 && !value->reference_relative_distance_3d_m.has_value(),
             "normal sample is projected to the shared plot value interface");
-        check(!normal->series[1].file_visible,
-            "plot series captures per-file visibility");
+        check(!normal->series[1].file_visible, "plot series captures per-file visibility");
         check(!plot_sample_at(normal->series[0], 2).has_value(),
             "out-of-range plot sample access is rejected");
     }
@@ -97,8 +95,8 @@ void test_normal_and_relative_data_views()
         .reference_sample_index = 0,
         .reference_time_difference_ns = 0,
     });
-    relative_cache.dependencies = RelativeCacheDependencies{
-        1, 1, ReferenceMatchConfiguration{false, 0}, 2};
+    relative_cache.dependencies =
+        RelativeCacheDependencies{1, 1, ReferenceMatchConfiguration{false, 0}, 2};
     relative_cache.revision = 1;
     const std::optional<PlotDataView> relative =
         make_relative_plot_data_view(files, relative_cache);
@@ -140,13 +138,10 @@ void test_auto_fit_trajectory_and_components()
     if (trajectory.has_value()) {
         check(near(trajectory->meters_per_pixel, 0.1),
             "trajectory auto-fit reserves ten percent margin");
-        check(near(trajectory->east.minimum, -0.5)
-                && near(trajectory->east.maximum, 9.5)
-                && near(trajectory->north.minimum, -1.0)
-                && near(trajectory->north.maximum, 19.0),
+        check(near(trajectory->east.minimum, -0.5) && near(trajectory->east.maximum, 9.5)
+                && near(trajectory->north.minimum, -1.0) && near(trajectory->north.maximum, 19.0),
             "trajectory auto-fit centers equal-scale axis ranges");
-        check(near(trajectory->east.length() / 100.0,
-                  trajectory->north.length() / 200.0),
+        check(near(trajectory->east.length() / 100.0, trajectory->north.length() / 200.0),
             "trajectory axes share one meter-per-pixel scale");
     }
 
@@ -158,9 +153,8 @@ void test_auto_fit_trajectory_and_components()
         "time-series auto-fit adds no margin to varying position data");
     check(up.has_value() && near(up->minimum, 6.5) && near(up->maximum, 7.5),
         "constant time-series component receives a one-meter range");
-    check(!auto_fit_position_component(
-               data, filter, PositionComponent::ReferenceRelativeDistance3d)
-               .has_value(),
+    check(!auto_fit_position_component(data, filter, PositionComponent::ReferenceRelativeDistance3d)
+              .has_value(),
         "normal data has no reference-relative distance component");
 
     const std::optional<TimeRange> time = auto_fit_time_axis(data, filter);
@@ -237,13 +231,11 @@ void test_plot_batch_style_and_drawing_order()
     check(trajectory.slots.size() == 2 && trajectory.slots[0].slot_number == 1
             && trajectory.slots[1].slot_number == 2,
         "larger slots are stored later for front-most drawing by default");
-    check(trajectory.visible_sample_count == 3
-            && trajectory.slots[0].line_strips.size() == 1
+    check(trajectory.visible_sample_count == 3 && trajectory.slots[0].line_strips.size() == 1
             && trajectory.slots[0].line_strips[0].points.size() == 2,
         "bridging joins visible samples across a hidden quality");
     check(trajectory.slots[0].marker_batches.size() == 2
-            && trajectory.slots[0].marker_batches.back().quality
-                == SolutionQuality::Fixed,
+            && trajectory.slots[0].marker_batches.back().quality == SolutionQuality::Fixed,
         "better quality marker batches are stored front-most by default");
 
     options.bridge_hidden_quality_samples = false;
@@ -255,8 +247,7 @@ void test_plot_batch_style_and_drawing_order()
         "slot drawing order can put smaller slots in front");
     check(separated.slots[1].line_strips.empty(),
         "hidden intermediate samples break a line when bridging is disabled");
-    check(separated.slots[1].marker_batches.back().quality
-            == SolutionQuality::Float,
+    check(separated.slots[1].marker_batches.back().quality == SolutionQuality::Float,
         "quality drawing order can put lower quality in front");
 
     check(rtkplot_file1_quality_colors[1] == Rgba8{0, 128, 0, 255}
@@ -270,15 +261,13 @@ void test_time_series_plot_batch()
     using namespace plotcore;
     constexpr std::int64_t week_ns = 604'800'000'000'000;
     const std::vector samples{
-        sample_at(week_ns + 500'000'000, 1.0, 2.0, 3.0, 4.0,
-            SolutionQuality::Fixed),
-        sample_at(week_ns + 1'500'000'000, 5.0, 6.0, 7.0, 8.0,
-            SolutionQuality::Float),
+        sample_at(week_ns + 500'000'000, 1.0, 2.0, 3.0, 4.0, SolutionQuality::Fixed),
+        sample_at(week_ns + 1'500'000'000, 5.0, 6.0, 7.0, 8.0, SolutionQuality::Float),
     };
     const PlotDataView data{PlotDataKind::Normal,
         {PlotSeriesView{1, true, std::span<const NormalizedSample>{samples}}}};
-    const PlotBatch batch = build_time_series_plot_batch(data, QualityFilter{},
-        PositionComponent::EllipsoidalHeight, PlotBatchOptions{});
+    const PlotBatch batch = build_time_series_plot_batch(
+        data, QualityFilter{}, PositionComponent::EllipsoidalHeight, PlotBatchOptions{});
     check(batch.time_origin == GpsTime{week_ns} && batch.slots.size() == 1,
         "time-series batch uses a GPST week boundary as its precision-preserving origin");
     check(batch.slots[0].line_strips.size() == 1
@@ -286,8 +275,8 @@ void test_time_series_plot_batch()
             && near(batch.slots[0].line_strips[0].points[1].y, 8.0),
         "time-series batch projects absolute GPST and the selected component");
 
-    const PlotBatch unavailable = build_time_series_plot_batch(data, QualityFilter{},
-        PositionComponent::ReferenceRelativeDistance3d, PlotBatchOptions{});
+    const PlotBatch unavailable = build_time_series_plot_batch(
+        data, QualityFilter{}, PositionComponent::ReferenceRelativeDistance3d, PlotBatchOptions{});
     check(unavailable.slots.empty() && unavailable.visible_sample_count == 0,
         "unavailable components do not produce drawable samples");
 }

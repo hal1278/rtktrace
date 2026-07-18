@@ -11,8 +11,7 @@
 namespace plotcore {
 
 inline constexpr std::int64_t default_nmea_rollover_tolerance_ns = 300'000'000'000;
-inline constexpr std::int64_t default_nmea_datetime_validation_tolerance_ns =
-    300'000'000'000;
+inline constexpr std::int64_t default_nmea_datetime_validation_tolerance_ns = 300'000'000'000;
 inline constexpr std::int64_t default_nmea_duplicate_epoch_tolerance_ns = 5'000'000;
 
 struct NmeaDate {
@@ -30,8 +29,7 @@ enum class MissingGeoidPolicy : std::uint8_t {
 struct NmeaParseOptions {
     std::int64_t duplicate_epoch_tolerance_ns{default_nmea_duplicate_epoch_tolerance_ns};
     std::int64_t rollover_tolerance_ns{default_nmea_rollover_tolerance_ns};
-    std::int64_t datetime_validation_tolerance_ns{
-        default_nmea_datetime_validation_tolerance_ns};
+    std::int64_t datetime_validation_tolerance_ns{default_nmea_datetime_validation_tolerance_ns};
     std::int64_t rate_min_interval_ns{default_rate_min_interval_ns};
     std::optional<NmeaDate> fallback_date;
     MissingGeoidPolicy missing_geoid_policy{MissingGeoidPolicy::RequireDecision};

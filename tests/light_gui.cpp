@@ -7,30 +7,26 @@
 #include <numbers>
 #include <string>
 
+#include "../src/light/gui.hpp"
 #include "imgui.h"
 #include "implot.h"
 #include "plotcore/analysis/coordinates.hpp"
-#include "../src/light/gui.hpp"
 
 namespace {
 
-[[nodiscard]] plotcore::LoadedFile synthetic_file(
-    std::size_t slot, std::size_t sample_count)
+[[nodiscard]] plotcore::LoadedFile synthetic_file(std::size_t slot, std::size_t sample_count)
 {
     using namespace plotcore;
     LoadedFile file{
-        std::filesystem::path{"synthetic-" + std::to_string(slot) + ".pos"},
-        InputFormat::Pos};
+        std::filesystem::path{"synthetic-" + std::to_string(slot) + ".pos"}, InputFormat::Pos};
     file.samples.reserve(sample_count);
     constexpr double radians_per_degree = std::numbers::pi / 180.0;
     for (std::size_t index = 0; index < sample_count; ++index) {
         const Wgs84Llh llh{
             (35.0 + static_cast<double>(index) * 1.0e-7) * radians_per_degree,
-            (139.0 + static_cast<double>(slot) * 1.0e-5
-                + static_cast<double>(index) * 5.0e-8)
+            (139.0 + static_cast<double>(slot) * 1.0e-5 + static_cast<double>(index) * 5.0e-8)
                 * radians_per_degree,
-            10.0 + static_cast<double>(slot) * 0.2
-                + static_cast<double>(index) * 1.0e-4,
+            10.0 + static_cast<double>(slot) * 0.2 + static_cast<double>(index) * 1.0e-4,
         };
         file.samples.push_back(NormalizedSample{
             .time = GpsTime{1'400'000'000'000'000'000LL
@@ -70,8 +66,7 @@ int main()
     const auto setup_start = std::chrono::steady_clock::now();
     bool loaded = true;
     for (std::size_t slot = 1; slot <= slot_count; ++slot) {
-        loaded = gui.add_loaded_file(synthetic_file(slot, samples_per_slot))
-            && loaded;
+        loaded = gui.add_loaded_file(synthetic_file(slot, samples_per_slot)) && loaded;
     }
     const auto setup_end = std::chrono::steady_clock::now();
 
@@ -81,13 +76,12 @@ int main()
     const auto frame_end = std::chrono::steady_clock::now();
     ImGui::Render();
 
-    const double setup_ms = std::chrono::duration<double, std::milli>(
-        setup_end - setup_start).count();
-    const double frame_ms = std::chrono::duration<double, std::milli>(
-        frame_end - frame_start).count();
-    std::cout << "plotcore light performance: " << slot_count << " slots x "
-              << samples_per_slot << " samples; pipeline=" << setup_ms
-              << " ms, headless frame=" << frame_ms << " ms\n";
+    const double setup_ms =
+        std::chrono::duration<double, std::milli>(setup_end - setup_start).count();
+    const double frame_ms =
+        std::chrono::duration<double, std::milli>(frame_end - frame_start).count();
+    std::cout << "plotcore light performance: " << slot_count << " slots x " << samples_per_slot
+              << " samples; pipeline=" << setup_ms << " ms, headless frame=" << frame_ms << " ms\n";
 
     ImPlot::DestroyContext();
     ImGui::DestroyContext();

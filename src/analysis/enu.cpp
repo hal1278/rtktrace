@@ -104,8 +104,8 @@ void add_empty_reference_diagnostic(LoadedFiles& files)
 
 } // namespace
 
-std::optional<EnuReference> determine_enu_reference(const LoadedFiles& files,
-    TimeRange range, const EnuReferenceConfiguration& configuration) noexcept
+std::optional<EnuReference> determine_enu_reference(const LoadedFiles& files, TimeRange range,
+    const EnuReferenceConfiguration& configuration) noexcept
 {
     if (configuration.method == EnuReferenceMethod::UserSpecified) {
         return user_reference(configuration);
@@ -126,9 +126,8 @@ EnuCacheUpdateStatus rebuild_enu_cache(LoadedFiles& files, TimeRange range,
         if (configuration.method != EnuReferenceMethod::UserSpecified) {
             add_empty_reference_diagnostic(files);
         }
-        return cache.reference.has_value()
-            ? EnuCacheUpdateStatus::RetainedPreviousReference
-            : EnuCacheUpdateStatus::Unavailable;
+        return cache.reference.has_value() ? EnuCacheUpdateStatus::RetainedPreviousReference
+                                           : EnuCacheUpdateStatus::Unavailable;
     }
 
     for (LoadedFile& file : files) {

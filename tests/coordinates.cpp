@@ -43,8 +43,7 @@ void test_known_wgs84_points()
 
     const Ecef east_equator = wgs84_llh_to_ecef(Wgs84Llh{0.0, pi / 2.0, 0.0});
     check(near(east_equator.x_m, 0.0, 1.0e-8), "90 degree longitude ECEF x");
-    check(near(east_equator.y_m, wgs84_semi_major_axis_m, 1.0e-9),
-        "90 degree longitude ECEF y");
+    check(near(east_equator.y_m, wgs84_semi_major_axis_m, 1.0e-9), "90 degree longitude ECEF y");
     check(near(east_equator.z_m, 0.0, 1.0e-9), "90 degree longitude ECEF z");
 
     const Ecef north_pole = wgs84_llh_to_ecef(Wgs84Llh{pi / 2.0, 0.0, 0.0});
@@ -93,10 +92,8 @@ void test_undefined_inverse_inputs()
     using plotcore::Ecef;
     using plotcore::wgs84_ecef_to_llh;
 
-    check(!wgs84_ecef_to_llh(Ecef{0.0, 0.0, 0.0}).has_value(),
-        "Earth centre has no unique LLH");
-    check(!wgs84_ecef_to_llh(Ecef{std::numeric_limits<double>::infinity(), 0.0, 0.0})
-               .has_value(),
+    check(!wgs84_ecef_to_llh(Ecef{0.0, 0.0, 0.0}).has_value(), "Earth centre has no unique LLH");
+    check(!wgs84_ecef_to_llh(Ecef{std::numeric_limits<double>::infinity(), 0.0, 0.0}).has_value(),
         "non-finite ECEF is rejected");
 }
 
@@ -104,8 +101,7 @@ void test_ecef_enu_transform()
 {
     using namespace plotcore;
 
-    const std::optional<EnuReference> reference =
-        make_enu_reference(Wgs84Llh{0.0, 0.0, 0.0});
+    const std::optional<EnuReference> reference = make_enu_reference(Wgs84Llh{0.0, 0.0, 0.0});
     check(reference.has_value(), "finite LLH creates an ENU reference");
     if (!reference.has_value()) {
         return;
@@ -129,9 +125,8 @@ void test_ecef_enu_transform()
     check(near(round_trip.up_m, arbitrary.up_m, 1.0e-9), "ENU/ECEF up round trip");
 
     check(!make_enu_reference(Ecef{}).has_value(), "Earth centre cannot define ENU rotation");
-    check(!make_enu_reference(Wgs84Llh{
-               std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0})
-               .has_value(),
+    check(!make_enu_reference(Wgs84Llh{std::numeric_limits<double>::quiet_NaN(), 0.0, 0.0})
+              .has_value(),
         "non-finite LLH cannot define an ENU reference");
 }
 

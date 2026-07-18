@@ -36,8 +36,8 @@ std::size_t recorded_sample_count(const RecordedStatistics& statistics) noexcept
 std::optional<std::size_t> calculate_expected_sample_count(
     TimeRange range, std::optional<double> effective_hz) noexcept
 {
-    if (range.end < range.start || !effective_hz.has_value()
-        || !std::isfinite(*effective_hz) || *effective_hz <= 0.0) {
+    if (range.end < range.start || !effective_hz.has_value() || !std::isfinite(*effective_hz)
+        || *effective_hz <= 0.0) {
         return std::nullopt;
     }
 
@@ -46,8 +46,7 @@ std::optional<std::size_t> calculate_expected_sample_count(
         static_cast<long double>(range.end.nanoseconds_since_gps_epoch)
         - static_cast<long double>(range.start.nanoseconds_since_gps_epoch);
     const long double rounded_intervals = std::floor(
-        duration_nanoseconds / nanoseconds_per_second
-            * static_cast<long double>(*effective_hz)
+        duration_nanoseconds / nanoseconds_per_second * static_cast<long double>(*effective_hz)
         + 0.5L);
     const long double maximum_intervals =
         static_cast<long double>(std::numeric_limits<std::size_t>::max() - 1);

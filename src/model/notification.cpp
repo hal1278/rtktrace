@@ -55,9 +55,8 @@ const std::vector<UserNotification>& NotificationHistory::entries() const noexce
 
 bool NotificationHistory::has_caution() const noexcept
 {
-    return std::any_of(entries_.begin(), entries_.end(), [](const auto& entry) {
-        return entry.level != NotificationLevel::Info;
-    });
+    return std::any_of(entries_.begin(), entries_.end(),
+        [](const auto& entry) { return entry.level != NotificationLevel::Info; });
 }
 
 } // namespace plotcore

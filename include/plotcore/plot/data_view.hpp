@@ -19,8 +19,7 @@ enum class PlotDataKind : std::uint8_t {
 };
 
 struct QualityFilter {
-    std::array<bool, solution_quality_count> visible{
-        true, true, true, true, true, true, true};
+    std::array<bool, solution_quality_count> visible{true, true, true, true, true, true, true};
 };
 
 struct PlotSampleValue {
@@ -33,8 +32,8 @@ struct PlotSampleValue {
     SolutionQuality quality;
 };
 
-using PlotSeriesSource = std::variant<
-    std::span<const NormalizedSample>, std::span<const RelativeSample>>;
+using PlotSeriesSource =
+    std::variant<std::span<const NormalizedSample>, std::span<const RelativeSample>>;
 
 struct PlotSeriesView {
     std::size_t slot_number;

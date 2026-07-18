@@ -98,8 +98,7 @@ bool move_slot(LoadedFiles& files, std::size_t from_slot_number, std::size_t to_
 
     LoadedFile moved_file = std::move(files[from_slot_number - 1]);
     files.erase(files.begin() + static_cast<LoadedFiles::difference_type>(from_slot_number - 1));
-    files.insert(
-        files.begin() + static_cast<LoadedFiles::difference_type>(to_slot_number - 1),
+    files.insert(files.begin() + static_cast<LoadedFiles::difference_type>(to_slot_number - 1),
         std::move(moved_file));
     return true;
 }

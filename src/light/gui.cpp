@@ -29,8 +29,7 @@ constexpr std::array position_unit_scale_m{1000.0, 1.0, 0.001};
 [[nodiscard]] ImVec4 rgba(Rgba8 value) noexcept
 {
     constexpr float scale = 1.0F / 255.0F;
-    return ImVec4{value.red * scale, value.green * scale, value.blue * scale,
-        value.alpha * scale};
+    return ImVec4{value.red * scale, value.green * scale, value.blue * scale, value.alpha * scale};
 }
 
 [[nodiscard]] std::string slot_label(std::size_t slot, bool reference)
@@ -42,23 +41,20 @@ constexpr std::array position_unit_scale_m{1000.0, 1.0, 0.001};
 {
     using namespace std::chrono;
     std::error_code error;
-    const std::filesystem::file_time_type modified =
-        std::filesystem::last_write_time(path, error);
+    const std::filesystem::file_time_type modified = std::filesystem::last_write_time(path, error);
     system_clock::time_point system_time = system_clock::now();
     if (!error) {
         system_time = time_point_cast<system_clock::duration>(
-            modified - std::filesystem::file_time_type::clock::now()
-            + system_clock::now());
+            modified - std::filesystem::file_time_type::clock::now() + system_clock::now());
     }
     const year_month_day date{floor<days>(system_time)};
-    return NmeaDate{static_cast<int>(date.year()),
-        static_cast<unsigned>(date.month()), static_cast<unsigned>(date.day())};
+    return NmeaDate{static_cast<int>(date.year()), static_cast<unsigned>(date.month()),
+        static_cast<unsigned>(date.day())};
 }
 
 [[nodiscard]] std::optional<GpsTime> seconds_to_gps_time(double seconds) noexcept
 {
-    const long double nanoseconds =
-        static_cast<long double>(seconds) * nanoseconds_per_second;
+    const long double nanoseconds = static_cast<long double>(seconds) * nanoseconds_per_second;
     if (!std::isfinite(seconds)
         || nanoseconds < static_cast<long double>(std::numeric_limits<std::int64_t>::min())
         || nanoseconds > static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
@@ -88,16 +84,13 @@ struct NumericInputResult {
     static ImGuiID editing_input = 0;
     if (!range_is_valid) {
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{0.45F, 0.08F, 0.08F, 1.0F});
-        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,
-            ImVec4{0.58F, 0.10F, 0.10F, 1.0F});
-        ImGui::PushStyleColor(ImGuiCol_FrameBgActive,
-            ImVec4{0.68F, 0.12F, 0.12F, 1.0F});
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4{0.58F, 0.10F, 0.10F, 1.0F});
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4{0.68F, 0.12F, 0.12F, 1.0F});
     }
     const ImGuiID input_id = ImGui::GetID(label);
     const bool active = editing_input == input_id;
-    const bool entered = ImGui::InputDouble(label, value, 0.0, 0.0,
-        active ? format : "%.3g",
-        ImGuiInputTextFlags_EnterReturnsTrue);
+    const bool entered = ImGui::InputDouble(
+        label, value, 0.0, 0.0, active ? format : "%.3g", ImGuiInputTextFlags_EnterReturnsTrue);
     if (ImGui::IsItemActive()) {
         editing_input = input_id;
     } else if (editing_input == input_id) {
@@ -125,8 +118,7 @@ void rescale_displayed_positions(
 {
     const double previous_scale =
         position_unit_scale_m[static_cast<std::size_t>(previous_unit_index)];
-    const double next_scale =
-        position_unit_scale_m[static_cast<std::size_t>(next_unit_index)];
+    const double next_scale = position_unit_scale_m[static_cast<std::size_t>(next_unit_index)];
     for (double& value : displayed_values) {
         value *= previous_scale / next_scale;
     }
@@ -180,8 +172,7 @@ void LightGui::open_file_dialog(SDL_Window* window)
         static_cast<int>(filters.size()), nullptr, true);
 }
 
-void LightGui::file_dialog_callback(
-    void* userdata, const char* const* filelist, int)
+void LightGui::file_dialog_callback(void* userdata, const char* const* filelist, int)
 {
     LightGui& gui = *static_cast<LightGui*>(userdata);
     if (filelist == nullptr) {
@@ -202,8 +193,7 @@ void LightGui::drain_dialog_paths()
         std::scoped_lock lock{dialog_mutex_};
         paths.swap(dialog_paths_);
         if (!dialog_error_.empty()) {
-            notify(NotificationLevel::Error,
-                "File dialog failed: " + dialog_error_, true);
+            notify(NotificationLevel::Error, "File dialog failed: " + dialog_error_, true);
             dialog_error_.clear();
         }
     }
@@ -214,8 +204,7 @@ void LightGui::drain_dialog_paths()
 
 void LightGui::process_load_queue()
 {
-    if (modal_load_.has_value() || nmea_decision_.has_value()
-        || load_queue_.empty()) {
+    if (modal_load_.has_value() || nmea_decision_.has_value() || load_queue_.empty()) {
         return;
     }
     PendingLoad load = std::move(load_queue_.front());
@@ -224,8 +213,7 @@ void LightGui::process_load_queue()
     const std::uintmax_t size = std::filesystem::file_size(load.path, error);
     if (!load.size_confirmed && !error && size >= large_file_threshold_bytes) {
         notify(NotificationLevel::Info,
-            "Awaiting large-file confirmation for "
-                + load.path.filename().string());
+            "Awaiting large-file confirmation for " + load.path.filename().string());
         modal_load_ = std::move(load);
         large_file_popup_requested_ = true;
         return;
@@ -242,9 +230,8 @@ void LightGui::attempt_load(PendingLoad load)
             : MissingGeoidPolicy::RejectFile;
     }
     if (load.needs_date) {
-        options.fallback_date = NmeaDate{load.date[0],
-            static_cast<unsigned>(load.date[1]),
-            static_cast<unsigned>(load.date[2])};
+        options.fallback_date = NmeaDate{
+            load.date[0], static_cast<unsigned>(load.date[1]), static_cast<unsigned>(load.date[2])};
     }
 
     const bool first_file = state_.files().empty();
@@ -253,8 +240,7 @@ void LightGui::attempt_load(PendingLoad load)
     case FileLoadStatus::Loaded: {
         record_diagnostics(result.diagnostics);
         const std::size_t warnings = static_cast<std::size_t>(std::count_if(
-            result.diagnostics.begin(), result.diagnostics.end(),
-            [](const Diagnostic& diagnostic) {
+            result.diagnostics.begin(), result.diagnostics.end(), [](const Diagnostic& diagnostic) {
                 return diagnostic.severity == DiagnosticSeverity::Warning;
             }));
         std::string message = "Loaded " + load.path.filename().string();
@@ -272,11 +258,9 @@ void LightGui::attempt_load(PendingLoad load)
     case FileLoadStatus::NeedsNmeaDecision: {
         load.format = InputFormat::Nmea;
         for (const Diagnostic& diagnostic : result.diagnostics) {
-            load.needs_missing_geoid_decision =
-                load.needs_missing_geoid_decision
+            load.needs_missing_geoid_decision = load.needs_missing_geoid_decision
                 || diagnostic.code == DiagnosticCode::MissingGeoidSeparation;
-            load.needs_date = load.needs_date
-                || diagnostic.code == DiagnosticCode::MissingDate;
+            load.needs_date = load.needs_date || diagnostic.code == DiagnosticCode::MissingDate;
         }
         const NmeaDate date = file_date(load.path);
         load.date[0] = date.year;
@@ -288,13 +272,11 @@ void LightGui::attempt_load(PendingLoad load)
     }
     case FileLoadStatus::Rejected:
         record_diagnostics(result.diagnostics);
-        notify(NotificationLevel::Error,
-            "Rejected " + load.path.filename().string(), true);
+        notify(NotificationLevel::Error, "Rejected " + load.path.filename().string(), true);
         break;
     case FileLoadStatus::IoError:
         record_diagnostics(result.diagnostics);
-        notify(NotificationLevel::Error,
-            "Could not open " + load.path.string(), true);
+        notify(NotificationLevel::Error, "Could not open " + load.path.string(), true);
         break;
     }
 }
@@ -364,8 +346,8 @@ void LightGui::render_toolbar(SDL_Window* window)
 
     ImGui::SameLine();
     const float notification_width = notifications_.has_caution() ? 104.0F : 70.0F;
-    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
-        ImGui::GetWindowContentRegionMax().x - notification_width));
+    ImGui::SetCursorPosX(std::max(
+        ImGui::GetCursorPosX(), ImGui::GetWindowContentRegionMax().x - notification_width));
     if (notifications_.has_caution()) {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.65F, 0.42F, 0.05F, 1.0F});
         if (ImGui::SmallButton("!")) {
@@ -384,9 +366,8 @@ void LightGui::render_toolbar(SDL_Window* window)
     ImGui::SetNextItemWidth(105.0F);
     int vertical = plot_options_.vertical_component == PositionComponent::Up ? 0 : 1;
     if (ImGui::Combo("##vertical", &vertical, "Up\0Height\0")) {
-        plot_options_.vertical_component = vertical == 0
-            ? PositionComponent::Up
-            : PositionComponent::EllipsoidalHeight;
+        plot_options_.vertical_component =
+            vertical == 0 ? PositionComponent::Up : PositionComponent::EllipsoidalHeight;
         ++plot_settings_revision_;
         normal_plot_.request_time_series_fit();
         relative_plot_.request_time_series_fit();
@@ -418,8 +399,8 @@ void LightGui::render_toolbar(SDL_Window* window)
     }
     ImGui::SameLine();
     ImGui::SetNextItemWidth(90.0F);
-    if (ImGui::SliderFloat("##marker-size", &plot_options_.marker_size_px,
-            1.0F, 10.0F, "%.0f px")) {
+    if (ImGui::SliderFloat(
+            "##marker-size", &plot_options_.marker_size_px, 1.0F, 10.0F, "%.0f px")) {
         ++plot_settings_revision_;
     }
     ImGui::SameLine();
@@ -431,8 +412,7 @@ void LightGui::render_toolbar(SDL_Window* window)
         ImGui::SameLine();
         const ImVec4 quality_color = rgba(rtkplot_file1_quality_colors[quality]);
         ImGui::PushStyleColor(ImGuiCol_Button,
-            quality_filter_.visible[quality] ? quality_color
-                                             : ImVec4{0.2F, 0.2F, 0.2F, 1.0F});
+            quality_filter_.visible[quality] ? quality_color : ImVec4{0.2F, 0.2F, 0.2F, 1.0F});
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, quality_color);
         const std::string label = "Q" + std::to_string(quality);
         if (ImGui::SmallButton(label.c_str())) {
@@ -474,8 +454,7 @@ bool LightGui::render_slot_rail()
             ImGui::EndDragDropSource();
         }
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload =
-                    ImGui::AcceptDragDropPayload("PLOTCORE_SLOT")) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PLOTCORE_SLOT")) {
                 const std::size_t from = *static_cast<const std::size_t*>(payload->Data);
                 move = std::pair{from, slot};
             }
@@ -527,8 +506,7 @@ bool LightGui::render_expanded_sidebar()
     for (std::size_t index = 0; index < state_.files().size(); ++index) {
         const LoadedFile& file = state_.files()[index];
         ImGui::PushID(static_cast<int>(index));
-        ImGui::Text("%zu  %s", index + 1,
-            file.source_path.filename().string().c_str());
+        ImGui::Text("%zu  %s", index + 1, file.source_path.filename().string().c_str());
         ImGui::SameLine();
         if (file.override_hz().has_value()) {
             ImGui::TextDisabled("%.6g Hz (manual)", *file.override_hz());
@@ -585,8 +563,7 @@ void LightGui::render_both(ImPlotComponent& component, std::string_view id_prefi
 {
     const ImVec2 available = ImGui::GetContentRegionAvail();
     constexpr float splitter_width = 6.0F;
-    const float left_width = std::max(100.0F,
-        (available.x - splitter_width) * both_fraction_);
+    const float left_width = std::max(100.0F, (available.x - splitter_width) * both_fraction_);
     const std::string left_id = std::string{id_prefix} + " trajectory pane";
     ImGui::BeginChild(left_id.c_str(), ImVec2{left_width, available.y}, false);
     const std::string trajectory_id = std::string{id_prefix} + " trajectory";
@@ -601,8 +578,7 @@ void LightGui::render_both(ImPlotComponent& component, std::string_view id_prefi
         minimum, maximum, ImGui::GetColorU32(ImGuiCol_Separator));
     if (ImGui::IsItemActive()) {
         both_fraction_ = std::clamp(both_fraction_
-                + ImGui::GetIO().MouseDelta.x
-                    / std::max(available.x - splitter_width, 1.0F),
+                + ImGui::GetIO().MouseDelta.x / std::max(available.x - splitter_width, 1.0F),
             0.15F, 0.85F);
     }
     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -618,16 +594,14 @@ void LightGui::render_both(ImPlotComponent& component, std::string_view id_prefi
 
 void LightGui::render_plot_content()
 {
-    ImGui::BeginChild("Plot content",
-        ImVec2{0.0F, -(summary_height() + 4.0F)}, true);
+    ImGui::BeginChild("Plot content", ImVec2{0.0F, -(summary_height() + 4.0F)}, true);
     const bool reference = view_mode_ == ViewMode::ReferenceTrajectory
-        || view_mode_ == ViewMode::ReferenceTimeSeries
-        || view_mode_ == ViewMode::ReferenceBoth;
+        || view_mode_ == ViewMode::ReferenceTimeSeries || view_mode_ == ViewMode::ReferenceBoth;
     ImPlotComponent& selected_component = reference ? relative_plot_ : normal_plot_;
     if (selected_component.empty()) {
         const ImVec2 available = ImGui::GetContentRegionAvail();
-        ImGui::SetCursorPos(ImVec2{std::max(12.0F, available.x * 0.5F - 95.0F),
-            std::max(12.0F, available.y * 0.5F)});
+        ImGui::SetCursorPos(ImVec2{
+            std::max(12.0F, available.x * 0.5F - 95.0F), std::max(12.0F, available.y * 0.5F)});
         ImGui::TextDisabled(reference && state_.files().size() < 2
                 ? "Reference view needs two files"
                 : "Open POS or NMEA files");
@@ -660,15 +634,14 @@ void LightGui::render_plot_content()
 float LightGui::summary_height() const noexcept
 {
     const std::size_t visible_rows = std::min<std::size_t>(state_.files().size(), 5);
-    return ImGui::GetStyle().WindowPadding.y * 2.0F
-        + ImGui::GetFrameHeightWithSpacing()
+    return ImGui::GetStyle().WindowPadding.y * 2.0F + ImGui::GetFrameHeightWithSpacing()
         + static_cast<float>(visible_rows) * ImGui::GetTextLineHeightWithSpacing();
 }
 
 void LightGui::render_summary()
 {
-    ImGui::BeginChild("Data summary", ImVec2{0.0F, summary_height()}, true,
-        ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::BeginChild(
+        "Data summary", ImVec2{0.0F, summary_height()}, true, ImGuiWindowFlags_HorizontalScrollbar);
     if (ImGui::BeginTable("Summary header", 2,
             ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_NoSavedSettings)) {
         ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthStretch);
@@ -691,14 +664,12 @@ void LightGui::render_summary()
         const RecordedStatistics& item = statistics[index];
         const std::size_t recorded = recorded_sample_count(item);
         const std::optional<std::size_t> expected = range.has_value()
-            ? calculate_expected_sample_count(
-                *range, state_.files()[index].effective_hz())
+            ? calculate_expected_sample_count(*range, state_.files()[index].effective_hz())
             : std::nullopt;
-        const std::size_t denominator = statistics_mode_ == StatisticsMode::Recorded
-            ? recorded
-            : expected.value_or(0);
-        ImGui::Text("%zu %s  %.3f .. %.3f GPST  N=%zu",
-            index + 1, state_.files()[index].source_path.filename().string().c_str(),
+        const std::size_t denominator =
+            statistics_mode_ == StatisticsMode::Recorded ? recorded : expected.value_or(0);
+        ImGui::Text("%zu %s  %.3f .. %.3f GPST  N=%zu", index + 1,
+            state_.files()[index].source_path.filename().string().c_str(),
             item.first_sample_time.has_value() ? gps_seconds(*item.first_sample_time) : 0.0,
             item.last_sample_time.has_value() ? gps_seconds(*item.last_sample_time) : 0.0,
             denominator);
@@ -711,8 +682,8 @@ void LightGui::render_summary()
             const std::optional<double> percentage =
                 quality_percentage(item.quality_counts[quality], denominator);
             if (percentage.has_value()) {
-                ImGui::TextColored(rgba(rtkplot_file1_quality_colors[quality]),
-                    "Q%zu:%zu/%.1f%%", quality, item.quality_counts[quality], *percentage);
+                ImGui::TextColored(rgba(rtkplot_file1_quality_colors[quality]), "Q%zu:%zu/%.1f%%",
+                    quality, item.quality_counts[quality], *percentage);
             } else {
                 ImGui::TextDisabled("Q%zu:%zu/-", quality, item.quality_counts[quality]);
             }
@@ -737,8 +708,7 @@ void LightGui::render_notification_window()
                 : notification.level == NotificationLevel::Warning
                 ? ImVec4{1.0F, 0.72F, 0.25F, 1.0F}
                 : ImGui::GetStyleColorVec4(ImGuiCol_Text);
-            ImGui::TextColored(color, "[%s]",
-                notification_level_name(notification.level));
+            ImGui::TextColored(color, "[%s]", notification_level_name(notification.level));
             ImGui::SameLine();
             ImGui::TextWrapped("%s", notification.message.c_str());
         }
@@ -755,8 +725,7 @@ void LightGui::render_file_workflow_modals()
         ImGui::OpenPopup("Large input file");
         large_file_popup_requested_ = false;
     }
-    if (ImGui::BeginPopupModal("Large input file", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal("Large input file", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextWrapped("%s is at least 100 MiB. Continue loading?",
             modal_load_->path.filename().string().c_str());
         if (ImGui::Button("Continue")) {
@@ -768,8 +737,7 @@ void LightGui::render_file_workflow_modals()
         }
         ImGui::SameLine();
         if (ImGui::Button("Skip")) {
-            notify(NotificationLevel::Info,
-                "Skipped " + modal_load_->path.filename().string());
+            notify(NotificationLevel::Info, "Skipped " + modal_load_->path.filename().string());
             modal_load_.reset();
             ImGui::CloseCurrentPopup();
         }
@@ -780,8 +748,7 @@ void LightGui::render_file_workflow_modals()
         ImGui::OpenPopup("Choose input format");
         format_popup_requested_ = false;
     }
-    if (ImGui::BeginPopupModal("Choose input format", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal("Choose input format", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Format for %s", modal_load_->path.filename().string().c_str());
         if (ImGui::Button("POS")) {
             PendingLoad load = std::move(*modal_load_);
@@ -801,8 +768,7 @@ void LightGui::render_file_workflow_modals()
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) {
             notify(NotificationLevel::Info,
-                "Cancelled format selection for "
-                    + modal_load_->path.filename().string());
+                "Cancelled format selection for " + modal_load_->path.filename().string());
             modal_load_.reset();
             ImGui::CloseCurrentPopup();
         }
@@ -813,13 +779,11 @@ void LightGui::render_file_workflow_modals()
         ImGui::OpenPopup("NMEA input decision");
         nmea_popup_requested_ = false;
     }
-    if (ImGui::BeginPopupModal("NMEA input decision", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal("NMEA input decision", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         PendingLoad& load = *nmea_decision_;
         ImGui::TextUnformatted(load.path.filename().string().c_str());
         if (load.needs_missing_geoid_decision) {
-            ImGui::Checkbox("Use GGA altitude as ellipsoidal height",
-                &load.use_altitude_as_height);
+            ImGui::Checkbox("Use GGA altitude as ellipsoidal height", &load.use_altitude_as_height);
         }
         if (load.needs_date) {
             ImGui::TextUnformatted("No RMC/ZDA date. Confirm the file date:");
@@ -831,8 +795,7 @@ void LightGui::render_file_workflow_modals()
                 load.date[2] = static_cast<int>(date.day);
             }
         }
-        const bool can_continue = !load.needs_missing_geoid_decision
-            || load.use_altitude_as_height;
+        const bool can_continue = !load.needs_missing_geoid_decision || load.use_altitude_as_height;
         ImGui::BeginDisabled(!can_continue);
         if (ImGui::Button("OK")) {
             PendingLoad accepted = std::move(load);
@@ -844,8 +807,7 @@ void LightGui::render_file_workflow_modals()
         ImGui::SameLine();
         if (ImGui::Button("Cancel")) {
             notify(NotificationLevel::Info,
-                "Cancelled NMEA load for "
-                    + nmea_decision_->path.filename().string());
+                "Cancelled NMEA load for " + nmea_decision_->path.filename().string());
             nmea_decision_.reset();
             ImGui::CloseCurrentPopup();
         }
@@ -856,41 +818,30 @@ void LightGui::render_file_workflow_modals()
 void LightGui::apply_window_resize_request(SDL_Window* window)
 {
     if (pending_trajectory_resize_.has_value()) {
-        ImPlotComponent& component = pending_trajectory_resize_->reference
-            ? relative_plot_
-            : normal_plot_;
+        ImPlotComponent& component =
+            pending_trajectory_resize_->reference ? relative_plot_ : normal_plot_;
         if (component.trajectory_metrics().has_value()) {
             const TrajectoryPlotMetrics& metrics = *component.trajectory_metrics();
-            const TrajectoryResizeRequest& request =
-                pending_trajectory_resize_->request;
-            if (std::abs(metrics.east_axis_length_px
-                    - request.desired_east_axis_length_px)
-                    > 2.0
-                || std::abs(metrics.north_axis_length_px
-                    - request.desired_north_axis_length_px)
+            const TrajectoryResizeRequest& request = pending_trajectory_resize_->request;
+            if (std::abs(metrics.east_axis_length_px - request.desired_east_axis_length_px) > 2.0
+                || std::abs(metrics.north_axis_length_px - request.desired_north_axis_length_px)
                     > 2.0) {
                 notify(NotificationLevel::Warning,
-                    request.fixed_target
-                            == TrajectoryResizeFixedTarget::DisplayScale
-                        ? "Window or layout constraints prevented the requested trajectory axis range"
+                    request.fixed_target == TrajectoryResizeFixedTarget::DisplayScale
+                        ? "Window or layout constraints prevented the requested trajectory axis "
+                          "range"
                         : "Window or layout constraints prevented the requested trajectory scale");
             }
             NumericRange east = request.east;
             NumericRange north = request.north;
-            if (request.fixed_target
-                == TrajectoryResizeFixedTarget::DisplayScale) {
-                const double east_center =
-                    (east.minimum + east.maximum) * 0.5;
-                const double north_center =
-                    (north.minimum + north.maximum) * 0.5;
-                const double east_span = request.meters_per_pixel
-                    * metrics.east_axis_length_px;
-                const double north_span = request.meters_per_pixel
-                    * metrics.north_axis_length_px;
-                east = NumericRange{east_center - east_span * 0.5,
-                    east_center + east_span * 0.5};
-                north = NumericRange{north_center - north_span * 0.5,
-                    north_center + north_span * 0.5};
+            if (request.fixed_target == TrajectoryResizeFixedTarget::DisplayScale) {
+                const double east_center = (east.minimum + east.maximum) * 0.5;
+                const double north_center = (north.minimum + north.maximum) * 0.5;
+                const double east_span = request.meters_per_pixel * metrics.east_axis_length_px;
+                const double north_span = request.meters_per_pixel * metrics.north_axis_length_px;
+                east = NumericRange{east_center - east_span * 0.5, east_center + east_span * 0.5};
+                north =
+                    NumericRange{north_center - north_span * 0.5, north_center + north_span * 0.5};
             }
             if (!component.set_trajectory_ranges(east, north)) {
                 notify(NotificationLevel::Warning,
@@ -928,31 +879,27 @@ void LightGui::apply_window_resize_request(SDL_Window* window)
         maximum_width = std::max(usable_bounds.w, light_minimum_window_width);
         maximum_height = std::max(usable_bounds.h, light_minimum_window_height);
     }
-    double requested_width_value = factor.has_value()
-        ? static_cast<double>(width) * *factor
-        : static_cast<double>(width);
-    double requested_height_value = factor.has_value()
-        ? static_cast<double>(height) * *factor
-        : static_cast<double>(height);
+    double requested_width_value =
+        factor.has_value() ? static_cast<double>(width) * *factor : static_cast<double>(width);
+    double requested_height_value =
+        factor.has_value() ? static_cast<double>(height) * *factor : static_cast<double>(height);
     if (trajectory_resize.has_value()) {
         ImPlotComponent& component = reference_resize ? relative_plot_ : normal_plot_;
         if (!component.trajectory_metrics().has_value()) {
-            notify(NotificationLevel::Warning,
-                "Trajectory drawing area is unavailable for resizing");
+            notify(
+                NotificationLevel::Warning, "Trajectory drawing area is unavailable for resizing");
             return;
         }
         const TrajectoryPlotMetrics& metrics = *component.trajectory_metrics();
-        requested_width_value += trajectory_resize->desired_east_axis_length_px
-            - metrics.east_axis_length_px;
-        requested_height_value += trajectory_resize->desired_north_axis_length_px
-            - metrics.north_axis_length_px;
+        requested_width_value +=
+            trajectory_resize->desired_east_axis_length_px - metrics.east_axis_length_px;
+        requested_height_value +=
+            trajectory_resize->desired_north_axis_length_px - metrics.north_axis_length_px;
     }
     requested_width_value = std::clamp(requested_width_value,
-        static_cast<double>(light_minimum_window_width),
-        static_cast<double>(maximum_width));
+        static_cast<double>(light_minimum_window_width), static_cast<double>(maximum_width));
     requested_height_value = std::clamp(requested_height_value,
-        static_cast<double>(light_minimum_window_height),
-        static_cast<double>(maximum_height));
+        static_cast<double>(light_minimum_window_height), static_cast<double>(maximum_height));
     const int requested_width = static_cast<int>(std::lround(requested_width_value));
     const int requested_height = static_cast<int>(std::lround(requested_height_value));
     if (!SDL_SetWindowSize(window, requested_width, requested_height)) {
@@ -960,8 +907,7 @@ void LightGui::apply_window_resize_request(SDL_Window* window)
         return;
     }
     if (trajectory_resize.has_value()) {
-        pending_trajectory_resize_ = PendingTrajectoryResize{
-            reference_resize, *trajectory_resize};
+        pending_trajectory_resize_ = PendingTrajectoryResize{reference_resize, *trajectory_resize};
     }
 }
 
@@ -971,8 +917,7 @@ void LightGui::render_time_range_dialog()
         ImGui::OpenPopup("Common time range");
         time_dialog_open_requested_ = false;
     }
-    if (!ImGui::BeginPopupModal("Common time range", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!ImGui::BeginPopupModal("Common time range", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
     if (!time_dialog_initialized_) {
@@ -982,10 +927,12 @@ void LightGui::render_time_range_dialog()
         time_end_enabled_ = configured.end_enabled;
         time_start_seconds_ = configured.entered_start.has_value()
             ? gps_seconds(*configured.entered_start)
-            : effective.has_value() ? gps_seconds(effective->start) : 0.0;
+            : effective.has_value() ? gps_seconds(effective->start)
+                                    : 0.0;
         time_end_seconds_ = configured.entered_end.has_value()
             ? gps_seconds(*configured.entered_end)
-            : effective.has_value() ? gps_seconds(effective->end) : 0.0;
+            : effective.has_value() ? gps_seconds(effective->end)
+                                    : 0.0;
         time_dialog_initialized_ = true;
     }
     ImGui::Checkbox("Start", &time_start_enabled_);
@@ -1036,8 +983,7 @@ void LightGui::render_enu_dialog()
         ImGui::OpenPopup("ENU reference");
         enu_dialog_open_requested_ = false;
     }
-    if (!ImGui::BeginPopupModal("ENU reference", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!ImGui::BeginPopupModal("ENU reference", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
     if (!enu_dialog_initialized_) {
@@ -1050,8 +996,7 @@ void LightGui::render_enu_dialog()
                 enu_values_[0] = llh->latitude_deg;
                 enu_values_[1] = llh->longitude_deg;
                 enu_values_[2] = llh->ellipsoidal_height_m;
-            } else if (const Ecef* ecef =
-                           std::get_if<Ecef>(&*configuration.user_position)) {
+            } else if (const Ecef* ecef = std::get_if<Ecef>(&*configuration.user_position)) {
                 enu_coordinate_kind_ = 1;
                 enu_values_[0] = ecef->x_m;
                 enu_values_[1] = ecef->y_m;
@@ -1064,12 +1009,12 @@ void LightGui::render_enu_dialog()
         "Slot 1 start\0Slot 1 end\0Slot 1 ECEF average\0User specified\0");
     if (enu_method_index_ == static_cast<int>(EnuReferenceMethod::UserSpecified)) {
         ImGui::Combo("Coordinates", &enu_coordinate_kind_, "LLH\0ECEF\0");
-        ImGui::InputDouble(enu_coordinate_kind_ == 0 ? "Latitude" : "X",
-            &enu_values_[0], 0.0, 0.0, "%.10g");
-        ImGui::InputDouble(enu_coordinate_kind_ == 0 ? "Longitude" : "Y",
-            &enu_values_[1], 0.0, 0.0, "%.10g");
-        ImGui::InputDouble(enu_coordinate_kind_ == 0 ? "Height" : "Z",
-            &enu_values_[2], 0.0, 0.0, "%.10g");
+        ImGui::InputDouble(
+            enu_coordinate_kind_ == 0 ? "Latitude" : "X", &enu_values_[0], 0.0, 0.0, "%.10g");
+        ImGui::InputDouble(
+            enu_coordinate_kind_ == 0 ? "Longitude" : "Y", &enu_values_[1], 0.0, 0.0, "%.10g");
+        ImGui::InputDouble(
+            enu_coordinate_kind_ == 0 ? "Height" : "Z", &enu_values_[2], 0.0, 0.0, "%.10g");
     }
     if (ImGui::Button("OK")) {
         EnuReferenceConfiguration configuration;
@@ -1078,8 +1023,7 @@ void LightGui::render_enu_dialog()
             configuration.user_position = enu_coordinate_kind_ == 0
                 ? UserSpecifiedEnuPosition{UserSpecifiedLlh{
                       enu_values_[0], enu_values_[1], enu_values_[2]}}
-                : UserSpecifiedEnuPosition{Ecef{
-                      enu_values_[0], enu_values_[1], enu_values_[2]}};
+                : UserSpecifiedEnuPosition{Ecef{enu_values_[0], enu_values_[1], enu_values_[2]}};
         }
         if (state_.set_enu_reference_configuration(configuration)) {
             mark_plot_data_changed(false);
@@ -1103,16 +1047,14 @@ void LightGui::render_match_dialog()
         ImGui::OpenPopup("Reference matching");
         match_dialog_open_requested_ = false;
     }
-    if (!ImGui::BeginPopupModal("Reference matching", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!ImGui::BeginPopupModal("Reference matching", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
     if (!match_dialog_initialized_) {
         const ReferenceMatchConfiguration configuration = state_.match_configuration();
         match_tolerance_enabled_ = configuration.tolerance_check_enabled;
         match_tolerance_seconds_ =
-            static_cast<double>(configuration.maximum_time_difference_ns)
-            / nanoseconds_per_second;
+            static_cast<double>(configuration.maximum_time_difference_ns) / nanoseconds_per_second;
         match_dialog_initialized_ = true;
     }
     ImGui::Checkbox("Maximum age enabled", &match_tolerance_enabled_);
@@ -1128,8 +1070,7 @@ void LightGui::render_match_dialog()
             ImGui::CloseCurrentPopup();
             match_dialog_initialized_ = false;
         } else {
-            notify(NotificationLevel::Warning,
-                "Invalid reference matching tolerance");
+            notify(NotificationLevel::Warning, "Invalid reference matching tolerance");
         }
     }
     ImGui::SameLine();
@@ -1146,27 +1087,25 @@ void LightGui::render_plot_range_dialog()
         ImGui::OpenPopup("Plot ranges");
         plot_range_dialog_open_requested_ = false;
     }
-    if (!ImGui::BeginPopupModal("Plot ranges", nullptr,
-            ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!ImGui::BeginPopupModal("Plot ranges", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
     const bool reference = view_mode_ == ViewMode::ReferenceTrajectory
-        || view_mode_ == ViewMode::ReferenceTimeSeries
-        || view_mode_ == ViewMode::ReferenceBoth;
+        || view_mode_ == ViewMode::ReferenceTimeSeries || view_mode_ == ViewMode::ReferenceBoth;
     ImPlotComponent& component = reference ? relative_plot_ : normal_plot_;
     if (!plot_range_dialog_initialized_) {
         if (component.trajectory_metrics().has_value()) {
             const TrajectoryPlotMetrics& metrics = *component.trajectory_metrics();
-            trajectory_range_values_[0] = displayed_position(
-                metrics.east.minimum, plot_position_unit_index_);
-            trajectory_range_values_[1] = displayed_position(
-                metrics.east.maximum, plot_position_unit_index_);
-            trajectory_range_values_[2] = displayed_position(
-                metrics.north.minimum, plot_position_unit_index_);
-            trajectory_range_values_[3] = displayed_position(
-                metrics.north.maximum, plot_position_unit_index_);
-            trajectory_scale_value_ = displayed_position(
-                metrics.meters_per_pixel, plot_scale_unit_index_);
+            trajectory_range_values_[0] =
+                displayed_position(metrics.east.minimum, plot_position_unit_index_);
+            trajectory_range_values_[1] =
+                displayed_position(metrics.east.maximum, plot_position_unit_index_);
+            trajectory_range_values_[2] =
+                displayed_position(metrics.north.minimum, plot_position_unit_index_);
+            trajectory_range_values_[3] =
+                displayed_position(metrics.north.maximum, plot_position_unit_index_);
+            trajectory_scale_value_ =
+                displayed_position(metrics.meters_per_pixel, plot_scale_unit_index_);
         }
         if (const std::optional<TimeRange> time = component.time_series_time_range()) {
             plot_time_values_[0] = gps_seconds(time->start);
@@ -1177,10 +1116,10 @@ void LightGui::render_plot_range_dialog()
             const std::size_t index = static_cast<std::size_t>(metrics.component);
             if (index < plot_position_present_.size()) {
                 plot_position_present_[index] = true;
-                plot_position_minimum_[index] = displayed_position(
-                    metrics.position.minimum, plot_position_unit_index_);
-                plot_position_maximum_[index] = displayed_position(
-                    metrics.position.maximum, plot_position_unit_index_);
+                plot_position_minimum_[index] =
+                    displayed_position(metrics.position.minimum, plot_position_unit_index_);
+                plot_position_maximum_[index] =
+                    displayed_position(metrics.position.maximum, plot_position_unit_index_);
             }
         }
         for (std::size_t index = 0; index < 4; ++index) {
@@ -1197,22 +1136,18 @@ void LightGui::render_plot_range_dialog()
     }
 
     ImGui::SeparatorText("Trajectory");
-    int range_priority = static_cast<int>(
-        plot_options_.trajectory_range_priority);
-    constexpr const char* range_priority_labels[] = {
-        "Axis range", "Display scale"};
-    if (ImGui::Combo("Range priority", &range_priority,
-            range_priority_labels, std::size(range_priority_labels))) {
+    int range_priority = static_cast<int>(plot_options_.trajectory_range_priority);
+    constexpr const char* range_priority_labels[] = {"Axis range", "Display scale"};
+    if (ImGui::Combo("Range priority", &range_priority, range_priority_labels,
+            std::size(range_priority_labels))) {
         plot_options_.trajectory_range_priority =
             static_cast<TrajectoryRangePriority>(range_priority);
         ++plot_settings_revision_;
     }
-    int scale_fixed_target = static_cast<int>(
-        plot_options_.trajectory_scale_fixed_target);
-    constexpr const char* scale_fixed_target_labels[] = {
-        "Drawing area", "Axis range"};
-    if (ImGui::Combo("Scale fixed target", &scale_fixed_target,
-            scale_fixed_target_labels, std::size(scale_fixed_target_labels))) {
+    int scale_fixed_target = static_cast<int>(plot_options_.trajectory_scale_fixed_target);
+    constexpr const char* scale_fixed_target_labels[] = {"Drawing area", "Axis range"};
+    if (ImGui::Combo("Scale fixed target", &scale_fixed_target, scale_fixed_target_labels,
+            std::size(scale_fixed_target_labels))) {
         plot_options_.trajectory_scale_fixed_target =
             static_cast<TrajectoryScaleFixedTarget>(scale_fixed_target);
         ++plot_settings_revision_;
@@ -1221,59 +1156,48 @@ void LightGui::render_plot_range_dialog()
     ImGui::SameLine();
     if (ImGui::SmallButton(
             position_unit_labels[static_cast<std::size_t>(plot_position_unit_index_)])) {
-        const int next = (plot_position_unit_index_ + 1)
-            % static_cast<int>(position_unit_scale_m.size());
-        rescale_displayed_positions(
-            plot_position_unit_index_, next, trajectory_range_values_);
-        rescale_displayed_positions(
-            plot_position_unit_index_, next, trajectory_range_backup_);
-        rescale_displayed_positions(
-            plot_position_unit_index_, next, plot_position_minimum_);
-        rescale_displayed_positions(
-            plot_position_unit_index_, next, plot_position_maximum_);
-        rescale_displayed_positions(
-            plot_position_unit_index_, next, plot_position_minimum_backup_);
-        rescale_displayed_positions(
-            plot_position_unit_index_, next, plot_position_maximum_backup_);
+        const int next =
+            (plot_position_unit_index_ + 1) % static_cast<int>(position_unit_scale_m.size());
+        rescale_displayed_positions(plot_position_unit_index_, next, trajectory_range_values_);
+        rescale_displayed_positions(plot_position_unit_index_, next, trajectory_range_backup_);
+        rescale_displayed_positions(plot_position_unit_index_, next, plot_position_minimum_);
+        rescale_displayed_positions(plot_position_unit_index_, next, plot_position_maximum_);
+        rescale_displayed_positions(plot_position_unit_index_, next, plot_position_minimum_backup_);
+        rescale_displayed_positions(plot_position_unit_index_, next, plot_position_maximum_backup_);
         plot_position_unit_index_ = next;
     }
-    const bool east_valid = valid_numeric_range(
-        trajectory_range_values_[0], trajectory_range_values_[1]);
-    const bool north_valid = valid_numeric_range(
-        trajectory_range_values_[2], trajectory_range_values_[3]);
-    const NumericInputResult east_minimum = input_range_value("East minimum",
-        &trajectory_range_values_[0], east_valid, "%.10g");
-    const NumericInputResult east_maximum = input_range_value("East maximum",
-        &trajectory_range_values_[1], east_valid, "%.10g");
-    const NumericInputResult north_minimum = input_range_value("North minimum",
-        &trajectory_range_values_[2], north_valid, "%.10g");
-    const NumericInputResult north_maximum = input_range_value("North maximum",
-        &trajectory_range_values_[3], north_valid, "%.10g");
+    const bool east_valid =
+        valid_numeric_range(trajectory_range_values_[0], trajectory_range_values_[1]);
+    const bool north_valid =
+        valid_numeric_range(trajectory_range_values_[2], trajectory_range_values_[3]);
+    const NumericInputResult east_minimum =
+        input_range_value("East minimum", &trajectory_range_values_[0], east_valid, "%.10g");
+    const NumericInputResult east_maximum =
+        input_range_value("East maximum", &trajectory_range_values_[1], east_valid, "%.10g");
+    const NumericInputResult north_minimum =
+        input_range_value("North minimum", &trajectory_range_values_[2], north_valid, "%.10g");
+    const NumericInputResult north_maximum =
+        input_range_value("North maximum", &trajectory_range_values_[3], north_valid, "%.10g");
     if (!valid_numeric_range(trajectory_range_values_[0], trajectory_range_values_[1])
-        && (east_minimum.deactivated_after_edit
-            || east_maximum.deactivated_after_edit)) {
+        && (east_minimum.deactivated_after_edit || east_maximum.deactivated_after_edit)) {
         trajectory_range_values_[0] = trajectory_range_backup_[0];
         trajectory_range_values_[1] = trajectory_range_backup_[1];
     }
     if (!valid_numeric_range(trajectory_range_values_[2], trajectory_range_values_[3])
-        && (north_minimum.deactivated_after_edit
-            || north_maximum.deactivated_after_edit)) {
+        && (north_minimum.deactivated_after_edit || north_maximum.deactivated_after_edit)) {
         trajectory_range_values_[2] = trajectory_range_backup_[2];
         trajectory_range_values_[3] = trajectory_range_backup_[3];
     }
-    const bool entered_east_valid = valid_numeric_range(
-        trajectory_range_values_[0], trajectory_range_values_[1]);
-    const bool entered_north_valid = valid_numeric_range(
-        trajectory_range_values_[2], trajectory_range_values_[3]);
+    const bool entered_east_valid =
+        valid_numeric_range(trajectory_range_values_[0], trajectory_range_values_[1]);
+    const bool entered_north_valid =
+        valid_numeric_range(trajectory_range_values_[2], trajectory_range_values_[3]);
     ImGui::BeginDisabled(!entered_east_valid);
-    if (ImGui::Button("Apply East range")
-        || east_minimum.entered || east_maximum.entered) {
+    if (ImGui::Button("Apply East range") || east_minimum.entered || east_maximum.entered) {
         if (component.apply_trajectory_axis_range(TrajectoryAxis::East,
                 NumericRange{
-                    position_in_meters(
-                        trajectory_range_values_[0], plot_position_unit_index_),
-                    position_in_meters(
-                        trajectory_range_values_[1], plot_position_unit_index_)})) {
+                    position_in_meters(trajectory_range_values_[0], plot_position_unit_index_),
+                    position_in_meters(trajectory_range_values_[1], plot_position_unit_index_)})) {
             trajectory_range_backup_[0] = trajectory_range_values_[0];
             trajectory_range_backup_[1] = trajectory_range_values_[1];
         } else {
@@ -1283,14 +1207,11 @@ void LightGui::render_plot_range_dialog()
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!entered_north_valid);
-    if (ImGui::Button("Apply North range")
-        || north_minimum.entered || north_maximum.entered) {
+    if (ImGui::Button("Apply North range") || north_minimum.entered || north_maximum.entered) {
         if (component.apply_trajectory_axis_range(TrajectoryAxis::North,
                 NumericRange{
-                    position_in_meters(
-                        trajectory_range_values_[2], plot_position_unit_index_),
-                    position_in_meters(
-                        trajectory_range_values_[3], plot_position_unit_index_)})) {
+                    position_in_meters(trajectory_range_values_[2], plot_position_unit_index_),
+                    position_in_meters(trajectory_range_values_[3], plot_position_unit_index_)})) {
             trajectory_range_backup_[2] = trajectory_range_values_[2];
             trajectory_range_backup_[3] = trajectory_range_values_[3];
         } else {
@@ -1298,33 +1219,30 @@ void LightGui::render_plot_range_dialog()
         }
     }
     ImGui::EndDisabled();
-    bool scale_valid = std::isfinite(trajectory_scale_value_)
-        && trajectory_scale_value_ > 0.0;
-    const NumericInputResult scale_input = input_range_value("Scale##trajectory-scale",
-        &trajectory_scale_value_, scale_valid, "%.10g");
-    scale_valid = std::isfinite(trajectory_scale_value_)
-        && trajectory_scale_value_ > 0.0;
+    bool scale_valid = std::isfinite(trajectory_scale_value_) && trajectory_scale_value_ > 0.0;
+    const NumericInputResult scale_input = input_range_value(
+        "Scale##trajectory-scale", &trajectory_scale_value_, scale_valid, "%.10g");
+    scale_valid = std::isfinite(trajectory_scale_value_) && trajectory_scale_value_ > 0.0;
     if (!scale_valid && scale_input.deactivated_after_edit) {
         trajectory_scale_value_ = trajectory_scale_backup_;
         scale_valid = true;
     }
     ImGui::SameLine();
-    std::string scale_unit = position_unit_labels[
-        static_cast<std::size_t>(plot_scale_unit_index_)];
+    std::string scale_unit = position_unit_labels[static_cast<std::size_t>(plot_scale_unit_index_)];
     scale_unit += "/px##scale-unit";
     if (ImGui::SmallButton(scale_unit.c_str())) {
-        const int next = (plot_scale_unit_index_ + 1)
-            % static_cast<int>(position_unit_scale_m.size());
-        rescale_displayed_positions(plot_scale_unit_index_, next,
-            std::span<double>{&trajectory_scale_value_, 1});
-        rescale_displayed_positions(plot_scale_unit_index_, next,
-            std::span<double>{&trajectory_scale_backup_, 1});
+        const int next =
+            (plot_scale_unit_index_ + 1) % static_cast<int>(position_unit_scale_m.size());
+        rescale_displayed_positions(
+            plot_scale_unit_index_, next, std::span<double>{&trajectory_scale_value_, 1});
+        rescale_displayed_positions(
+            plot_scale_unit_index_, next, std::span<double>{&trajectory_scale_backup_, 1});
         plot_scale_unit_index_ = next;
     }
     ImGui::BeginDisabled(!scale_valid);
     if (ImGui::Button("Apply scale") || scale_input.entered) {
-        if (component.apply_trajectory_meters_per_pixel(position_in_meters(
-                trajectory_scale_value_, plot_scale_unit_index_))) {
+        if (component.apply_trajectory_meters_per_pixel(
+                position_in_meters(trajectory_scale_value_, plot_scale_unit_index_))) {
             trajectory_scale_backup_ = trajectory_scale_value_;
         } else {
             notify(NotificationLevel::Warning, "Invalid trajectory scale");
@@ -1336,10 +1254,10 @@ void LightGui::render_plot_range_dialog()
     std::optional<GpsTime> start = seconds_to_gps_time(plot_time_values_[0]);
     std::optional<GpsTime> end = seconds_to_gps_time(plot_time_values_[1]);
     const bool time_valid = start.has_value() && end.has_value() && *start <= *end;
-    const NumericInputResult time_start = input_range_value("GPST start (s)",
-        &plot_time_values_[0], time_valid, "%.9f");
-    const NumericInputResult time_end = input_range_value("GPST end (s)",
-        &plot_time_values_[1], time_valid, "%.9f");
+    const NumericInputResult time_start =
+        input_range_value("GPST start (s)", &plot_time_values_[0], time_valid, "%.9f");
+    const NumericInputResult time_end =
+        input_range_value("GPST end (s)", &plot_time_values_[1], time_valid, "%.9f");
     start = seconds_to_gps_time(plot_time_values_[0]);
     end = seconds_to_gps_time(plot_time_values_[1]);
     bool entered_time_valid = start.has_value() && end.has_value() && *start <= *end;
@@ -1359,13 +1277,11 @@ void LightGui::render_plot_range_dialog()
             plot_time_backup_[0] = plot_time_values_[0];
             plot_time_backup_[1] = plot_time_values_[1];
         } else {
-            notify(NotificationLevel::Warning,
-                "Invalid time-series time range");
+            notify(NotificationLevel::Warning, "Invalid time-series time range");
         }
     }
     ImGui::EndDisabled();
-    constexpr std::array labels{
-        "East", "North", "Up", "Height", "Distance"};
+    constexpr std::array labels{"East", "North", "Up", "Height", "Distance"};
     for (std::size_t index = 0; index < plot_position_present_.size(); ++index) {
         if (!plot_position_present_[index]) {
             continue;
@@ -1374,17 +1290,17 @@ void LightGui::render_plot_range_dialog()
         ImGui::TextUnformatted(labels[index]);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(120.0F);
-        const bool position_valid = valid_numeric_range(
-            plot_position_minimum_[index], plot_position_maximum_[index]);
-        const NumericInputResult position_minimum = input_range_value("##minimum",
-            &plot_position_minimum_[index], position_valid, "%.10g");
+        const bool position_valid =
+            valid_numeric_range(plot_position_minimum_[index], plot_position_maximum_[index]);
+        const NumericInputResult position_minimum =
+            input_range_value("##minimum", &plot_position_minimum_[index], position_valid, "%.10g");
         ImGui::SameLine();
         ImGui::SetNextItemWidth(120.0F);
-        const NumericInputResult position_maximum = input_range_value("##maximum",
-            &plot_position_maximum_[index], position_valid, "%.10g");
+        const NumericInputResult position_maximum =
+            input_range_value("##maximum", &plot_position_maximum_[index], position_valid, "%.10g");
         ImGui::SameLine();
-        bool entered_position_valid = valid_numeric_range(
-            plot_position_minimum_[index], plot_position_maximum_[index]);
+        bool entered_position_valid =
+            valid_numeric_range(plot_position_minimum_[index], plot_position_maximum_[index]);
         if (!entered_position_valid
             && (position_minimum.deactivated_after_edit
                 || position_maximum.deactivated_after_edit)) {
@@ -1392,24 +1308,18 @@ void LightGui::render_plot_range_dialog()
             plot_position_maximum_[index] = plot_position_maximum_backup_[index];
             entered_position_valid = true;
         }
-        const bool position_entered = position_minimum.entered
-            || position_maximum.entered;
+        const bool position_entered = position_minimum.entered || position_maximum.entered;
         ImGui::BeginDisabled(!entered_position_valid);
         if (ImGui::Button("Apply") || position_entered) {
-            if (component.set_time_series_position_range(
-                    static_cast<PositionComponent>(index),
-                    NumericRange{
-                        position_in_meters(
-                            plot_position_minimum_[index], plot_position_unit_index_),
+            if (component.set_time_series_position_range(static_cast<PositionComponent>(index),
+                    NumericRange{position_in_meters(
+                                     plot_position_minimum_[index], plot_position_unit_index_),
                         position_in_meters(
                             plot_position_maximum_[index], plot_position_unit_index_)})) {
-                plot_position_minimum_backup_[index] =
-                    plot_position_minimum_[index];
-                plot_position_maximum_backup_[index] =
-                    plot_position_maximum_[index];
+                plot_position_minimum_backup_[index] = plot_position_minimum_[index];
+                plot_position_maximum_backup_[index] = plot_position_maximum_[index];
             } else {
-                notify(NotificationLevel::Warning,
-                    "Invalid time-series position range");
+                notify(NotificationLevel::Warning, "Invalid time-series position range");
             }
         }
         ImGui::EndDisabled();
@@ -1436,10 +1346,10 @@ void LightGui::render_plot_range_dialog()
             ImGui::SameLine();
         }
         ImGui::NewLine();
-        const NumericRange source_display_range{plot_position_minimum_[source],
-            plot_position_maximum_[source]};
-        const bool source_valid = valid_numeric_range(
-            source_display_range.minimum, source_display_range.maximum);
+        const NumericRange source_display_range{
+            plot_position_minimum_[source], plot_position_maximum_[source]};
+        const bool source_valid =
+            valid_numeric_range(source_display_range.minimum, source_display_range.maximum);
         const NumericRange source_range{
             position_in_meters(source_display_range.minimum, plot_position_unit_index_),
             position_in_meters(source_display_range.maximum, plot_position_unit_index_)};
@@ -1451,7 +1361,7 @@ void LightGui::render_plot_range_dialog()
                     continue;
                 }
                 applied = component.set_time_series_position_range(
-                    static_cast<PositionComponent>(index), source_range)
+                              static_cast<PositionComponent>(index), source_range)
                     && applied;
                 plot_position_minimum_[index] = source_display_range.minimum;
                 plot_position_maximum_[index] = source_display_range.maximum;
@@ -1459,8 +1369,7 @@ void LightGui::render_plot_range_dialog()
                 plot_position_maximum_backup_[index] = source_display_range.maximum;
             }
             if (!applied) {
-                notify(NotificationLevel::Warning,
-                    "Could not copy the time-series position range");
+                notify(NotificationLevel::Warning, "Could not copy the time-series position range");
             }
             plot_range_copy_source_ = -1;
             plot_range_copy_targets_.fill(false);
@@ -1489,8 +1398,7 @@ void LightGui::render(SDL_Window* window)
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::Begin("plotcore light", nullptr,
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove
-            | ImGuiWindowFlags_NoSavedSettings);
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
     render_toolbar(window);
     ImGui::Separator();
 
@@ -1504,8 +1412,8 @@ void LightGui::render(SDL_Window* window)
     render_summary();
     ImGui::EndGroup();
 
-    if (sidebar_expanded_ && ImGui::IsMouseClicked(ImGuiMouseButton_Left)
-        && !rail_hovered && !sidebar_hovered) {
+    if (sidebar_expanded_ && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !rail_hovered
+        && !sidebar_hovered) {
         sidebar_expanded_ = false;
     }
 

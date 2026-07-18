@@ -26,8 +26,8 @@ void check(bool condition, std::string_view description)
     return std::abs(actual - expected) <= tolerance;
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns,
-    plotcore::Enu enu, double height_m, plotcore::Ecef ecef,
+[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns, plotcore::Enu enu,
+    double height_m, plotcore::Ecef ecef,
     plotcore::SolutionQuality quality = plotcore::SolutionQuality::Fixed)
 {
     return plotcore::NormalizedSample{
@@ -62,12 +62,11 @@ void check(bool condition, std::string_view description)
 {
     using namespace plotcore;
     return {
-        sample_at(5, Enu{4.0, 8.0, 12.0}, 15.0, Ecef{103.0, 204.0, 312.0},
-            SolutionQuality::Float),
-        sample_at(15, Enu{13.0, 24.0, 35.0}, 18.0, Ecef{113.0, 214.0, 322.0},
-            SolutionQuality::Dgps),
-        sample_at(25, Enu{15.0, 26.0, 37.0}, 22.0, Ecef{116.0, 218.0, 334.0},
-            SolutionQuality::Single),
+        sample_at(5, Enu{4.0, 8.0, 12.0}, 15.0, Ecef{103.0, 204.0, 312.0}, SolutionQuality::Float),
+        sample_at(
+            15, Enu{13.0, 24.0, 35.0}, 18.0, Ecef{113.0, 214.0, 322.0}, SolutionQuality::Dgps),
+        sample_at(
+            25, Enu{15.0, 26.0, 37.0}, 22.0, Ecef{116.0, 218.0, 334.0}, SolutionQuality::Single),
     };
 }
 
@@ -76,10 +75,9 @@ void test_relative_components()
     using namespace plotcore;
     const std::vector references = reference_samples();
     const std::vector comparisons = comparison_samples();
-    const std::optional<std::vector<RelativeSample>> relative = make_relative_samples(
-        references, SampleRangeIndex{0, references.size()},
-        comparisons, SampleRangeIndex{0, comparisons.size()},
-        ReferenceMatchConfiguration{false, 0});
+    const std::optional<std::vector<RelativeSample>> relative =
+        make_relative_samples(references, SampleRangeIndex{0, references.size()}, comparisons,
+            SampleRangeIndex{0, comparisons.size()}, ReferenceMatchConfiguration{false, 0});
 
     check(relative.has_value() && relative->size() == 3,
         "relative samples are generated for every matched comparison");
@@ -88,31 +86,27 @@ void test_relative_components()
     }
     const RelativeSample& first = relative->front();
     check(first.time == GpsTime{5}, "relative sample uses comparison time");
-    check(near(first.delta_enu.east_m, 3.0)
-            && near(first.delta_enu.north_m, 6.0)
+    check(near(first.delta_enu.east_m, 3.0) && near(first.delta_enu.north_m, 6.0)
             && near(first.delta_enu.up_m, 9.0),
         "relative ENU components subtract the matched reference");
     check(near(first.delta_ellipsoidal_height_m, 5.0),
         "relative ellipsoidal height is independent of ENU Up");
     check(near(first.reference_relative_distance_3d_m, 13.0),
         "reference-relative distance is the ECEF Euclidean norm");
-    check(first.quality == SolutionQuality::Float,
-        "relative sample retains comparison quality");
+    check(first.quality == SolutionQuality::Float, "relative sample retains comparison quality");
     check(first.comparison_sample_index == 0 && first.reference_sample_index == 0
             && first.reference_time_difference_ns == 5,
         "relative sample retains match source indices and time difference");
 
     const RelativeSample& second = (*relative)[1];
-    check(second.reference_sample_index == 1
-            && near(second.delta_ellipsoidal_height_m, -2.0),
+    check(second.reference_sample_index == 1 && near(second.delta_ellipsoidal_height_m, -2.0),
         "later comparison uses the newest non-future reference");
     check((*relative)[2].reference_sample_index == 1,
         "disabled tolerance continues using the final reference sample");
 
-    const std::optional<std::vector<RelativeSample>> limited = make_relative_samples(
-        references, SampleRangeIndex{0, references.size()},
-        comparisons, SampleRangeIndex{0, comparisons.size()},
-        ReferenceMatchConfiguration{true, 4});
+    const std::optional<std::vector<RelativeSample>> limited =
+        make_relative_samples(references, SampleRangeIndex{0, references.size()}, comparisons,
+            SampleRangeIndex{0, comparisons.size()}, ReferenceMatchConfiguration{true, 4});
     check(limited.has_value() && limited->empty(),
         "relative generation applies enabled reference tolerance");
 }
@@ -123,10 +117,9 @@ void test_invalid_relative_values()
     std::vector references = reference_samples();
     std::vector comparisons = comparison_samples();
     comparisons[0].ecef.x_m = std::numeric_limits<double>::infinity();
-    check(!make_relative_samples(references, SampleRangeIndex{0, references.size()},
-               comparisons, SampleRangeIndex{0, comparisons.size()},
-               ReferenceMatchConfiguration{false, 0})
-               .has_value(),
+    check(!make_relative_samples(references, SampleRangeIndex{0, references.size()}, comparisons,
+              SampleRangeIndex{0, comparisons.size()}, ReferenceMatchConfiguration{false, 0})
+              .has_value(),
         "non-finite relative component input is rejected");
 }
 
@@ -136,13 +129,13 @@ void test_relative_cache_dependencies()
     LoadedFiles files;
     files.push_back(file_with_samples("reference.pos", reference_samples()));
     files.push_back(file_with_samples("comparison.pos", comparison_samples()));
-    files.push_back(file_with_samples("third.pos", {
-        sample_at(5, Enu{-4.0, -8.0, -12.0}, 5.0, Ecef{97.0, 196.0, 288.0}),
-    }));
+    files.push_back(file_with_samples("third.pos",
+        {
+            sample_at(5, Enu{-4.0, -8.0, -12.0}, 5.0, Ecef{97.0, 196.0, 288.0}),
+        }));
 
     CommonTimeRangeIndex time_index;
-    check(rebuild_common_time_range_index(
-              files, TimeRange{GpsTime{0}, GpsTime{30}}, time_index),
+    check(rebuild_common_time_range_index(files, TimeRange{GpsTime{0}, GpsTime{30}}, time_index),
         "relative cache test builds common time indexes");
     EnuCache enu_cache{
         .reference = make_enu_reference(Wgs84Llh{0.0, 0.0, 0.0}),
@@ -175,8 +168,7 @@ void test_relative_cache_dependencies()
             == RelativeCacheUpdateStatus::Updated,
         "tolerance setting change invalidates relative cache");
     comparison_slot = relative_samples_at_slot(cache, 2);
-    check(cache.revision == 2 && comparison_slot != nullptr
-            && comparison_slot->size() == 2,
+    check(cache.revision == 2 && comparison_slot != nullptr && comparison_slot->size() == 2,
         "tolerance rebuild removes comparison beyond maximum time difference");
 
     files[1].samples[0].enu.east_m += 10.0;
@@ -211,12 +203,13 @@ void test_slot_order_invalidation()
     LoadedFiles files;
     files.push_back(file_with_samples("reference.pos", reference_samples()));
     files.push_back(file_with_samples("comparison.pos", comparison_samples()));
-    files.push_back(file_with_samples("third.pos", {
-        sample_at(5, Enu{-4.0, -8.0, -12.0}, 5.0, Ecef{97.0, 196.0, 288.0}),
-    }));
+    files.push_back(file_with_samples("third.pos",
+        {
+            sample_at(5, Enu{-4.0, -8.0, -12.0}, 5.0, Ecef{97.0, 196.0, 288.0}),
+        }));
     CommonTimeRangeIndex time_index;
-    static_cast<void>(rebuild_common_time_range_index(
-        files, TimeRange{GpsTime{0}, GpsTime{30}}, time_index));
+    static_cast<void>(
+        rebuild_common_time_range_index(files, TimeRange{GpsTime{0}, GpsTime{30}}, time_index));
     EnuCache enu_cache{
         .reference = make_enu_reference(Wgs84Llh{0.0, 0.0, 0.0}),
         .revision = 1,
@@ -226,8 +219,7 @@ void test_slot_order_invalidation()
         files, time_index, enu_cache, ReferenceMatchConfiguration{false, 0}, cache));
 
     check(move_slot(files, 3, 2), "comparison slot order changes");
-    check(rebuild_common_time_range_index(
-              files, TimeRange{GpsTime{0}, GpsTime{30}}, time_index),
+    check(rebuild_common_time_range_index(files, TimeRange{GpsTime{0}, GpsTime{30}}, time_index),
         "slot order change rebuilds common time index revision");
     check(rebuild_relative_cache(
               files, time_index, enu_cache, ReferenceMatchConfiguration{false, 0}, cache)

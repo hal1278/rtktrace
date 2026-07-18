@@ -45,16 +45,13 @@ enum class RelativeCacheUpdateStatus : std::uint8_t {
 };
 
 [[nodiscard]] std::optional<std::vector<RelativeSample>> make_relative_samples(
-    std::span<const NormalizedSample> reference_samples,
-    SampleRangeIndex reference_range,
-    std::span<const NormalizedSample> comparison_samples,
-    SampleRangeIndex comparison_range,
+    std::span<const NormalizedSample> reference_samples, SampleRangeIndex reference_range,
+    std::span<const NormalizedSample> comparison_samples, SampleRangeIndex comparison_range,
     ReferenceMatchConfiguration configuration);
 
-[[nodiscard]] RelativeCacheUpdateStatus rebuild_relative_cache(
-    const LoadedFiles& files, const CommonTimeRangeIndex& time_index,
-    const EnuCache& enu_cache, ReferenceMatchConfiguration configuration,
-    RelativeCache& cache);
+[[nodiscard]] RelativeCacheUpdateStatus rebuild_relative_cache(const LoadedFiles& files,
+    const CommonTimeRangeIndex& time_index, const EnuCache& enu_cache,
+    ReferenceMatchConfiguration configuration, RelativeCache& cache);
 
 [[nodiscard]] const std::vector<RelativeSample>* relative_samples_at_slot(
     const RelativeCache& cache, std::size_t slot_number) noexcept;

@@ -1,0 +1,8 @@
+BasedOnStyle: WebKit
+Standard: c++20
+ColumnLimit: 100
+Cpp11BracedListStyle: true
+SpaceBeforeCpp11BracedList: false
+AllowShortFunctionsOnASingleLine: None
+NamespaceIndentation: None
+BreakBeforeBinaryOperators: NonAssignment

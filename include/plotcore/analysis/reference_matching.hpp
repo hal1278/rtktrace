@@ -24,10 +24,8 @@ struct ReferenceMatch {
 };
 
 [[nodiscard]] std::optional<std::vector<ReferenceMatch>> match_reference_epochs(
-    std::span<const NormalizedSample> reference_samples,
-    SampleRangeIndex reference_range,
-    std::span<const NormalizedSample> comparison_samples,
-    SampleRangeIndex comparison_range,
+    std::span<const NormalizedSample> reference_samples, SampleRangeIndex reference_range,
+    std::span<const NormalizedSample> comparison_samples, SampleRangeIndex comparison_range,
     ReferenceMatchConfiguration configuration);
 
 } // namespace plotcore

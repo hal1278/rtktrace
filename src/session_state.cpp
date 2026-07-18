@@ -16,19 +16,14 @@ namespace {
 {
     std::string extension = path.extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(),
-        [](unsigned char character) {
-            return static_cast<char>(std::tolower(character));
-        });
+        [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
     return extension;
 }
 
-[[nodiscard]] bool has_severity(
-    const LoadedFile& file, DiagnosticSeverity severity) noexcept
+[[nodiscard]] bool has_severity(const LoadedFile& file, DiagnosticSeverity severity) noexcept
 {
     return std::any_of(file.diagnostics.begin(), file.diagnostics.end(),
-        [severity](const Diagnostic& diagnostic) {
-            return diagnostic.severity == severity;
-        });
+        [severity](const Diagnostic& diagnostic) { return diagnostic.severity == severity; });
 }
 
 [[nodiscard]] Diagnostic io_diagnostic(const std::filesystem::path& path)
@@ -75,12 +70,10 @@ FileLoadResult PlotSessionState::load_file(const std::filesystem::path& path,
         return FileLoadResult{FileLoadStatus::IoError, path, {std::move(diagnostic)}};
     }
 
-    LoadedFile file = *format == InputFormat::Pos
-        ? parse_pos(input, path)
-        : parse_nmea(input, path, nmea_options);
+    LoadedFile file = *format == InputFormat::Pos ? parse_pos(input, path)
+                                                  : parse_nmea(input, path, nmea_options);
     if (has_severity(file, DiagnosticSeverity::RequiresDecision)) {
-        return FileLoadResult{
-            FileLoadStatus::NeedsNmeaDecision, path, file.diagnostics};
+        return FileLoadResult{FileLoadStatus::NeedsNmeaDecision, path, file.diagnostics};
     }
     if (file.samples.empty() || has_severity(file, DiagnosticSeverity::Fatal)) {
         record_diagnostics(file);
@@ -120,8 +113,7 @@ bool PlotSessionState::add_loaded_file(LoadedFile file)
     return true;
 }
 
-bool PlotSessionState::set_file_visible(
-    std::size_t slot_number, bool visible)
+bool PlotSessionState::set_file_visible(std::size_t slot_number, bool visible)
 {
     LoadedFile* file = file_at_slot(files_, slot_number);
     if (file == nullptr) {
@@ -136,8 +128,7 @@ bool PlotSessionState::set_file_visible(
     return true;
 }
 
-bool PlotSessionState::move_file(
-    std::size_t from_slot_number, std::size_t to_slot_number)
+bool PlotSessionState::move_file(std::size_t from_slot_number, std::size_t to_slot_number)
 {
     if (!move_slot(files_, from_slot_number, to_slot_number)) {
         return false;
@@ -153,8 +144,7 @@ bool PlotSessionState::erase_file(std::size_t slot_number)
     return rebuild_processing_state();
 }
 
-bool PlotSessionState::set_file_override_hz(
-    std::size_t slot_number, std::optional<double> hz)
+bool PlotSessionState::set_file_override_hz(std::size_t slot_number, std::optional<double> hz)
 {
     LoadedFile* file = file_at_slot(files_, slot_number);
     if (file == nullptr) {
@@ -170,8 +160,7 @@ bool PlotSessionState::set_file_override_hz(
 bool PlotSessionState::set_common_time_range(CommonTimeRange range)
 {
     const std::optional<TimeRange> union_range = union_time_range(files_);
-    if (!union_range.has_value()
-        || !effective_time_range(range, *union_range).has_value()) {
+    if (!union_range.has_value() || !effective_time_range(range, *union_range).has_value()) {
         return false;
     }
     const CommonTimeRange previous = configured_time_range_;
@@ -193,13 +182,11 @@ bool PlotSessionState::use_intersection_time_range()
     return set_common_time_range(range);
 }
 
-bool PlotSessionState::set_enu_reference_configuration(
-    EnuReferenceConfiguration configuration)
+bool PlotSessionState::set_enu_reference_configuration(EnuReferenceConfiguration configuration)
 {
     if (!files_.empty()
         && (!effective_range_.has_value()
-            || !determine_enu_reference(
-                    files_, *effective_range_, configuration).has_value())) {
+            || !determine_enu_reference(files_, *effective_range_, configuration).has_value())) {
         return false;
     }
     const EnuReferenceConfiguration previous = enu_configuration_;
@@ -212,8 +199,7 @@ bool PlotSessionState::set_enu_reference_configuration(
     return true;
 }
 
-bool PlotSessionState::set_reference_match_configuration(
-    ReferenceMatchConfiguration configuration)
+bool PlotSessionState::set_reference_match_configuration(ReferenceMatchConfiguration configuration)
 {
     if (configuration.maximum_time_difference_ns < 0) {
         return false;
@@ -313,12 +299,10 @@ bool PlotSessionState::rebuild_processing_state()
     }
     const std::optional<TimeRange> range =
         effective_time_range(configured_time_range_, *union_range);
-    if (!range.has_value()
-        || !rebuild_common_time_range_index(files_, *range, time_index_)) {
+    if (!range.has_value() || !rebuild_common_time_range_index(files_, *range, time_index_)) {
         return false;
     }
-    static_cast<void>(rebuild_enu_cache(
-        files_, *range, enu_configuration_, enu_cache_));
+    static_cast<void>(rebuild_enu_cache(files_, *range, enu_configuration_, enu_cache_));
     static_cast<void>(rebuild_relative_cache(
         files_, time_index_, enu_cache_, match_configuration_, relative_cache_));
     effective_range_ = range;
@@ -330,8 +314,8 @@ bool PlotSessionState::rebuild_processing_state()
 
 void PlotSessionState::record_diagnostics(const LoadedFile& file)
 {
-    diagnostic_history_.insert(diagnostic_history_.end(),
-        file.diagnostics.begin(), file.diagnostics.end());
+    diagnostic_history_.insert(
+        diagnostic_history_.end(), file.diagnostics.begin(), file.diagnostics.end());
 }
 
 } // namespace plotcore

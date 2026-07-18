@@ -63,9 +63,8 @@ bool FullApplicationState::set_plot_title(PlotWindowId id, std::string title)
 
 bool FullApplicationState::erase_plot(PlotWindowId id) noexcept
 {
-    const auto plot = std::find_if(plots_.begin(), plots_.end(), [id](const auto& item) {
-        return item.id == id;
-    });
+    const auto plot = std::find_if(
+        plots_.begin(), plots_.end(), [id](const auto& item) { return item.id == id; });
     if (plot == plots_.end()) {
         return false;
     }
@@ -75,17 +74,15 @@ bool FullApplicationState::erase_plot(PlotWindowId id) noexcept
 
 PlotInstanceState* FullApplicationState::find_plot(PlotWindowId id) noexcept
 {
-    const auto plot = std::find_if(plots_.begin(), plots_.end(), [id](const auto& item) {
-        return item.id == id;
-    });
+    const auto plot = std::find_if(
+        plots_.begin(), plots_.end(), [id](const auto& item) { return item.id == id; });
     return plot == plots_.end() ? nullptr : &*plot;
 }
 
 const PlotInstanceState* FullApplicationState::find_plot(PlotWindowId id) const noexcept
 {
-    const auto plot = std::find_if(plots_.begin(), plots_.end(), [id](const auto& item) {
-        return item.id == id;
-    });
+    const auto plot = std::find_if(
+        plots_.begin(), plots_.end(), [id](const auto& item) { return item.id == id; });
     return plot == plots_.end() ? nullptr : &*plot;
 }
 
@@ -94,8 +91,7 @@ const std::vector<PlotInstanceState>& FullApplicationState::plots() const noexce
     return plots_;
 }
 
-bool FullApplicationState::set_quality_visible(
-    SolutionQuality quality, bool visible) noexcept
+bool FullApplicationState::set_quality_visible(SolutionQuality quality, bool visible) noexcept
 {
     const std::size_t index = static_cast<std::size_t>(quality);
     if (index >= quality_filter_.visible.size()) {

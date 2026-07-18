@@ -36,8 +36,7 @@ constexpr std::array leap_second_transitions{
     LeapSecondTransition{2017y / std::chrono::January / 1, 18},
 };
 
-constexpr std::chrono::year_month_day gps_epoch_date =
-    1980y / std::chrono::January / 6;
+constexpr std::chrono::year_month_day gps_epoch_date = 1980y / std::chrono::January / 6;
 constexpr std::int64_t seconds_per_day = 86'400;
 constexpr std::int64_t nanoseconds_per_second = 1'000'000'000;
 
@@ -70,9 +69,7 @@ std::optional<std::int64_t> round_fractional_seconds_to_nanoseconds(
     std::string_view fractional_digits) noexcept
 {
     std::int64_t nanoseconds = 0;
-    const std::size_t retained_digits = fractional_digits.size() < 9
-        ? fractional_digits.size()
-        : 9;
+    const std::size_t retained_digits = fractional_digits.size() < 9 ? fractional_digits.size() : 9;
     for (std::size_t index = 0; index < fractional_digits.size(); ++index) {
         const char digit = fractional_digits[index];
         if (digit < '0' || digit > '9') {
@@ -117,8 +114,8 @@ std::optional<GpsTime> utc_civil_to_gps_time(UtcCivilTime utc) noexcept
 
     const std::int64_t days_since_gps_epoch = (day_point - gps_epoch).count();
     const std::int64_t civil_seconds = days_since_gps_epoch * seconds_per_day
-        + static_cast<std::int64_t>(utc.hour) * 3'600
-        + static_cast<std::int64_t>(utc.minute) * 60 + static_cast<std::int64_t>(utc.second);
+        + static_cast<std::int64_t>(utc.hour) * 3'600 + static_cast<std::int64_t>(utc.minute) * 60
+        + static_cast<std::int64_t>(utc.second);
     const std::int64_t gps_seconds = civil_seconds + *offset_seconds;
     const std::int64_t maximum_seconds =
         (std::numeric_limits<std::int64_t>::max() - utc.nanosecond) / nanoseconds_per_second;
@@ -147,8 +144,8 @@ std::optional<GpsTime> gps_civil_to_gps_time(GpsCivilTime gps) noexcept
 
     const std::int64_t days_since_gps_epoch = (day_point - gps_epoch).count();
     const std::int64_t gps_seconds = days_since_gps_epoch * seconds_per_day
-        + static_cast<std::int64_t>(gps.hour) * 3'600
-        + static_cast<std::int64_t>(gps.minute) * 60 + static_cast<std::int64_t>(gps.second);
+        + static_cast<std::int64_t>(gps.hour) * 3'600 + static_cast<std::int64_t>(gps.minute) * 60
+        + static_cast<std::int64_t>(gps.second);
     const std::int64_t maximum_seconds =
         (std::numeric_limits<std::int64_t>::max() - gps.nanosecond) / nanoseconds_per_second;
     if (gps_seconds > maximum_seconds) {

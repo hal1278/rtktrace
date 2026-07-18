@@ -40,12 +40,10 @@ enum class EnuCacheUpdateStatus : std::uint8_t {
     Unavailable,
 };
 
-[[nodiscard]] std::optional<EnuReference> determine_enu_reference(
-    const LoadedFiles& files, TimeRange range,
-    const EnuReferenceConfiguration& configuration) noexcept;
+[[nodiscard]] std::optional<EnuReference> determine_enu_reference(const LoadedFiles& files,
+    TimeRange range, const EnuReferenceConfiguration& configuration) noexcept;
 
-[[nodiscard]] EnuCacheUpdateStatus rebuild_enu_cache(
-    LoadedFiles& files, TimeRange range, const EnuReferenceConfiguration& configuration,
-    EnuCache& cache);
+[[nodiscard]] EnuCacheUpdateStatus rebuild_enu_cache(LoadedFiles& files, TimeRange range,
+    const EnuReferenceConfiguration& configuration, EnuCache& cache);
 
 } // namespace plotcore

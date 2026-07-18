@@ -29,8 +29,8 @@ void test_gps_time()
 {
     using plotcore::GpsTime;
 
-    static_assert(std::is_same_v<
-        decltype(std::declval<GpsTime>().nanoseconds_since_gps_epoch), std::int64_t>);
+    static_assert(std::is_same_v<decltype(std::declval<GpsTime>().nanoseconds_since_gps_epoch),
+        std::int64_t>);
     static_assert(!std::is_convertible_v<std::int64_t, GpsTime>);
 
     constexpr GpsTime earlier{1'000};
@@ -139,8 +139,8 @@ void test_loaded_file()
     check(!file.set_override_hz(0.0), "reject zero override Hz");
     check(!file.set_override_hz(std::numeric_limits<double>::infinity()),
         "reject infinite override Hz");
-    check(!file.set_override_hz(std::numeric_limits<double>::quiet_NaN()),
-        "reject NaN override Hz");
+    check(
+        !file.set_override_hz(std::numeric_limits<double>::quiet_NaN()), "reject NaN override Hz");
     check(file.set_override_hz(10.0), "accept positive finite override Hz");
     check(file.override_hz() == 10.0, "retain override Hz");
     check(file.effective_hz() == 10.0, "override Hz takes precedence");
@@ -153,7 +153,8 @@ void test_loaded_file()
     check(!file.visible, "loaded file visibility changes");
     check(file.source_path.filename() == "survey.pos", "source path retains file name");
     check(file.input_format == InputFormat::Pos, "loaded file input format");
-    check(file.samples.empty() && file.diagnostics.empty(), "loaded file owns sample and diagnostic lists");
+    check(file.samples.empty() && file.diagnostics.empty(),
+        "loaded file owns sample and diagnostic lists");
 }
 
 void test_notification_history()
@@ -174,8 +175,7 @@ void test_notification_history()
         .action = DiagnosticAction::SampleRemoved,
     });
     check(history.entries().size() == 2 && history.has_caution()
-            && history.entries().back().message
-                == "receiver.nmea: line 17: checksum mismatch",
+            && history.entries().back().message == "receiver.nmea: line 17: checksum mismatch",
         "warning diagnostic records location and raises caution");
     history.clear();
     check(history.entries().empty() && !history.has_caution(),
@@ -192,26 +192,37 @@ void test_slots()
     files.emplace_back(std::filesystem::path{"one.pos"}, InputFormat::Pos);
     files.emplace_back(std::filesystem::path{"two.nmea"}, InputFormat::Nmea);
     files.emplace_back(std::filesystem::path{"three.pos"}, InputFormat::Pos);
-    check(file_at_slot(files, 1)->source_path.filename() == "one.pos", "first added file is slot 1");
-    check(file_at_slot(files, 2)->source_path.filename() == "two.nmea", "second added file is slot 2");
-    check(file_at_slot(files, 3)->source_path.filename() == "three.pos", "third added file is slot 3");
-    check(file_at_slot(files, 2)->input_format == InputFormat::Nmea, "NMEA input format is distinct");
+    check(
+        file_at_slot(files, 1)->source_path.filename() == "one.pos", "first added file is slot 1");
+    check(file_at_slot(files, 2)->source_path.filename() == "two.nmea",
+        "second added file is slot 2");
+    check(file_at_slot(files, 3)->source_path.filename() == "three.pos",
+        "third added file is slot 3");
+    check(
+        file_at_slot(files, 2)->input_format == InputFormat::Nmea, "NMEA input format is distinct");
     check(file_at_slot(files, 0) == nullptr, "slot zero is invalid");
 
     check(move_slot(files, 3, 1), "move slot 3 to slot 1");
-    check(file_at_slot(files, 1)->source_path.filename() == "three.pos", "moved file becomes slot 1");
-    check(file_at_slot(files, 2)->source_path.filename() == "one.pos", "intermediate slot remains contiguous");
-    check(file_at_slot(files, 3)->source_path.filename() == "two.nmea", "last slot remains contiguous");
+    check(
+        file_at_slot(files, 1)->source_path.filename() == "three.pos", "moved file becomes slot 1");
+    check(file_at_slot(files, 2)->source_path.filename() == "one.pos",
+        "intermediate slot remains contiguous");
+    check(file_at_slot(files, 3)->source_path.filename() == "two.nmea",
+        "last slot remains contiguous");
     check(reference_file(files) == file_at_slot(files, 1), "slot 1 is the reference file");
 
     check(move_slot(files, 1, 3), "move slot 1 to slot 3");
-    check(file_at_slot(files, 1)->source_path.filename() == "one.pos", "forward move shifts slot 2");
-    check(file_at_slot(files, 3)->source_path.filename() == "three.pos", "forward move reaches last slot");
+    check(
+        file_at_slot(files, 1)->source_path.filename() == "one.pos", "forward move shifts slot 2");
+    check(file_at_slot(files, 3)->source_path.filename() == "three.pos",
+        "forward move reaches last slot");
 
     check(erase_slot(files, 2), "erase middle slot");
     check(files.size() == 2, "slot erase reduces file count");
-    check(file_at_slot(files, 1)->source_path.filename() == "one.pos", "slot 1 remains after erase");
-    check(file_at_slot(files, 2)->source_path.filename() == "three.pos", "later slot shifts forward");
+    check(
+        file_at_slot(files, 1)->source_path.filename() == "one.pos", "slot 1 remains after erase");
+    check(
+        file_at_slot(files, 2)->source_path.filename() == "three.pos", "later slot shifts forward");
     check(file_at_slot(files, 3) == nullptr, "removed final slot number is invalid");
 }
 

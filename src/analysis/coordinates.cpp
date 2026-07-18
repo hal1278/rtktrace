@@ -9,10 +9,8 @@ namespace {
 constexpr double wgs84_semi_major_axis_m = 6'378'137.0;
 constexpr double wgs84_inverse_flattening = 298.257223563;
 constexpr double wgs84_flattening = 1.0 / wgs84_inverse_flattening;
-constexpr double wgs84_eccentricity_squared =
-    wgs84_flattening * (2.0 - wgs84_flattening);
-constexpr double wgs84_semi_minor_axis_m =
-    wgs84_semi_major_axis_m * (1.0 - wgs84_flattening);
+constexpr double wgs84_eccentricity_squared = wgs84_flattening * (2.0 - wgs84_flattening);
+constexpr double wgs84_semi_minor_axis_m = wgs84_semi_major_axis_m * (1.0 - wgs84_flattening);
 constexpr int inverse_max_iterations = 16;
 constexpr double inverse_latitude_tolerance_rad = 1.0e-14;
 
@@ -54,8 +52,8 @@ std::optional<Wgs84Llh> wgs84_ecef_to_llh(Ecef ecef) noexcept
         };
     }
 
-    double latitude_rad = std::atan2(
-        ecef.z_m, distance_from_axis_m * (1.0 - wgs84_eccentricity_squared));
+    double latitude_rad =
+        std::atan2(ecef.z_m, distance_from_axis_m * (1.0 - wgs84_eccentricity_squared));
     bool converged = false;
     for (int iteration = 0; iteration < inverse_max_iterations; ++iteration) {
         const double sin_latitude = std::sin(latitude_rad);
@@ -81,8 +79,7 @@ std::optional<Wgs84Llh> wgs84_ecef_to_llh(Ecef ecef) noexcept
         / std::sqrt(1.0 - wgs84_eccentricity_squared * sin_latitude * sin_latitude);
     const double height_m = std::abs(cos_latitude) >= std::abs(sin_latitude)
         ? distance_from_axis_m / cos_latitude - prime_vertical_radius_m
-        : ecef.z_m / sin_latitude
-            - prime_vertical_radius_m * (1.0 - wgs84_eccentricity_squared);
+        : ecef.z_m / sin_latitude - prime_vertical_radius_m * (1.0 - wgs84_eccentricity_squared);
 
     if (!std::isfinite(height_m)) {
         return std::nullopt;
@@ -101,8 +98,7 @@ std::optional<EnuReference> make_enu_reference(Wgs84Llh llh) noexcept
         return std::nullopt;
     }
     const Ecef origin = wgs84_llh_to_ecef(llh);
-    if (!std::isfinite(origin.x_m) || !std::isfinite(origin.y_m)
-        || !std::isfinite(origin.z_m)) {
+    if (!std::isfinite(origin.x_m) || !std::isfinite(origin.y_m) || !std::isfinite(origin.z_m)) {
         return std::nullopt;
     }
     return EnuReference{origin, llh.latitude_rad, llh.longitude_rad};
@@ -129,10 +125,10 @@ Enu ecef_to_enu(Ecef position, const EnuReference& reference) noexcept
 
     return Enu{
         .east_m = -sin_longitude * delta_x + cos_longitude * delta_y,
-        .north_m = -sin_latitude * cos_longitude * delta_x
-            - sin_latitude * sin_longitude * delta_y + cos_latitude * delta_z,
-        .up_m = cos_latitude * cos_longitude * delta_x
-            + cos_latitude * sin_longitude * delta_y + sin_latitude * delta_z,
+        .north_m = -sin_latitude * cos_longitude * delta_x - sin_latitude * sin_longitude * delta_y
+            + cos_latitude * delta_z,
+        .up_m = cos_latitude * cos_longitude * delta_x + cos_latitude * sin_longitude * delta_y
+            + sin_latitude * delta_z,
     };
 }
 

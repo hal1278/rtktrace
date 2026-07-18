@@ -4,10 +4,10 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 
-#include "imgui.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_sdl3.h"
 #include "gui.hpp"
+#include "imgui.h"
 #include "implot.h"
 
 int main(int argc, char** argv)
@@ -26,19 +26,17 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const SDL_WindowFlags window_flags = static_cast<SDL_WindowFlags>(
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
+    const SDL_WindowFlags window_flags =
+        static_cast<SDL_WindowFlags>(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
     SDL_Window* window = SDL_CreateWindow("plotcore light", 1280, 720, window_flags);
     if (window == nullptr) {
         std::fprintf(stderr, "SDL window creation failed: %s\n", SDL_GetError());
         SDL_Quit();
         return 1;
     }
-    if (!SDL_SetWindowMinimumSize(window,
-            plotcore::light_minimum_window_width,
-            plotcore::light_minimum_window_height)) {
-        std::fprintf(stderr, "Window minimum size configuration failed: %s\n",
-            SDL_GetError());
+    if (!SDL_SetWindowMinimumSize(
+            window, plotcore::light_minimum_window_width, plotcore::light_minimum_window_height)) {
+        std::fprintf(stderr, "Window minimum size configuration failed: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_Quit();
         return 1;

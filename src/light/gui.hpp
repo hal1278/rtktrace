@@ -11,9 +11,9 @@
 
 #include <SDL3/SDL.h>
 
-#include "plotcore/session_state.hpp"
 #include "plotcore/model/notification.hpp"
 #include "plotcore/plot/implot_component.hpp"
+#include "plotcore/session_state.hpp"
 
 namespace plotcore {
 

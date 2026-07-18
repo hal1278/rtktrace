@@ -1,0 +1,7 @@
+CompileFlags:
+  CompilationDatabase: ./build/linux/
+  # BuiltinHeaders: QueryDriver
+Index:
+  Background: Build
+Completion:
+  HeaderInsertion: IWYU

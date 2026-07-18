@@ -13,8 +13,7 @@ namespace {
 [[nodiscard]] bool is_time_ordered(
     std::span<const NormalizedSample> samples, SampleRangeIndex range) noexcept
 {
-    for (std::size_t index = range.begin + (range.empty() ? 0 : 1);
-         index < range.end; ++index) {
+    for (std::size_t index = range.begin + (range.empty() ? 0 : 1); index < range.end; ++index) {
         if (samples[index].time < samples[index - 1].time) {
             return false;
         }
@@ -46,10 +45,8 @@ namespace {
 } // namespace
 
 std::optional<std::vector<ReferenceMatch>> match_reference_epochs(
-    std::span<const NormalizedSample> reference_samples,
-    SampleRangeIndex reference_range,
-    std::span<const NormalizedSample> comparison_samples,
-    SampleRangeIndex comparison_range,
+    std::span<const NormalizedSample> reference_samples, SampleRangeIndex reference_range,
+    std::span<const NormalizedSample> comparison_samples, SampleRangeIndex comparison_range,
     ReferenceMatchConfiguration configuration)
 {
     if (configuration.maximum_time_difference_ns < 0
@@ -65,7 +62,7 @@ std::optional<std::vector<ReferenceMatch>> match_reference_epochs(
     std::size_t next_reference = reference_range.begin;
     std::optional<std::size_t> selected_reference;
     for (std::size_t comparison_index = comparison_range.begin;
-         comparison_index < comparison_range.end; ++comparison_index) {
+        comparison_index < comparison_range.end; ++comparison_index) {
         const GpsTime comparison_time = comparison_samples[comparison_index].time;
         while (next_reference < reference_range.end
             && reference_samples[next_reference].time <= comparison_time) {
@@ -75,8 +72,8 @@ std::optional<std::vector<ReferenceMatch>> match_reference_epochs(
         if (!selected_reference.has_value()) {
             continue;
         }
-        const std::optional<std::int64_t> difference = nonnegative_difference(
-            comparison_time, reference_samples[*selected_reference].time);
+        const std::optional<std::int64_t> difference =
+            nonnegative_difference(comparison_time, reference_samples[*selected_reference].time);
         if (!difference.has_value()) {
             return std::nullopt;
         }

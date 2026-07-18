@@ -72,8 +72,7 @@ void test_common_time_range_cache()
     files.push_back(file_at_times("empty.pos", {}));
 
     CommonTimeRangeIndex index;
-    check(rebuild_common_time_range_index(
-              files, TimeRange{GpsTime{10}, GpsTime{20}}, index),
+    check(rebuild_common_time_range_index(files, TimeRange{GpsTime{10}, GpsTime{20}}, index),
         "common time range index cache builds for every slot");
     check(index.revision == 1 && index.range == TimeRange{GpsTime{10}, GpsTime{20}},
         "successful index build stores range and advances revision");
@@ -88,8 +87,7 @@ void test_common_time_range_cache()
     check(range_at_slot(index, 0) == nullptr && range_at_slot(index, 4) == nullptr,
         "invalid slot has no range index");
 
-    check(!rebuild_common_time_range_index(
-              files, TimeRange{GpsTime{20}, GpsTime{10}}, index),
+    check(!rebuild_common_time_range_index(files, TimeRange{GpsTime{20}, GpsTime{10}}, index),
         "invalid range does not rebuild the index cache");
     check(index.revision == 1 && range_at_slot(index, 1)->begin == 1,
         "failed index rebuild preserves the previous cache and revision");
@@ -100,13 +98,18 @@ void test_reference_matching_without_tolerance()
     using namespace plotcore;
     const std::vector references{sample_at(10), sample_at(20), sample_at(30)};
     const std::vector comparisons{
-        sample_at(5), sample_at(10), sample_at(15), sample_at(20),
-        sample_at(25), sample_at(30), sample_at(35), sample_at(40),
+        sample_at(5),
+        sample_at(10),
+        sample_at(15),
+        sample_at(20),
+        sample_at(25),
+        sample_at(30),
+        sample_at(35),
+        sample_at(40),
     };
-    const std::optional<std::vector<ReferenceMatch>> matches = match_reference_epochs(
-        references, SampleRangeIndex{0, references.size()},
-        comparisons, SampleRangeIndex{0, comparisons.size()},
-        ReferenceMatchConfiguration{false, 0});
+    const std::optional<std::vector<ReferenceMatch>> matches =
+        match_reference_epochs(references, SampleRangeIndex{0, references.size()}, comparisons,
+            SampleRangeIndex{0, comparisons.size()}, ReferenceMatchConfiguration{false, 0});
 
     check(matches.has_value() && matches->size() == 7,
         "comparison before first reference is omitted without using a future epoch");
@@ -128,13 +131,17 @@ void test_reference_range_and_tolerance()
     using namespace plotcore;
     const std::vector references{sample_at(10), sample_at(20), sample_at(20), sample_at(30)};
     const std::vector comparisons{
-        sample_at(15), sample_at(20), sample_at(25), sample_at(30), sample_at(35), sample_at(40),
+        sample_at(15),
+        sample_at(20),
+        sample_at(25),
+        sample_at(30),
+        sample_at(35),
+        sample_at(40),
     };
 
-    const std::optional<std::vector<ReferenceMatch>> ranged = match_reference_epochs(
-        references, SampleRangeIndex{1, references.size()},
-        comparisons, SampleRangeIndex{0, comparisons.size()},
-        ReferenceMatchConfiguration{false, 0});
+    const std::optional<std::vector<ReferenceMatch>> ranged =
+        match_reference_epochs(references, SampleRangeIndex{1, references.size()}, comparisons,
+            SampleRangeIndex{0, comparisons.size()}, ReferenceMatchConfiguration{false, 0});
     check(ranged.has_value() && ranged->size() == 5 && (*ranged)[0].comparison_index == 1,
         "reference sample outside common range is not used for an earlier comparison");
     if (ranged.has_value() && !ranged->empty()) {
@@ -142,15 +149,13 @@ void test_reference_range_and_tolerance()
             "latest duplicate reference at the same epoch is selected");
     }
 
-    const std::optional<std::vector<ReferenceMatch>> limited = match_reference_epochs(
-        references, SampleRangeIndex{0, references.size()},
-        comparisons, SampleRangeIndex{0, comparisons.size()},
-        ReferenceMatchConfiguration{true, 5});
+    const std::optional<std::vector<ReferenceMatch>> limited =
+        match_reference_epochs(references, SampleRangeIndex{0, references.size()}, comparisons,
+            SampleRangeIndex{0, comparisons.size()}, ReferenceMatchConfiguration{true, 5});
     check(limited.has_value() && limited->size() == 5,
         "enabled tolerance excludes only differences greater than the maximum");
     if (limited.has_value() && !limited->empty()) {
-        check(limited->back().comparison_index == 4
-                && limited->back().time_difference_ns == 5,
+        check(limited->back().comparison_index == 4 && limited->back().time_difference_ns == 5,
             "maximum tolerance boundary remains inclusive");
     }
 }
@@ -160,27 +165,24 @@ void test_invalid_matching_inputs()
     using namespace plotcore;
     const std::vector ordered{sample_at(0), sample_at(10)};
     const std::vector unsorted{sample_at(10), sample_at(0)};
-    check(!match_reference_epochs(ordered, SampleRangeIndex{0, 3},
-               ordered, SampleRangeIndex{0, 2}, ReferenceMatchConfiguration{false, 0})
-               .has_value(),
+    check(!match_reference_epochs(ordered, SampleRangeIndex{0, 3}, ordered, SampleRangeIndex{0, 2},
+              ReferenceMatchConfiguration{false, 0})
+              .has_value(),
         "out-of-bounds sample range is rejected");
-    check(!match_reference_epochs(unsorted, SampleRangeIndex{0, 2},
-               ordered, SampleRangeIndex{0, 2}, ReferenceMatchConfiguration{false, 0})
-               .has_value(),
+    check(!match_reference_epochs(unsorted, SampleRangeIndex{0, 2}, ordered, SampleRangeIndex{0, 2},
+              ReferenceMatchConfiguration{false, 0})
+              .has_value(),
         "time-reversed reference range is rejected");
-    check(!match_reference_epochs(ordered, SampleRangeIndex{0, 2},
-               ordered, SampleRangeIndex{0, 2}, ReferenceMatchConfiguration{true, -1})
-               .has_value(),
+    check(!match_reference_epochs(ordered, SampleRangeIndex{0, 2}, ordered, SampleRangeIndex{0, 2},
+              ReferenceMatchConfiguration{true, -1})
+              .has_value(),
         "negative reference tolerance is rejected");
 
-    const std::vector extreme_reference{
-        sample_at(std::numeric_limits<std::int64_t>::min())};
-    const std::vector extreme_comparison{
-        sample_at(std::numeric_limits<std::int64_t>::max())};
-    check(!match_reference_epochs(extreme_reference, SampleRangeIndex{0, 1},
-               extreme_comparison, SampleRangeIndex{0, 1},
-               ReferenceMatchConfiguration{false, 0})
-               .has_value(),
+    const std::vector extreme_reference{sample_at(std::numeric_limits<std::int64_t>::min())};
+    const std::vector extreme_comparison{sample_at(std::numeric_limits<std::int64_t>::max())};
+    check(!match_reference_epochs(extreme_reference, SampleRangeIndex{0, 1}, extreme_comparison,
+              SampleRangeIndex{0, 1}, ReferenceMatchConfiguration{false, 0})
+              .has_value(),
         "unrepresentable signed time difference is rejected without overflow");
 }
 

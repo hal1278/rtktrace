@@ -12,9 +12,8 @@ struct Bounds {
     double maximum;
 };
 
-template<typename Value>
-void for_each_visible_sample(const PlotDataView& data, const QualityFilter& filter,
-    Value&& value)
+template <typename Value>
+void for_each_visible_sample(const PlotDataView& data, const QualityFilter& filter, Value&& value)
 {
     for (const PlotSeriesView& series : data.series) {
         if (!series.file_visible) {
@@ -63,8 +62,8 @@ void include_value(std::optional<Bounds>& bounds, double value) noexcept
 [[nodiscard]] std::optional<NumericRange> centered_numeric_range(
     double minimum, double maximum, double target_length) noexcept
 {
-    const long double center = static_cast<long double>(minimum)
-        + (static_cast<long double>(maximum) - minimum) / 2.0L;
+    const long double center =
+        static_cast<long double>(minimum) + (static_cast<long double>(maximum) - minimum) / 2.0L;
     const long double half = static_cast<long double>(target_length) / 2.0L;
     const NumericRange result{
         static_cast<double>(center - half),
@@ -77,8 +76,8 @@ void include_value(std::optional<Bounds>& bounds, double value) noexcept
     return result;
 }
 
-[[nodiscard]] TimeRange centered_time_range(GpsTime minimum, GpsTime maximum,
-    std::int64_t target_length_ns) noexcept
+[[nodiscard]] TimeRange centered_time_range(
+    GpsTime minimum, GpsTime maximum, std::int64_t target_length_ns) noexcept
 {
     const long double center = static_cast<long double>(minimum.nanoseconds_since_gps_epoch)
         + (static_cast<long double>(maximum.nanoseconds_since_gps_epoch)
@@ -100,8 +99,8 @@ void include_value(std::optional<Bounds>& bounds, double value) noexcept
 std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
     const PlotDataView& data, const QualityFilter& filter, PlotAreaSize area) noexcept
 {
-    if (!std::isfinite(area.width_px) || !std::isfinite(area.height_px)
-        || area.width_px <= 0.0 || area.height_px <= 0.0) {
+    if (!std::isfinite(area.width_px) || !std::isfinite(area.height_px) || area.width_px <= 0.0
+        || area.height_px <= 0.0) {
         return std::nullopt;
     }
     std::optional<Bounds> east;
@@ -125,18 +124,17 @@ std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
         meters_per_pixel = 1.0 / shorter_pixels;
     } else {
         meters_per_pixel = std::max(
-            east_data_range / (0.9 * area.width_px),
-            north_data_range / (0.9 * area.height_px));
-        meters_per_pixel = std::max(
-            meters_per_pixel, minimum_position_axis_range_m / shorter_pixels);
+            east_data_range / (0.9 * area.width_px), north_data_range / (0.9 * area.height_px));
+        meters_per_pixel =
+            std::max(meters_per_pixel, minimum_position_axis_range_m / shorter_pixels);
     }
     if (!std::isfinite(meters_per_pixel) || meters_per_pixel <= 0.0) {
         return std::nullopt;
     }
-    const std::optional<NumericRange> east_range = centered_numeric_range(
-        east->minimum, east->maximum, area.width_px * meters_per_pixel);
-    const std::optional<NumericRange> north_range = centered_numeric_range(
-        north->minimum, north->maximum, area.height_px * meters_per_pixel);
+    const std::optional<NumericRange> east_range =
+        centered_numeric_range(east->minimum, east->maximum, area.width_px * meters_per_pixel);
+    const std::optional<NumericRange> north_range =
+        centered_numeric_range(north->minimum, north->maximum, area.height_px * meters_per_pixel);
     if (!east_range.has_value() || !north_range.has_value()) {
         return std::nullopt;
     }
@@ -147,8 +145,8 @@ std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
     };
 }
 
-std::optional<NumericRange> auto_fit_position_component(const PlotDataView& data,
-    const QualityFilter& filter, PositionComponent component) noexcept
+std::optional<NumericRange> auto_fit_position_component(
+    const PlotDataView& data, const QualityFilter& filter, PositionComponent component) noexcept
 {
     std::optional<Bounds> bounds;
     for_each_visible_sample(data, filter, [&](const PlotSampleValue& sample) {
@@ -180,8 +178,7 @@ std::optional<TimeRange> auto_fit_time_axis(
     if (!minimum.has_value() || !maximum.has_value()) {
         return std::nullopt;
     }
-    const long double length =
-        static_cast<long double>(maximum->nanoseconds_since_gps_epoch)
+    const long double length = static_cast<long double>(maximum->nanoseconds_since_gps_epoch)
         - minimum->nanoseconds_since_gps_epoch;
     if (length == 0.0L) {
         return centered_time_range(*minimum, *maximum, degenerate_time_axis_range_ns);

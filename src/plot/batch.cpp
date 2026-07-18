@@ -10,8 +10,7 @@ namespace plotcore {
 namespace {
 
 constexpr std::int64_t nanoseconds_per_second = 1'000'000'000;
-constexpr std::int64_t nanoseconds_per_gps_week =
-    7 * 24 * 60 * 60 * nanoseconds_per_second;
+constexpr std::int64_t nanoseconds_per_gps_week = 7 * 24 * 60 * 60 * nanoseconds_per_second;
 
 [[nodiscard]] bool includes_lines(DrawMode mode) noexcept
 {
@@ -73,9 +72,8 @@ constexpr std::int64_t nanoseconds_per_gps_week =
 using ProjectSample = std::function<std::optional<PlotPoint>(const PlotSampleValue&)>;
 
 [[nodiscard]] PlotSlotBatch build_slot_batch(const PlotSeriesView& series,
-    const QualityFilter& filter, const PlotBatchOptions& options,
-    const ProjectSample& project, std::size_t& visible_sample_count,
-    std::optional<PlotBounds>& bounds)
+    const QualityFilter& filter, const PlotBatchOptions& options, const ProjectSample& project,
+    std::size_t& visible_sample_count, std::optional<PlotBounds>& bounds)
 {
     PlotSlotBatch result{series.slot_number, {}, {}};
     const auto qualities = quality_order_back_to_front(options.quality_order);
@@ -98,12 +96,10 @@ using ProjectSample = std::function<std::optional<PlotPoint>(const PlotSampleVal
 
     for (std::size_t index = 0; index < plot_series_size(series); ++index) {
         const std::optional<PlotSampleValue> sample = plot_sample_at(series, index);
-        const bool visible = sample.has_value()
-            && quality_is_visible(filter, sample->quality);
+        const bool visible = sample.has_value() && quality_is_visible(filter, sample->quality);
         const std::optional<PlotPoint> point = visible ? project(*sample) : std::nullopt;
         if (!point.has_value()) {
-            if (includes_lines(options.draw_mode)
-                && !options.bridge_hidden_quality_samples) {
+            if (includes_lines(options.draw_mode) && !options.bridge_hidden_quality_samples) {
                 finish_line();
             }
             continue;
@@ -134,19 +130,17 @@ using ProjectSample = std::function<std::optional<PlotPoint>(const PlotSampleVal
     if (includes_lines(options.draw_mode)) {
         finish_line();
     }
-    result.marker_batches.erase(std::remove_if(result.marker_batches.begin(),
-                                    result.marker_batches.end(),
-                                    [](const PlotMarkerBatch& batch) {
-                                        return batch.points.empty();
-                                    }),
+    result.marker_batches.erase(
+        std::remove_if(result.marker_batches.begin(), result.marker_batches.end(),
+            [](const PlotMarkerBatch& batch) { return batch.points.empty(); }),
         result.marker_batches.end());
     return result;
 }
 
-[[nodiscard]] PlotBatch build_plot_batch(const PlotDataView& data,
-    const QualityFilter& filter, const PlotBatchOptions& options,
-    PlotProjection projection, std::optional<PositionComponent> component,
-    std::optional<GpsTime> time_origin, const ProjectSample& project)
+[[nodiscard]] PlotBatch build_plot_batch(const PlotDataView& data, const QualityFilter& filter,
+    const PlotBatchOptions& options, PlotProjection projection,
+    std::optional<PositionComponent> component, std::optional<GpsTime> time_origin,
+    const ProjectSample& project)
 {
     PlotBatch result{projection, component, time_origin, {}, 0, std::nullopt};
     result.slots.reserve(data.series.size());
@@ -166,8 +160,7 @@ using ProjectSample = std::function<std::optional<PlotPoint>(const PlotSampleVal
     });
     for (const auto item : series) {
         PlotSlotBatch batch = build_slot_batch(
-            item.get(), filter, options, project, result.visible_sample_count,
-            result.bounds);
+            item.get(), filter, options, project, result.visible_sample_count, result.bounds);
         if (!batch.line_strips.empty() || !batch.marker_batches.empty()) {
             result.slots.push_back(std::move(batch));
         }
@@ -198,25 +191,24 @@ std::array<SolutionQuality, solution_quality_count> quality_order_back_to_front(
     return result;
 }
 
-PlotBatch build_trajectory_plot_batch(const PlotDataView& data,
-    const QualityFilter& filter, const PlotBatchOptions& options)
+PlotBatch build_trajectory_plot_batch(
+    const PlotDataView& data, const QualityFilter& filter, const PlotBatchOptions& options)
 {
-    return build_plot_batch(data, filter, options, PlotProjection::Trajectory,
-        std::nullopt, std::nullopt, [](const PlotSampleValue& sample) {
+    return build_plot_batch(data, filter, options, PlotProjection::Trajectory, std::nullopt,
+        std::nullopt, [](const PlotSampleValue& sample) {
             return std::optional<PlotPoint>{PlotPoint{sample.east_m, sample.north_m}};
         });
 }
 
-PlotBatch build_time_series_plot_batch(const PlotDataView& data,
-    const QualityFilter& filter, PositionComponent component,
-    const PlotBatchOptions& options)
+PlotBatch build_time_series_plot_batch(const PlotDataView& data, const QualityFilter& filter,
+    PositionComponent component, const PlotBatchOptions& options)
 {
     const std::optional<GpsTime> first_time = first_visible_time(data, filter);
     const std::optional<GpsTime> origin = first_time.has_value()
         ? std::optional<GpsTime>{gps_week_boundary(*first_time)}
         : std::nullopt;
-    return build_plot_batch(data, filter, options, PlotProjection::TimeSeries,
-        component, origin, [component, origin](const PlotSampleValue& sample) {
+    return build_plot_batch(data, filter, options, PlotProjection::TimeSeries, component, origin,
+        [component, origin](const PlotSampleValue& sample) {
             if (!origin.has_value()) {
                 return std::optional<PlotPoint>{};
             }

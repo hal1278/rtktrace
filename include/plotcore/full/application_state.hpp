@@ -41,8 +41,7 @@ public:
     [[nodiscard]] const PlotInstanceState* find_plot(PlotWindowId id) const noexcept;
     [[nodiscard]] const std::vector<PlotInstanceState>& plots() const noexcept;
 
-    [[nodiscard]] bool set_quality_visible(
-        SolutionQuality quality, bool visible) noexcept;
+    [[nodiscard]] bool set_quality_visible(SolutionQuality quality, bool visible) noexcept;
     [[nodiscard]] const QualityFilter& quality_filter() const noexcept;
     [[nodiscard]] std::uint64_t quality_filter_revision() const noexcept;
 

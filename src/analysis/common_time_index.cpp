@@ -37,8 +37,7 @@ bool rebuild_common_time_range_index(
     std::vector<SampleRangeIndex> ranges;
     ranges.reserve(files.size());
     for (const LoadedFile& file : files) {
-        const std::optional<SampleRangeIndex> file_range =
-            sample_range_index(file.samples, range);
+        const std::optional<SampleRangeIndex> file_range = sample_range_index(file.samples, range);
         if (!file_range.has_value()) {
             return false;
         }

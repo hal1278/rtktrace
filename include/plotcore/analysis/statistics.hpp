@@ -19,8 +19,7 @@ struct RecordedStatistics {
 
 [[nodiscard]] RecordedStatistics calculate_recorded_statistics(
     std::span<const NormalizedSample> samples, TimeRange range) noexcept;
-[[nodiscard]] std::size_t recorded_sample_count(
-    const RecordedStatistics& statistics) noexcept;
+[[nodiscard]] std::size_t recorded_sample_count(const RecordedStatistics& statistics) noexcept;
 [[nodiscard]] std::optional<std::size_t> calculate_expected_sample_count(
     TimeRange range, std::optional<double> effective_hz) noexcept;
 [[nodiscard]] std::optional<double> quality_percentage(

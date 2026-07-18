@@ -26,8 +26,7 @@ constexpr double nanoseconds_per_second = 1'000'000'000.0;
     return ImVec2{static_cast<float>(size.width_px), static_cast<float>(size.height_px)};
 }
 
-[[nodiscard]] double axis_value_wheel(
-    const char* label, double value, const char* format)
+[[nodiscard]] double axis_value_wheel(const char* label, double value, const char* format)
 {
     ImGui::TextUnformatted(label);
     ImGui::SameLine(0.0F, 3.0F);
@@ -43,8 +42,7 @@ constexpr double nanoseconds_per_second = 1'000'000'000.0;
 [[nodiscard]] ImVec4 color(Rgba8 value) noexcept
 {
     constexpr float scale = 1.0F / 255.0F;
-    return ImVec4{value.red * scale, value.green * scale, value.blue * scale,
-        value.alpha * scale};
+    return ImVec4{value.red * scale, value.green * scale, value.blue * scale, value.alpha * scale};
 }
 
 [[nodiscard]] ImU32 packed_color(Rgba8 value) noexcept
@@ -76,8 +74,7 @@ constexpr double nanoseconds_per_second = 1'000'000'000.0;
     constexpr double minimum_seconds = 0.001;
     if (length < minimum_seconds) {
         const double center = (minimum + maximum) * 0.5;
-        return NumericRange{center - minimum_seconds * 0.5,
-            center + minimum_seconds * 0.5};
+        return NumericRange{center - minimum_seconds * 0.5, center + minimum_seconds * 0.5};
     }
     return NumericRange{minimum, maximum};
 }
@@ -98,11 +95,10 @@ constexpr double nanoseconds_per_second = 1'000'000'000.0;
     const double data_height = static_cast<double>(plot_size.y) * trajectory_data_fraction;
     double meters_per_pixel = std::max(east_span / data_width, north_span / data_height);
     const double minimum_shorter_axis_pixels = std::min(plot_size.x, plot_size.y);
-    meters_per_pixel = std::max(meters_per_pixel,
-        minimum_position_axis_range_m / minimum_shorter_axis_pixels);
+    meters_per_pixel =
+        std::max(meters_per_pixel, minimum_position_axis_range_m / minimum_shorter_axis_pixels);
     if (bounds.minimum_x == bounds.maximum_x && bounds.minimum_y == bounds.maximum_y) {
-        meters_per_pixel = std::max(meters_per_pixel,
-            1.0 / minimum_shorter_axis_pixels);
+        meters_per_pixel = std::max(meters_per_pixel, 1.0 / minimum_shorter_axis_pixels);
     }
     const double east_range = meters_per_pixel * plot_size.x;
     const double north_range = meters_per_pixel * plot_size.y;
@@ -125,8 +121,8 @@ void draw_line_strips(const PlotSlotBatch& slot)
         if (points.size() < 2) {
             continue;
         }
-        const std::string label = "##slot" + std::to_string(slot.slot_number)
-            + "-line" + std::to_string(index);
+        const std::string label =
+            "##slot" + std::to_string(slot.slot_number) + "-line" + std::to_string(index);
         ImPlot::SetNextLineStyle(color(rtkplot_connection_line_color), 1.0F);
         ImPlot::PlotLine(label.c_str(), &points.front().x, &points.front().y,
             static_cast<int>(points.size()), ImPlotLineFlags_None, 0,
@@ -134,8 +130,8 @@ void draw_line_strips(const PlotSlotBatch& slot)
     }
 }
 
-void draw_marker(ImDrawList& draw_list, PlotPoint point, std::size_t slot_number,
-    float size, ImU32 marker_color)
+void draw_marker(
+    ImDrawList& draw_list, PlotPoint point, std::size_t slot_number, float size, ImU32 marker_color)
 {
     const ImVec2 center = ImPlot::PlotToPixels(point.x, point.y);
     if (slot_number == 1) {
@@ -156,8 +152,7 @@ void draw_marker(ImDrawList& draw_list, PlotPoint point, std::size_t slot_number
         const double angle = -std::numbers::pi / 2.0
             + 2.0 * std::numbers::pi * static_cast<double>(index)
                 / static_cast<double>(vertex_count);
-        draw_list.PathLineTo(ImVec2{
-            center.x + size * static_cast<float>(std::cos(angle)),
+        draw_list.PathLineTo(ImVec2{center.x + size * static_cast<float>(std::cos(angle)),
             center.y + size * static_cast<float>(std::sin(angle))});
     }
     draw_list.PathFillConvex(marker_color);
@@ -185,18 +180,16 @@ void draw_markers(const PlotSlotBatch& slot, float marker_size)
     if (marker != ImPlotMarker_None) {
         for (const PlotMarkerBatch& batch : slot.marker_batches) {
             const std::size_t quality = static_cast<std::size_t>(batch.quality);
-            if (quality >= rtkplot_file1_quality_colors.size()
-                || batch.points.empty()) {
+            if (quality >= rtkplot_file1_quality_colors.size() || batch.points.empty()) {
                 continue;
             }
             const ImVec4 marker_color = color(rtkplot_file1_quality_colors[quality]);
-            ImPlot::SetNextMarkerStyle(
-                marker, marker_size, marker_color, 1.0F, marker_color);
-            const std::string label = "##slot" + std::to_string(slot.slot_number)
-                + "-quality" + std::to_string(quality);
-            ImPlot::PlotScatter(label.c_str(), &batch.points.front().x,
-                &batch.points.front().y, static_cast<int>(batch.points.size()),
-                ImPlotScatterFlags_None, 0, static_cast<int>(sizeof(PlotPoint)));
+            ImPlot::SetNextMarkerStyle(marker, marker_size, marker_color, 1.0F, marker_color);
+            const std::string label =
+                "##slot" + std::to_string(slot.slot_number) + "-quality" + std::to_string(quality);
+            ImPlot::PlotScatter(label.c_str(), &batch.points.front().x, &batch.points.front().y,
+                static_cast<int>(batch.points.size()), ImPlotScatterFlags_None, 0,
+                static_cast<int>(sizeof(PlotPoint)));
         }
         return;
     }
@@ -244,18 +237,37 @@ void draw_batch(const PlotBatch& batch, float marker_size)
 [[nodiscard]] double rtkplot_time_tick(double seconds_per_pixel) noexcept
 {
     constexpr std::array candidates{
-        0.1, 0.2, 0.5, 1.0, 3.0, 6.0, 12.0, 30.0, 60.0, 300.0, 900.0,
-        1800.0, 3600.0, 7200.0, 10800.0, 21600.0, 43200.0, 86400.0,
-        172800.0, 604800.0, 1209600.0, 3024000.0, 6048000.0,
+        0.1,
+        0.2,
+        0.5,
+        1.0,
+        3.0,
+        6.0,
+        12.0,
+        30.0,
+        60.0,
+        300.0,
+        900.0,
+        1800.0,
+        3600.0,
+        7200.0,
+        10800.0,
+        21600.0,
+        43200.0,
+        86400.0,
+        172800.0,
+        604800.0,
+        1209600.0,
+        3024000.0,
+        6048000.0,
     };
     const double target = 60.0 * seconds_per_pixel;
-    const auto candidate = std::find_if(candidates.begin(), candidates.end(),
-        [target](double value) { return target <= value; });
+    const auto candidate = std::find_if(
+        candidates.begin(), candidates.end(), [target](double value) { return target <= value; });
     return candidate == candidates.end() ? 12096000.0 : *candidate;
 }
 
-[[nodiscard]] std::string gpst_tick_label(
-    GpsTime origin, double seconds, double tick_seconds)
+[[nodiscard]] std::string gpst_tick_label(GpsTime origin, double seconds, double tick_seconds)
 {
     const long double total_nanoseconds =
         static_cast<long double>(origin.nanoseconds_since_gps_epoch)
@@ -273,8 +285,7 @@ void draw_batch(const PlotBatch& batch, float marker_size)
         --days;
     }
     using namespace std::chrono_literals;
-    constexpr std::chrono::year_month_day gps_epoch =
-        1980y / std::chrono::January / 6;
+    constexpr std::chrono::year_month_day gps_epoch = 1980y / std::chrono::January / 6;
     const std::chrono::year_month_day date{
         std::chrono::sys_days{gps_epoch} + std::chrono::days{days}};
     const std::int64_t whole_seconds = day_nanoseconds / 1'000'000'000;
@@ -284,19 +295,18 @@ void draw_batch(const PlotBatch& batch, float marker_size)
     const int tenth = static_cast<int>((day_nanoseconds % 1'000'000'000) / 100'000'000);
     char buffer[32];
     if (tick_seconds < 1.0) {
-        std::snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d.%d",
-            hour, minute, second, tenth);
+        std::snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d.%d", hour, minute, second, tenth);
     } else if (tick_seconds < 60.0) {
         std::snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", hour, minute, second);
     } else if (tick_seconds < 86400.0) {
         std::snprintf(buffer, sizeof(buffer), "%02d:%02d", hour, minute);
     } else if (tick_seconds < 2592000.0) {
-        std::snprintf(buffer, sizeof(buffer), "%02u/%02u",
-            static_cast<unsigned>(date.month()), static_cast<unsigned>(date.day()));
+        std::snprintf(buffer, sizeof(buffer), "%02u/%02u", static_cast<unsigned>(date.month()),
+            static_cast<unsigned>(date.day()));
     } else {
         const int year = static_cast<int>(date.year());
-        std::snprintf(buffer, sizeof(buffer), "%02d/%02u", year % 100,
-            static_cast<unsigned>(date.month()));
+        std::snprintf(
+            buffer, sizeof(buffer), "%02d/%02u", year % 100, static_cast<unsigned>(date.month()));
     }
     return buffer;
 }
@@ -307,8 +317,7 @@ struct TimeTicks {
     std::vector<const char*> label_pointers;
 };
 
-[[nodiscard]] std::vector<double> make_numeric_ticks(
-    NumericRange range, double axis_pixels)
+[[nodiscard]] std::vector<double> make_numeric_ticks(NumericRange range, double axis_pixels)
 {
     if (range.length() <= 0.0 || axis_pixels <= 0.0) {
         return {};
@@ -337,8 +346,7 @@ struct TimeTicks {
     return result;
 }
 
-[[nodiscard]] TimeTicks make_time_ticks(
-    NumericRange range, double axis_pixels, GpsTime origin)
+[[nodiscard]] TimeTicks make_time_ticks(NumericRange range, double axis_pixels, GpsTime origin)
 {
     const double tick = rtkplot_time_tick(range.length() / std::max(axis_pixels, 1.0));
     const double first = std::ceil(range.minimum / tick) * tick;
@@ -360,30 +368,29 @@ struct TimeTicks {
     return result;
 }
 
-void draw_dotted_vertical(ImDrawList& draw_list, float x, ImVec2 plot_position,
-    ImVec2 plot_size, ImU32 grid_color)
+void draw_dotted_vertical(
+    ImDrawList& draw_list, float x, ImVec2 plot_position, ImVec2 plot_size, ImU32 grid_color)
 {
     constexpr float dash = 1.0F;
     constexpr float step = 4.0F;
     for (float y = plot_position.y; y < plot_position.y + plot_size.y; y += step) {
-        draw_list.AddLine(ImVec2{x, y},
-            ImVec2{x, std::min(y + dash, plot_position.y + plot_size.y)}, grid_color);
+        draw_list.AddLine(
+            ImVec2{x, y}, ImVec2{x, std::min(y + dash, plot_position.y + plot_size.y)}, grid_color);
     }
 }
 
-void draw_dotted_horizontal(ImDrawList& draw_list, float y, ImVec2 plot_position,
-    ImVec2 plot_size, ImU32 grid_color)
+void draw_dotted_horizontal(
+    ImDrawList& draw_list, float y, ImVec2 plot_position, ImVec2 plot_size, ImU32 grid_color)
 {
     constexpr float dash = 1.0F;
     constexpr float step = 4.0F;
     for (float x = plot_position.x; x < plot_position.x + plot_size.x; x += step) {
-        draw_list.AddLine(ImVec2{x, y},
-            ImVec2{std::min(x + dash, plot_position.x + plot_size.x), y}, grid_color);
+        draw_list.AddLine(
+            ImVec2{x, y}, ImVec2{std::min(x + dash, plot_position.x + plot_size.x), y}, grid_color);
     }
 }
 
-void draw_rtkplot_grid(
-    const std::vector<double>& x_ticks, const std::vector<double>& y_ticks)
+void draw_rtkplot_grid(const std::vector<double>& x_ticks, const std::vector<double>& y_ticks)
 {
     const ImPlotRect limits = ImPlot::GetPlotLimits();
     const ImVec2 plot_position = ImPlot::GetPlotPos();
@@ -397,8 +404,8 @@ void draw_rtkplot_grid(
         }
         const float x = ImPlot::PlotToPixels(value, limits.Y.Min).x;
         if (value == 0.0) {
-            draw_list->AddLine(ImVec2{x, plot_position.y},
-                ImVec2{x, plot_position.y + plot_size.y}, grid_color);
+            draw_list->AddLine(
+                ImVec2{x, plot_position.y}, ImVec2{x, plot_position.y + plot_size.y}, grid_color);
         } else {
             draw_dotted_vertical(*draw_list, x, plot_position, plot_size, grid_color);
         }
@@ -409,8 +416,8 @@ void draw_rtkplot_grid(
         }
         const float y = ImPlot::PlotToPixels(limits.X.Min, value).y;
         if (value == 0.0) {
-            draw_list->AddLine(ImVec2{plot_position.x, y},
-                ImVec2{plot_position.x + plot_size.x, y}, grid_color);
+            draw_list->AddLine(
+                ImVec2{plot_position.x, y}, ImVec2{plot_position.x + plot_size.x, y}, grid_color);
         } else {
             draw_dotted_horizontal(*draw_list, y, plot_position, plot_size, grid_color);
         }
@@ -423,13 +430,10 @@ void draw_rtkplot_grid(
 void ImPlotComponent::prepare(const PlotDataView& data, const QualityFilter& filter,
     const ImPlotComponentOptions& options, bool fit_axes)
 {
-    const bool time_layout_changed = options_.vertical_component
-            != options.vertical_component
-        || options_.show_east != options.show_east
-        || options_.show_north != options.show_north
+    const bool time_layout_changed = options_.vertical_component != options.vertical_component
+        || options_.show_east != options.show_east || options_.show_north != options.show_north
         || options_.show_vertical != options.show_vertical
-        || options_.show_reference_relative_distance
-            != options.show_reference_relative_distance
+        || options_.show_reference_relative_distance != options.show_reference_relative_distance
         || data_kind_ != data.kind;
     data_kind_ = data.kind;
     options_ = options;
@@ -437,21 +441,20 @@ void ImPlotComponent::prepare(const PlotDataView& data, const QualityFilter& fil
     trajectory_ = build_trajectory_plot_batch(data, filter, options_.batch);
     time_series_.clear();
     if (options_.show_east) {
-        time_series_.push_back(build_time_series_plot_batch(
-            data, filter, PositionComponent::East, options_.batch));
+        time_series_.push_back(
+            build_time_series_plot_batch(data, filter, PositionComponent::East, options_.batch));
     }
     if (options_.show_north) {
-        time_series_.push_back(build_time_series_plot_batch(
-            data, filter, PositionComponent::North, options_.batch));
+        time_series_.push_back(
+            build_time_series_plot_batch(data, filter, PositionComponent::North, options_.batch));
     }
     if (options_.show_vertical) {
         time_series_.push_back(build_time_series_plot_batch(
             data, filter, options_.vertical_component, options_.batch));
     }
-    if (data.kind == PlotDataKind::Relative
-        && options_.show_reference_relative_distance) {
-        time_series_.push_back(build_time_series_plot_batch(data, filter,
-            PositionComponent::ReferenceRelativeDistance3d, options_.batch));
+    if (data.kind == PlotDataKind::Relative && options_.show_reference_relative_distance) {
+        time_series_.push_back(build_time_series_plot_batch(
+            data, filter, PositionComponent::ReferenceRelativeDistance3d, options_.batch));
     }
     if (fit_axes) {
         request_fit();
@@ -497,8 +500,7 @@ void ImPlotComponent::request_time_series_fit() noexcept
     fit_time_pending_ = true;
 }
 
-bool ImPlotComponent::set_trajectory_ranges(
-    NumericRange east, NumericRange north) noexcept
+bool ImPlotComponent::set_trajectory_ranges(NumericRange east, NumericRange north) noexcept
 {
     if (!trajectory_metrics_.has_value() || !std::isfinite(east.minimum)
         || !std::isfinite(east.maximum) || !std::isfinite(north.minimum)
@@ -508,10 +510,9 @@ bool ImPlotComponent::set_trajectory_ranges(
     }
     const double east_pixels = std::max(trajectory_metrics_->east_axis_length_px, 1.0);
     const double north_pixels = std::max(trajectory_metrics_->north_axis_length_px, 1.0);
-    double meters_per_pixel = std::max(
-        east.length() / east_pixels, north.length() / north_pixels);
-    meters_per_pixel = std::max(meters_per_pixel,
-        minimum_position_axis_range_m / std::min(east_pixels, north_pixels));
+    double meters_per_pixel = std::max(east.length() / east_pixels, north.length() / north_pixels);
+    meters_per_pixel = std::max(
+        meters_per_pixel, minimum_position_axis_range_m / std::min(east_pixels, north_pixels));
     const double east_center = (east.minimum + east.maximum) * 0.5;
     const double north_center = (north.minimum + north.maximum) * 0.5;
     requested_trajectory_limits_ = TrajectoryPlotMetrics{
@@ -534,21 +535,18 @@ bool ImPlotComponent::set_trajectory_meters_per_pixel(double value) noexcept
     }
     const double east_pixels = std::max(trajectory_metrics_->east_axis_length_px, 1.0);
     const double north_pixels = std::max(trajectory_metrics_->north_axis_length_px, 1.0);
-    value = std::max(value,
-        minimum_position_axis_range_m / std::min(east_pixels, north_pixels));
+    value = std::max(value, minimum_position_axis_range_m / std::min(east_pixels, north_pixels));
     const double east_center =
         (trajectory_metrics_->east.minimum + trajectory_metrics_->east.maximum) * 0.5;
     const double north_center =
         (trajectory_metrics_->north.minimum + trajectory_metrics_->north.maximum) * 0.5;
-    return set_trajectory_ranges(
-        NumericRange{east_center - value * east_pixels * 0.5,
-            east_center + value * east_pixels * 0.5},
-        NumericRange{north_center - value * north_pixels * 0.5,
-            north_center + value * north_pixels * 0.5});
+    return set_trajectory_ranges(NumericRange{east_center - value * east_pixels * 0.5,
+                                     east_center + value * east_pixels * 0.5},
+        NumericRange{
+            north_center - value * north_pixels * 0.5, north_center + value * north_pixels * 0.5});
 }
 
-bool ImPlotComponent::apply_trajectory_ranges(
-    NumericRange east, NumericRange north) noexcept
+bool ImPlotComponent::apply_trajectory_ranges(NumericRange east, NumericRange north) noexcept
 {
     if (options_.trajectory_range_priority == TrajectoryRangePriority::AxisRange) {
         return set_trajectory_ranges(east, north);
@@ -556,8 +554,7 @@ bool ImPlotComponent::apply_trajectory_ranges(
     if (!trajectory_metrics_.has_value() || !std::isfinite(east.minimum)
         || !std::isfinite(east.maximum) || !std::isfinite(north.minimum)
         || !std::isfinite(north.maximum) || east.minimum >= east.maximum
-        || north.minimum >= north.maximum
-        || !std::isfinite(trajectory_metrics_->meters_per_pixel)
+        || north.minimum >= north.maximum || !std::isfinite(trajectory_metrics_->meters_per_pixel)
         || trajectory_metrics_->meters_per_pixel <= 0.0) {
         return false;
     }
@@ -572,17 +569,14 @@ bool ImPlotComponent::apply_trajectory_ranges(
     return true;
 }
 
-bool ImPlotComponent::apply_trajectory_axis_range(
-    TrajectoryAxis axis, NumericRange range) noexcept
+bool ImPlotComponent::apply_trajectory_axis_range(TrajectoryAxis axis, NumericRange range) noexcept
 {
     if (!trajectory_metrics_.has_value() || !std::isfinite(range.minimum)
         || !std::isfinite(range.maximum) || range.minimum >= range.maximum) {
         return false;
     }
-    const double east_pixels = std::max(
-        trajectory_metrics_->east_axis_length_px, 1.0);
-    const double north_pixels = std::max(
-        trajectory_metrics_->north_axis_length_px, 1.0);
+    const double east_pixels = std::max(trajectory_metrics_->east_axis_length_px, 1.0);
+    const double north_pixels = std::max(trajectory_metrics_->north_axis_length_px, 1.0);
     NumericRange east = trajectory_metrics_->east;
     NumericRange north = trajectory_metrics_->north;
     if (axis == TrajectoryAxis::East) {
@@ -592,68 +586,51 @@ bool ImPlotComponent::apply_trajectory_axis_range(
     }
     range_priority_axis_ = axis;
 
-    if (options_.trajectory_range_priority
-        == TrajectoryRangePriority::DisplayScale) {
+    if (options_.trajectory_range_priority == TrajectoryRangePriority::DisplayScale) {
         const double meters_per_pixel = trajectory_metrics_->meters_per_pixel;
         if (!std::isfinite(meters_per_pixel) || meters_per_pixel <= 0.0) {
             return false;
         }
         if (axis == TrajectoryAxis::East) {
             const double center = (north.minimum + north.maximum) * 0.5;
-            north = NumericRange{
-                center - meters_per_pixel * north_pixels * 0.5,
+            north = NumericRange{center - meters_per_pixel * north_pixels * 0.5,
                 center + meters_per_pixel * north_pixels * 0.5};
         } else {
             const double center = (east.minimum + east.maximum) * 0.5;
-            east = NumericRange{
-                center - meters_per_pixel * east_pixels * 0.5,
+            east = NumericRange{center - meters_per_pixel * east_pixels * 0.5,
                 center + meters_per_pixel * east_pixels * 0.5};
         }
         requested_trajectory_resize_ = TrajectoryResizeRequest{
             east,
             north,
-            axis == TrajectoryAxis::East
-                ? east.length() / meters_per_pixel
-                : east_pixels,
-            axis == TrajectoryAxis::North
-                ? north.length() / meters_per_pixel
-                : north_pixels,
+            axis == TrajectoryAxis::East ? east.length() / meters_per_pixel : east_pixels,
+            axis == TrajectoryAxis::North ? north.length() / meters_per_pixel : north_pixels,
             meters_per_pixel,
             TrajectoryResizeFixedTarget::DisplayScale,
         };
         return true;
     }
 
-    const double target_pixels = axis == TrajectoryAxis::East
-        ? east_pixels
-        : north_pixels;
+    const double target_pixels = axis == TrajectoryAxis::East ? east_pixels : north_pixels;
     const double target_center = axis == TrajectoryAxis::East
         ? (east.minimum + east.maximum) * 0.5
         : (north.minimum + north.maximum) * 0.5;
-    const double other_center = axis == TrajectoryAxis::East
-        ? (north.minimum + north.maximum) * 0.5
-        : (east.minimum + east.maximum) * 0.5;
-    const double meters_per_pixel = std::max(
-        range.length() / target_pixels,
+    const double other_center = axis == TrajectoryAxis::East ? (north.minimum + north.maximum) * 0.5
+                                                             : (east.minimum + east.maximum) * 0.5;
+    const double meters_per_pixel = std::max(range.length() / target_pixels,
         minimum_position_axis_range_m / std::min(east_pixels, north_pixels));
-    const NumericRange target{
-        target_center - meters_per_pixel * target_pixels * 0.5,
+    const NumericRange target{target_center - meters_per_pixel * target_pixels * 0.5,
         target_center + meters_per_pixel * target_pixels * 0.5};
-    const double other_pixels = axis == TrajectoryAxis::East
-        ? north_pixels
-        : east_pixels;
-    const NumericRange other{
-        other_center - meters_per_pixel * other_pixels * 0.5,
+    const double other_pixels = axis == TrajectoryAxis::East ? north_pixels : east_pixels;
+    const NumericRange other{other_center - meters_per_pixel * other_pixels * 0.5,
         other_center + meters_per_pixel * other_pixels * 0.5};
-    return axis == TrajectoryAxis::East
-        ? set_trajectory_ranges(target, other)
-        : set_trajectory_ranges(other, target);
+    return axis == TrajectoryAxis::East ? set_trajectory_ranges(target, other)
+                                        : set_trajectory_ranges(other, target);
 }
 
 bool ImPlotComponent::apply_trajectory_meters_per_pixel(double value) noexcept
 {
-    if (options_.trajectory_scale_fixed_target
-        == TrajectoryScaleFixedTarget::DrawingArea) {
+    if (options_.trajectory_scale_fixed_target == TrajectoryScaleFixedTarget::DrawingArea) {
         return set_trajectory_meters_per_pixel(value);
     }
     if (!trajectory_metrics_.has_value() || !std::isfinite(value) || value <= 0.0) {
@@ -688,8 +665,8 @@ bool ImPlotComponent::pan_trajectory_by_fraction(
     return true;
 }
 
-bool ImPlotComponent::zoom_trajectory_by_factor(double factor,
-    std::optional<double> fixed_east, std::optional<double> fixed_north) noexcept
+bool ImPlotComponent::zoom_trajectory_by_factor(
+    double factor, std::optional<double> fixed_east, std::optional<double> fixed_north) noexcept
 {
     if (!trajectory_metrics_.has_value() || !std::isfinite(factor) || factor <= 0.0
         || fixed_east.has_value() != fixed_north.has_value()
@@ -702,11 +679,9 @@ bool ImPlotComponent::zoom_trajectory_by_factor(double factor,
     const double north_anchor = fixed_north.value_or(
         (trajectory_metrics_->north.minimum + trajectory_metrics_->north.maximum) * 0.5);
     return set_trajectory_ranges(
-        NumericRange{
-            east_anchor + (trajectory_metrics_->east.minimum - east_anchor) * factor,
+        NumericRange{east_anchor + (trajectory_metrics_->east.minimum - east_anchor) * factor,
             east_anchor + (trajectory_metrics_->east.maximum - east_anchor) * factor},
-        NumericRange{
-            north_anchor + (trajectory_metrics_->north.minimum - north_anchor) * factor,
+        NumericRange{north_anchor + (trajectory_metrics_->north.minimum - north_anchor) * factor,
             north_anchor + (trajectory_metrics_->north.maximum - north_anchor) * factor});
 }
 
@@ -778,25 +753,21 @@ bool ImPlotComponent::zoom_time_series_time_by_factor(
 }
 
 bool ImPlotComponent::zoom_time_series_position_by_factor(
-    PositionComponent component, double factor,
-    std::optional<double> fixed_position) noexcept
+    PositionComponent component, double factor, std::optional<double> fixed_position) noexcept
 {
     if (!std::isfinite(factor) || factor <= 0.0
         || (fixed_position.has_value() && !std::isfinite(*fixed_position))) {
         return false;
     }
-    const auto metrics = std::find_if(time_series_metrics_.begin(),
-        time_series_metrics_.end(), [component](const TimeSeriesPanelMetrics& item) {
-            return item.component == component;
-        });
+    const auto metrics = std::find_if(time_series_metrics_.begin(), time_series_metrics_.end(),
+        [component](const TimeSeriesPanelMetrics& item) { return item.component == component; });
     if (metrics == time_series_metrics_.end()) {
         return false;
     }
-    const double anchor = fixed_position.value_or(
-        (metrics->position.minimum + metrics->position.maximum) * 0.5);
+    const double anchor =
+        fixed_position.value_or((metrics->position.minimum + metrics->position.maximum) * 0.5);
     return set_time_series_position_range(component,
-        NumericRange{
-            anchor + (metrics->position.minimum - anchor) * factor,
+        NumericRange{anchor + (metrics->position.minimum - anchor) * factor,
             anchor + (metrics->position.maximum - anchor) * factor});
 }
 
@@ -841,12 +812,10 @@ void ImPlotComponent::render_trajectory_axis_controls(std::string_view id)
         north.maximum += north.length() * 0.01 * north_maximum_wheel;
     }
     if (east_minimum_wheel != 0.0 || east_maximum_wheel != 0.0) {
-        static_cast<void>(apply_trajectory_axis_range(
-            TrajectoryAxis::East, east));
+        static_cast<void>(apply_trajectory_axis_range(TrajectoryAxis::East, east));
     }
     if (north_minimum_wheel != 0.0 || north_maximum_wheel != 0.0) {
-        static_cast<void>(apply_trajectory_axis_range(
-            TrajectoryAxis::North, north));
+        static_cast<void>(apply_trajectory_axis_range(TrajectoryAxis::North, north));
     }
     ImGui::PopID();
 }
@@ -859,10 +828,10 @@ void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
     const std::string control_id = "time-axis-controls##" + std::string{id};
     ImGui::PushID(control_id.c_str());
     if (const std::optional<TimeRange> time = time_series_time_range()) {
-        const double start_seconds = static_cast<double>(
-            time->start.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
-        const double end_seconds = static_cast<double>(
-            time->end.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
+        const double start_seconds =
+            static_cast<double>(time->start.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
+        const double end_seconds =
+            static_cast<double>(time->end.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
         ImGui::TextUnformatted("TIME (GPST)");
         ImGui::SameLine();
         const double start_wheel = axis_value_wheel("min", start_seconds, "%.9f");
@@ -872,13 +841,11 @@ void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
         ImGui::TextDisabled("%.0f px", last_time_axis_length_px_);
         if (start_wheel != 0.0 || end_wheel != 0.0) {
             TimeRange adjusted = *time;
-            const long double delta = static_cast<long double>(time->end - time->start)
-                * 0.01L * static_cast<long double>(
-                    start_wheel != 0.0 ? start_wheel : end_wheel);
-            const long double changed = static_cast<long double>(
-                start_wheel != 0.0
-                    ? adjusted.start.nanoseconds_since_gps_epoch
-                    : adjusted.end.nanoseconds_since_gps_epoch)
+            const long double delta = static_cast<long double>(time->end - time->start) * 0.01L
+                * static_cast<long double>(start_wheel != 0.0 ? start_wheel : end_wheel);
+            const long double changed = static_cast<long double>(start_wheel != 0.0
+                                                ? adjusted.start.nanoseconds_since_gps_epoch
+                                                : adjusted.end.nanoseconds_since_gps_epoch)
                 + delta;
             if (changed >= static_cast<long double>(std::numeric_limits<std::int64_t>::min())
                 && changed <= static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
@@ -896,11 +863,9 @@ void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
     for (const TimeSeriesPanelMetrics& metrics : time_series_metrics_) {
         ImGui::TextUnformatted(component_label(metrics.component));
         ImGui::SameLine();
-        const double minimum_wheel = axis_value_wheel(
-            "min", metrics.position.minimum, "%.3g");
+        const double minimum_wheel = axis_value_wheel("min", metrics.position.minimum, "%.3g");
         ImGui::SameLine();
-        const double maximum_wheel = axis_value_wheel(
-            "max", metrics.position.maximum, "%.3g");
+        const double maximum_wheel = axis_value_wheel("max", metrics.position.maximum, "%.3g");
         ImGui::SameLine();
         ImGui::TextDisabled("%.0f px", metrics.position_axis_length_px);
         NumericRange range = metrics.position;
@@ -930,47 +895,41 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         frame_size.y = available.y;
     }
     const std::optional<TrajectoryPlotMetrics> previous_metrics = trajectory_metrics_;
-    const bool limits_requested_this_frame = fit_trajectory_pending_
-        || requested_trajectory_limits_.has_value();
+    const bool limits_requested_this_frame =
+        fit_trajectory_pending_ || requested_trajectory_limits_.has_value();
     std::optional<TrajectoryPlotMetrics> requested_fit;
     if (fit_trajectory_pending_) {
         requested_fit = fit_trajectory(trajectory_, frame_size);
     }
     const std::optional<TrajectoryPlotMetrics> requested_limits =
-        requested_trajectory_limits_.has_value()
-        ? requested_trajectory_limits_
-        : requested_fit;
+        requested_trajectory_limits_.has_value() ? requested_trajectory_limits_ : requested_fit;
     NumericRange east_ticks = requested_limits.has_value() ? requested_limits->east
-        : trajectory_metrics_.has_value() ? trajectory_metrics_->east
-                                          : NumericRange{-1.0, 1.0};
+        : trajectory_metrics_.has_value()                  ? trajectory_metrics_->east
+                                                           : NumericRange{-1.0, 1.0};
     NumericRange north_ticks = requested_limits.has_value() ? requested_limits->north
-        : trajectory_metrics_.has_value() ? trajectory_metrics_->north
-                                          : NumericRange{-1.0, 1.0};
+        : trajectory_metrics_.has_value()                   ? trajectory_metrics_->north
+                                                            : NumericRange{-1.0, 1.0};
     const std::vector<double> x_ticks = make_numeric_ticks(east_ticks, frame_size.x);
     const std::vector<double> y_ticks = make_numeric_ticks(north_ticks, frame_size.y);
     ImPlotInputMap& input_map = ImPlot::GetInputMap();
     const float previous_zoom_rate = input_map.ZoomRate;
     input_map.ZoomRate = 0.0F;
-    if (!ImPlot::BeginPlot(plot_id.c_str(), frame_size,
-            ImPlotFlags_NoLegend | ImPlotFlags_Equal)) {
+    if (!ImPlot::BeginPlot(plot_id.c_str(), frame_size, ImPlotFlags_NoLegend | ImPlotFlags_Equal)) {
         input_map.ZoomRate = previous_zoom_rate;
         return;
     }
-    ImPlot::SetupAxes("E-W (m)", "N-S (m)",
-        ImPlotAxisFlags_NoGridLines, ImPlotAxisFlags_NoGridLines);
+    ImPlot::SetupAxes(
+        "E-W (m)", "N-S (m)", ImPlotAxisFlags_NoGridLines, ImPlotAxisFlags_NoGridLines);
     if (!x_ticks.empty()) {
-        ImPlot::SetupAxisTicks(
-            ImAxis_X1, x_ticks.data(), static_cast<int>(x_ticks.size()));
+        ImPlot::SetupAxisTicks(ImAxis_X1, x_ticks.data(), static_cast<int>(x_ticks.size()));
     }
     if (!y_ticks.empty()) {
-        ImPlot::SetupAxisTicks(
-            ImAxis_Y1, y_ticks.data(), static_cast<int>(y_ticks.size()));
+        ImPlot::SetupAxisTicks(ImAxis_Y1, y_ticks.data(), static_cast<int>(y_ticks.size()));
     }
     if (fit_trajectory_pending_ || requested_trajectory_limits_.has_value()) {
         if (requested_limits.has_value()) {
-            ImPlot::SetupAxesLimits(requested_limits->east.minimum,
-                requested_limits->east.maximum, requested_limits->north.minimum,
-                requested_limits->north.maximum,
+            ImPlot::SetupAxesLimits(requested_limits->east.minimum, requested_limits->east.maximum,
+                requested_limits->north.minimum, requested_limits->north.maximum,
                 ImPlotCond_Always);
         }
         fit_trajectory_pending_ = false;
@@ -979,12 +938,9 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     ImPlot::SetupFinish();
     const ImGuiIO& io = ImGui::GetIO();
     const bool plot_hovered = ImPlot::IsPlotHovered();
-    const bool custom_zoom_modifiers = io.KeyMods == ImGuiMod_None
-        || io.KeyMods == ImGuiMod_Ctrl;
-    const bool window_resize = plot_hovered && io.MouseWheel != 0.0F
-        && io.KeyMods == ImGuiMod_Alt;
-    if (plot_hovered && io.MouseWheel != 0.0F
-        && (custom_zoom_modifiers || window_resize)) {
+    const bool custom_zoom_modifiers = io.KeyMods == ImGuiMod_None || io.KeyMods == ImGuiMod_Ctrl;
+    const bool window_resize = plot_hovered && io.MouseWheel != 0.0F && io.KeyMods == ImGuiMod_Alt;
+    if (plot_hovered && io.MouseWheel != 0.0F && (custom_zoom_modifiers || window_resize)) {
         ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
     }
     draw_rtkplot_grid(x_ticks, y_ticks);
@@ -992,11 +948,9 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     const ImPlotRect limits = ImPlot::GetPlotLimits();
     const ImVec2 actual_size = ImPlot::GetPlotSize();
     const double east_meters_per_pixel =
-        (limits.X.Max - limits.X.Min)
-        / std::max(static_cast<double>(actual_size.x), 1.0);
+        (limits.X.Max - limits.X.Min) / std::max(static_cast<double>(actual_size.x), 1.0);
     const double north_meters_per_pixel =
-        (limits.Y.Max - limits.Y.Min)
-        / std::max(static_cast<double>(actual_size.y), 1.0);
+        (limits.Y.Max - limits.Y.Min) / std::max(static_cast<double>(actual_size.y), 1.0);
     trajectory_metrics_ = TrajectoryPlotMetrics{
         NumericRange{limits.X.Min, limits.X.Max},
         NumericRange{limits.Y.Min, limits.Y.Max},
@@ -1007,23 +961,19 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     if (previous_metrics.has_value() && !limits_requested_this_frame
         && (std::abs(previous_metrics->east_axis_length_px - actual_size.x) > 0.5
             || std::abs(previous_metrics->north_axis_length_px - actual_size.y) > 0.5)) {
-        if (options_.trajectory_range_priority
-            == TrajectoryRangePriority::DisplayScale) {
-            static_cast<void>(set_trajectory_meters_per_pixel(
-                previous_metrics->meters_per_pixel));
+        if (options_.trajectory_range_priority == TrajectoryRangePriority::DisplayScale) {
+            static_cast<void>(set_trajectory_meters_per_pixel(previous_metrics->meters_per_pixel));
         } else {
             static_cast<void>(apply_trajectory_axis_range(range_priority_axis_,
-                range_priority_axis_ == TrajectoryAxis::East
-                    ? previous_metrics->east
-                    : previous_metrics->north));
+                range_priority_axis_ == TrajectoryAxis::East ? previous_metrics->east
+                                                             : previous_metrics->north));
         }
     }
     if (plot_hovered && io.MouseWheel != 0.0F && custom_zoom_modifiers) {
         const double factor = std::pow(1.2, -static_cast<double>(io.MouseWheel));
         if (io.KeyMods == ImGuiMod_Ctrl) {
             const ImPlotPoint mouse = ImPlot::GetPlotMousePos();
-            static_cast<void>(zoom_trajectory_by_factor(
-                factor, mouse.x, mouse.y));
+            static_cast<void>(zoom_trajectory_by_factor(factor, mouse.x, mouse.y));
         } else {
             static_cast<void>(zoom_trajectory_by_factor(factor));
         }
@@ -1047,8 +997,7 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
             north_fraction += 0.05;
         }
         if (east_fraction != 0.0 || north_fraction != 0.0) {
-            static_cast<void>(pan_trajectory_by_fraction(
-                east_fraction, north_fraction));
+            static_cast<void>(pan_trajectory_by_fraction(east_fraction, north_fraction));
         }
     }
     ImPlot::EndPlot();
@@ -1075,14 +1024,12 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         }
     }
     if (fit_time_pending_ && combined.has_value()) {
-        last_time_range_seconds_ = expand_time_range(
-            combined->minimum_x, combined->maximum_x);
+        last_time_range_seconds_ = expand_time_range(combined->minimum_x, combined->maximum_x);
     }
     if (requested_time_limits_seconds_.has_value()) {
         last_time_range_seconds_ = *requested_time_limits_seconds_;
     }
-    const std::optional<NumericRange> requested_time_limits =
-        requested_time_limits_seconds_;
+    const std::optional<NumericRange> requested_time_limits = requested_time_limits_seconds_;
     requested_time_limits_seconds_.reset();
     const auto requested_position_limits = requested_position_limits_;
     for (std::optional<NumericRange>& range : requested_position_limits_) {
@@ -1098,9 +1045,8 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         frame_size.y = available.y;
     }
     const std::string subplot_id{id};
-    if (!ImPlot::BeginSubplots(subplot_id.c_str(),
-            static_cast<int>(time_series_.size()), 1, frame_size,
-            ImPlotSubplotFlags_LinkCols | ImPlotSubplotFlags_NoLegend)) {
+    if (!ImPlot::BeginSubplots(subplot_id.c_str(), static_cast<int>(time_series_.size()), 1,
+            frame_size, ImPlotSubplotFlags_LinkCols | ImPlotSubplotFlags_NoLegend)) {
         return;
     }
     const std::vector<TimeSeriesPanelMetrics> previous_metrics = time_series_metrics_;
@@ -1120,8 +1066,7 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         ImPlot::SetupAxis(ImAxis_X1, bottom ? "TIME (GPST)" : nullptr,
             ImPlotAxisFlags_NoGridLines
                 | (bottom ? ImPlotAxisFlags_None : ImPlotAxisFlags_NoTickLabels));
-        ImPlot::SetupAxis(ImAxis_Y1, component_label(component),
-            ImPlotAxisFlags_NoGridLines);
+        ImPlot::SetupAxis(ImAxis_Y1, component_label(component), ImPlotAxisFlags_NoGridLines);
         NumericRange y_tick_range = batch.bounds.has_value()
             ? expand_position_range(batch.bounds->minimum_y, batch.bounds->maximum_y)
             : NumericRange{-1.0, 1.0};
@@ -1133,43 +1078,39 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
             component_index < requested_position_limits.size()
             ? requested_position_limits[component_index]
             : std::nullopt;
-        if ((fit_time_pending_ && combined.has_value())
-            || requested_time_limits.has_value()) {
+        if ((fit_time_pending_ && combined.has_value()) || requested_time_limits.has_value()) {
             ImPlot::SetupAxisLimits(ImAxis_X1, last_time_range_seconds_.minimum,
                 last_time_range_seconds_.maximum, ImPlotCond_Always);
             if (fit_time_pending_ && batch.bounds.has_value()) {
-                const NumericRange y = expand_position_range(
-                    batch.bounds->minimum_y, batch.bounds->maximum_y);
-                ImPlot::SetupAxisLimits(
-                    ImAxis_Y1, y.minimum, y.maximum, ImPlotCond_Always);
+                const NumericRange y =
+                    expand_position_range(batch.bounds->minimum_y, batch.bounds->maximum_y);
+                ImPlot::SetupAxisLimits(ImAxis_Y1, y.minimum, y.maximum, ImPlotCond_Always);
             }
         }
         if (requested_y.has_value()) {
-            ImPlot::SetupAxisLimits(ImAxis_Y1,
-                requested_y->minimum, requested_y->maximum, ImPlotCond_Always);
+            ImPlot::SetupAxisLimits(
+                ImAxis_Y1, requested_y->minimum, requested_y->maximum, ImPlotCond_Always);
             y_tick_range = *requested_y;
         }
         const GpsTime origin = batch.time_origin.value_or(GpsTime{0});
-        TimeTicks ticks = make_time_ticks(last_time_range_seconds_,
-            frame_size.x, origin);
-        const std::vector<double> y_ticks = make_numeric_ticks(y_tick_range,
-            frame_size.y / static_cast<double>(time_series_.size()));
+        TimeTicks ticks = make_time_ticks(last_time_range_seconds_, frame_size.x, origin);
+        const std::vector<double> y_ticks = make_numeric_ticks(
+            y_tick_range, frame_size.y / static_cast<double>(time_series_.size()));
         if (!ticks.values.empty()) {
             ImPlot::SetupAxisTicks(ImAxis_X1, ticks.values.data(),
                 static_cast<int>(ticks.values.size()), ticks.label_pointers.data(), false);
         }
         if (!y_ticks.empty()) {
-            ImPlot::SetupAxisTicks(
-                ImAxis_Y1, y_ticks.data(), static_cast<int>(y_ticks.size()));
+            ImPlot::SetupAxisTicks(ImAxis_Y1, y_ticks.data(), static_cast<int>(y_ticks.size()));
         }
         ImPlot::SetupFinish();
         const ImGuiIO& io = ImGui::GetIO();
         const bool plot_hovered = ImPlot::IsPlotHovered();
         const bool time_axis_hovered = bottom && ImPlot::IsAxisHovered(ImAxis_X1);
-        const bool custom_zoom_modifiers = io.KeyMods == ImGuiMod_None
-            || io.KeyMods == ImGuiMod_Ctrl;
-        const bool custom_zoom = io.MouseWheel != 0.0F && custom_zoom_modifiers
-            && (plot_hovered || time_axis_hovered);
+        const bool custom_zoom_modifiers =
+            io.KeyMods == ImGuiMod_None || io.KeyMods == ImGuiMod_Ctrl;
+        const bool custom_zoom =
+            io.MouseWheel != 0.0F && custom_zoom_modifiers && (plot_hovered || time_axis_hovered);
         if (custom_zoom) {
             ImGui::SetItemKeyOwner(ImGuiKey_MouseWheelY);
         }
@@ -1188,10 +1129,8 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
             const double factor = std::pow(1.2, -static_cast<double>(io.MouseWheel));
             const ImPlotPoint mouse = ImPlot::GetPlotMousePos();
             if (plot_hovered) {
-                static_cast<void>(zoom_time_series_position_by_factor(component,
-                    factor, io.KeyMods == ImGuiMod_Ctrl
-                        ? std::optional<double>{mouse.y}
-                        : std::nullopt));
+                static_cast<void>(zoom_time_series_position_by_factor(component, factor,
+                    io.KeyMods == ImGuiMod_Ctrl ? std::optional<double>{mouse.y} : std::nullopt));
             } else {
                 const GpsTime origin = batch.time_origin.value_or(GpsTime{0});
                 const long double mouse_nanoseconds =
@@ -1203,11 +1142,10 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
                         >= static_cast<long double>(std::numeric_limits<std::int64_t>::min())
                     && mouse_nanoseconds
                         <= static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
-                    fixed_time = GpsTime{
-                        static_cast<std::int64_t>(std::llround(mouse_nanoseconds))};
+                    fixed_time =
+                        GpsTime{static_cast<std::int64_t>(std::llround(mouse_nanoseconds))};
                 }
-                static_cast<void>(zoom_time_series_time_by_factor(
-                    factor, fixed_time));
+                static_cast<void>(zoom_time_series_time_by_factor(factor, fixed_time));
             }
         }
         ImPlot::EndPlot();
@@ -1237,14 +1175,12 @@ std::size_t ImPlotComponent::time_series_panel_count() const noexcept
     return time_series_.size();
 }
 
-const std::optional<TrajectoryPlotMetrics>& ImPlotComponent::trajectory_metrics()
-    const noexcept
+const std::optional<TrajectoryPlotMetrics>& ImPlotComponent::trajectory_metrics() const noexcept
 {
     return trajectory_metrics_;
 }
 
-const std::vector<TimeSeriesPanelMetrics>& ImPlotComponent::time_series_metrics()
-    const noexcept
+const std::vector<TimeSeriesPanelMetrics>& ImPlotComponent::time_series_metrics() const noexcept
 {
     return time_series_metrics_;
 }
@@ -1254,14 +1190,12 @@ std::optional<TimeRange> ImPlotComponent::time_series_time_range() const noexcep
     if (time_series_.empty() || !time_series_.front().time_origin.has_value()) {
         return std::nullopt;
     }
-    const long double origin = static_cast<long double>(
-        time_series_.front().time_origin->nanoseconds_since_gps_epoch);
+    const long double origin =
+        static_cast<long double>(time_series_.front().time_origin->nanoseconds_since_gps_epoch);
     const long double minimum = origin
-        + static_cast<long double>(last_time_range_seconds_.minimum)
-            * nanoseconds_per_second;
+        + static_cast<long double>(last_time_range_seconds_.minimum) * nanoseconds_per_second;
     const long double maximum = origin
-        + static_cast<long double>(last_time_range_seconds_.maximum)
-            * nanoseconds_per_second;
+        + static_cast<long double>(last_time_range_seconds_.maximum) * nanoseconds_per_second;
     if (minimum < static_cast<long double>(std::numeric_limits<std::int64_t>::min())
         || maximum > static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
         return std::nullopt;
@@ -1282,8 +1216,7 @@ std::optional<double> ImPlotComponent::consume_window_resize_factor() noexcept
     return factor;
 }
 
-std::optional<TrajectoryResizeRequest>
-ImPlotComponent::consume_trajectory_resize_request() noexcept
+std::optional<TrajectoryResizeRequest> ImPlotComponent::consume_trajectory_resize_request() noexcept
 {
     std::optional<TrajectoryResizeRequest> request = requested_trajectory_resize_;
     requested_trajectory_resize_.reset();

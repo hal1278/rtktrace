@@ -56,8 +56,7 @@ void test_union_and_intersection()
 
     const LoadedFiles empty_files;
     check(!union_time_range(empty_files).has_value(), "empty file list has no union");
-    check(!intersection_time_range(empty_files).has_value(),
-        "empty file list has no intersection");
+    check(!intersection_time_range(empty_files).has_value(), "empty file list has no intersection");
 }
 
 void test_effective_range()
@@ -75,12 +74,10 @@ void test_effective_range()
         "disabled boundaries retain but do not apply entered values");
 
     configured.start_enabled = true;
-    check(effective_time_range(configured, union_range)
-            == TimeRange{GpsTime{15}, GpsTime{30}},
+    check(effective_time_range(configured, union_range) == TimeRange{GpsTime{15}, GpsTime{30}},
         "enabled start uses entered value");
     configured.end_enabled = true;
-    check(effective_time_range(configured, union_range)
-            == TimeRange{GpsTime{15}, GpsTime{25}},
+    check(effective_time_range(configured, union_range) == TimeRange{GpsTime{15}, GpsTime{25}},
         "enabled end uses entered value");
 
     configured.entered_start = GpsTime{35};
@@ -100,8 +97,8 @@ void test_intersection_operation()
     overlapping.push_back(file_with_range("second.pos", 20, 30));
     CommonTimeRange configured;
     check(apply_intersection(configured, overlapping), "inclusive boundary intersection exists");
-    check(configured.start_enabled && configured.end_enabled,
-        "intersection enables both boundaries");
+    check(
+        configured.start_enabled && configured.end_enabled, "intersection enables both boundaries");
     check(configured.entered_start == GpsTime{20} && configured.entered_end == GpsTime{20},
         "intersection operation stores inclusive boundary");
     check(contains(TimeRange{GpsTime{20}, GpsTime{20}}, GpsTime{20}),

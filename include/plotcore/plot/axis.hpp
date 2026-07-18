@@ -43,8 +43,7 @@ enum class PositionComponent : std::uint8_t {
 [[nodiscard]] std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
     const PlotDataView& data, const QualityFilter& filter, PlotAreaSize area) noexcept;
 [[nodiscard]] std::optional<NumericRange> auto_fit_position_component(
-    const PlotDataView& data, const QualityFilter& filter,
-    PositionComponent component) noexcept;
+    const PlotDataView& data, const QualityFilter& filter, PositionComponent component) noexcept;
 [[nodiscard]] std::optional<TimeRange> auto_fit_time_axis(
     const PlotDataView& data, const QualityFilter& filter) noexcept;
 

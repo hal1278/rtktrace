@@ -37,16 +37,15 @@ struct Rgba8 {
 };
 
 // RTKPLOT File 1 defaults, indexed by normalized solution quality.
-inline constexpr std::array<Rgba8, solution_quality_count>
-    rtkplot_file1_quality_colors{
-        Rgba8{192, 192, 192, 255},
-        Rgba8{0, 128, 0, 255},
-        Rgba8{255, 170, 0, 255},
-        Rgba8{255, 0, 255, 255},
-        Rgba8{0, 0, 255, 255},
-        Rgba8{255, 0, 0, 255},
-        Rgba8{0, 128, 128, 255},
-    };
+inline constexpr std::array<Rgba8, solution_quality_count> rtkplot_file1_quality_colors{
+    Rgba8{192, 192, 192, 255},
+    Rgba8{0, 128, 0, 255},
+    Rgba8{255, 170, 0, 255},
+    Rgba8{255, 0, 255, 255},
+    Rgba8{0, 0, 255, 255},
+    Rgba8{255, 0, 0, 255},
+    Rgba8{0, 128, 128, 255},
+};
 
 inline constexpr Rgba8 rtkplot_connection_line_color{192, 192, 192, 255};
 
@@ -100,13 +99,12 @@ struct PlotBatch {
     std::optional<PlotBounds> bounds;
 };
 
-[[nodiscard]] std::array<SolutionQuality, solution_quality_count>
-quality_order_back_to_front(QualityDrawingOrder order) noexcept;
+[[nodiscard]] std::array<SolutionQuality, solution_quality_count> quality_order_back_to_front(
+    QualityDrawingOrder order) noexcept;
 
-[[nodiscard]] PlotBatch build_trajectory_plot_batch(const PlotDataView& data,
-    const QualityFilter& filter, const PlotBatchOptions& options);
+[[nodiscard]] PlotBatch build_trajectory_plot_batch(
+    const PlotDataView& data, const QualityFilter& filter, const PlotBatchOptions& options);
 [[nodiscard]] PlotBatch build_time_series_plot_batch(const PlotDataView& data,
-    const QualityFilter& filter, PositionComponent component,
-    const PlotBatchOptions& options);
+    const QualityFilter& filter, PositionComponent component, const PlotBatchOptions& options);
 
 } // namespace plotcore
