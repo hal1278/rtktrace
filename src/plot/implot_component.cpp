@@ -883,7 +883,7 @@ void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
     ImGui::PopID();
 }
 
-void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize requested_size)
+bool ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize requested_size)
 {
     const std::string plot_id{id};
     render_trajectory_axis_controls(id);
@@ -918,7 +918,7 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     input_map.ZoomRate = 0.0F;
     if (!ImPlot::BeginPlot(plot_id.c_str(), frame_size, ImPlotFlags_NoLegend | ImPlotFlags_Equal)) {
         input_map.ZoomRate = previous_zoom_rate;
-        return;
+        return false;
     }
     ImPlot::SetupAxes(
         "E-W (m)", "N-S (m)", ImPlotAxisFlags_NoGridLines, ImPlotAxisFlags_NoGridLines);
@@ -1020,6 +1020,7 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     }
     ImPlot::EndPlot();
     input_map.ZoomRate = previous_zoom_rate;
+    return true;
 }
 
 void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize requested_size)

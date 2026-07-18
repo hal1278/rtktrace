@@ -95,7 +95,7 @@ public:
     [[nodiscard]] bool zoom_time_series_position_by_factor(PositionComponent component,
         double factor, std::optional<double> fixed_position = std::nullopt) noexcept;
 
-    void render_trajectory(std::string_view id, PlotAreaSize widget_size);
+    bool render_trajectory(std::string_view id, PlotAreaSize widget_size);
     void render_time_series(std::string_view id, PlotAreaSize widget_size);
 
     [[nodiscard]] bool empty() const noexcept;

@@ -88,15 +88,16 @@ int main()
     ImGui::Begin(
         "plot performance", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
     const auto render_start = std::chrono::steady_clock::now();
-    component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
+    const bool trajectory_rendered =
+        component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
     component.render_time_series("Time series", PlotAreaSize{1500.0, 700.0});
     const auto render_end = std::chrono::steady_clock::now();
     ImGui::End();
     ImGui::Render();
 
-    check(component.trajectory_metrics().has_value()
+    check(trajectory_rendered && component.trajectory_metrics().has_value()
             && component.trajectory_metrics()->meters_per_pixel > 0.0,
-        "trajectory rendering reports range, axis length, and meters per pixel");
+        "successful trajectory rendering reports refreshed range, axis length, and scale");
     check(component.time_series_metrics().size() == 3,
         "normal time-series rendering produces linked East, North, and vertical panels");
     check(component.time_series_panel_count() == 3,

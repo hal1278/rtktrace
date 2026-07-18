@@ -23,6 +23,14 @@ namespace {
 
 constexpr std::uintmax_t large_file_threshold_bytes = 100ULL * 1024ULL * 1024ULL;
 constexpr double nanoseconds_per_second = 1'000'000'000.0;
+constexpr double trajectory_axis_size_tolerance_px = 1.0;
+constexpr std::uint8_t maximum_window_manager_no_progress_observations = 2;
+constexpr double minimum_trajectory_resize_response = 0.01;
+constexpr std::uint8_t maximum_non_decreasing_resize_observations = 4;
+constexpr std::uint16_t maximum_trajectory_resize_steps = 24;
+constexpr std::uint8_t maximum_trajectory_rollback_attempts = 2;
+constexpr std::uint8_t maximum_trajectory_settle_attempts = 2;
+constexpr std::uint8_t maximum_trajectory_geometry_failures = 3;
 constexpr std::array position_unit_labels{"km", "m", "mm"};
 constexpr std::array position_unit_scale_m{1000.0, 1.0, 0.001};
 
@@ -125,6 +133,139 @@ void rescale_displayed_positions(
 }
 
 } // namespace
+
+detail::TrajectoryWindowResize detail::trajectory_window_resize(int width, int height,
+    int maximum_width, int maximum_height, const TrajectoryPlotMetrics& metrics,
+    const TrajectoryResizeRequest& request, TrajectoryResizeController& controller) noexcept
+{
+    const auto advance_axis = [](TrajectoryAxisResizeProgress& progress, int outer_size,
+                                  double axis_size, double desired_axis_size,
+                                  int minimum_outer_size, int maximum_outer_size) {
+        if (progress.previous_outer_size.has_value() && progress.previous_axis_size.has_value()) {
+            const double outer_delta = outer_size - *progress.previous_outer_size;
+            const double axis_delta = axis_size - *progress.previous_axis_size;
+            if (std::abs(outer_delta) >= 0.5 && std::abs(axis_delta) >= 0.25
+                && outer_delta * axis_delta > 0.0) {
+                progress.response = std::clamp(
+                    std::abs(axis_delta / outer_delta), minimum_trajectory_resize_response, 1.0);
+            }
+            if (progress.requested_outer_size.has_value()
+                && outer_size != *progress.requested_outer_size && std::abs(outer_delta) < 0.5) {
+                if (progress.no_progress_observations
+                    < maximum_window_manager_no_progress_observations) {
+                    ++progress.no_progress_observations;
+                }
+            } else {
+                progress.no_progress_observations = 0;
+            }
+        }
+        progress.previous_outer_size = outer_size;
+        progress.previous_axis_size = axis_size;
+
+        const double error = desired_axis_size - axis_size;
+        const bool satisfied = std::abs(error) <= trajectory_axis_size_tolerance_px;
+        const bool constrained = !satisfied
+            && ((error > 0.0 && outer_size >= maximum_outer_size)
+                || (error < 0.0 && outer_size <= minimum_outer_size));
+        int requested_outer_size = outer_size;
+        if (!satisfied && !constrained) {
+            const double requested = std::clamp(
+                static_cast<double>(outer_size) + error / progress.response,
+                static_cast<double>(minimum_outer_size), static_cast<double>(maximum_outer_size));
+            requested_outer_size = static_cast<int>(std::lround(requested));
+        }
+        progress.requested_outer_size = requested_outer_size == outer_size
+            ? std::nullopt
+            : std::optional<int>{requested_outer_size};
+        if (satisfied || constrained) {
+            progress.no_progress_observations = 0;
+        }
+        return std::array{requested_outer_size, static_cast<int>(satisfied),
+            static_cast<int>(constrained),
+            static_cast<int>(progress.no_progress_observations
+                >= maximum_window_manager_no_progress_observations)};
+    };
+
+    const std::array east = advance_axis(controller.east, width, metrics.east_axis_length_px,
+        request.desired_east_axis_length_px, light_minimum_window_width, maximum_width);
+    const std::array north = advance_axis(controller.north, height, metrics.north_axis_length_px,
+        request.desired_north_axis_length_px, light_minimum_window_height, maximum_height);
+    const bool axis_size_satisfied = east[1] != 0 && north[1] != 0;
+    const bool constrained = east[2] != 0 || north[2] != 0;
+    const double total_error =
+        std::abs(request.desired_east_axis_length_px - metrics.east_axis_length_px)
+        + std::abs(request.desired_north_axis_length_px - metrics.north_axis_length_px);
+    if (!axis_size_satisfied && !constrained) {
+        ++controller.total_steps;
+        const double progress_epsilon = controller.previous_total_error.has_value()
+            ? std::numeric_limits<double>::epsilon()
+                * std::max(std::abs(*controller.previous_total_error), 1.0) * 16.0
+            : 0.0;
+        if (controller.previous_total_error.has_value()
+            && total_error >= *controller.previous_total_error - progress_epsilon) {
+            if (controller.non_decreasing_error_observations
+                < maximum_non_decreasing_resize_observations) {
+                ++controller.non_decreasing_error_observations;
+            }
+        } else {
+            controller.non_decreasing_error_observations = 0;
+        }
+    } else {
+        controller.non_decreasing_error_observations = 0;
+    }
+    controller.previous_total_error = total_error;
+    const std::array target{east[0], north[0]};
+    const bool cycle = controller.target_before_previous.has_value()
+        && target == *controller.target_before_previous
+        && (!controller.previous_target.has_value() || target != *controller.previous_target);
+    controller.target_before_previous = controller.previous_target;
+    controller.previous_target = target;
+    const bool controller_termination = !axis_size_satisfied && !constrained
+        && (cycle || controller.total_steps >= maximum_trajectory_resize_steps
+            || controller.non_decreasing_error_observations
+                >= maximum_non_decreasing_resize_observations);
+    return detail::TrajectoryWindowResize{east[0], north[0], east[1] != 0 && north[1] != 0,
+        east[2] != 0, north[2] != 0, east[3] != 0 || north[3] != 0, controller_termination};
+}
+
+std::optional<TrajectoryResizeRequest> detail::feasible_axis_range_request(int width, int height,
+    int maximum_width, int maximum_height, const TrajectoryPlotMetrics& metrics,
+    const TrajectoryResizeRequest& request, const TrajectoryResizeController& controller) noexcept
+{
+    struct Candidate {
+        TrajectoryResizeRequest request;
+        double distance;
+    };
+    std::optional<Candidate> best;
+    const auto consider = [&](double meters_per_pixel) {
+        if (!std::isfinite(meters_per_pixel) || meters_per_pixel <= 0.0) {
+            return;
+        }
+        TrajectoryResizeRequest candidate = request;
+        candidate.meters_per_pixel = meters_per_pixel;
+        candidate.desired_east_axis_length_px = request.east.length() / meters_per_pixel;
+        candidate.desired_north_axis_length_px = request.north.length() / meters_per_pixel;
+        const double target_width = width
+            + (candidate.desired_east_axis_length_px - metrics.east_axis_length_px)
+                / controller.east.response;
+        const double target_height = height
+            + (candidate.desired_north_axis_length_px - metrics.north_axis_length_px)
+                / controller.north.response;
+        if (target_width < light_minimum_window_width - trajectory_axis_size_tolerance_px
+            || target_width > maximum_width + trajectory_axis_size_tolerance_px
+            || target_height < light_minimum_window_height - trajectory_axis_size_tolerance_px
+            || target_height > maximum_height + trajectory_axis_size_tolerance_px) {
+            return;
+        }
+        const double distance = std::abs(std::log(meters_per_pixel / request.meters_per_pixel));
+        if (!best.has_value() || distance < best->distance) {
+            best = Candidate{candidate, distance};
+        }
+    };
+    consider(request.east.length() / std::max(metrics.east_axis_length_px, 1.0));
+    consider(request.north.length() / std::max(metrics.north_axis_length_px, 1.0));
+    return best.has_value() ? std::optional<TrajectoryResizeRequest>{best->request} : std::nullopt;
+}
 
 void LightGui::enqueue_file(std::filesystem::path path)
 {
@@ -311,6 +452,50 @@ void LightGui::mark_plot_data_changed(bool fit_axes)
         notify(NotificationLevel::Warning,
             "ENU reference is unavailable for slot 1 in the common time range");
     }
+}
+
+bool LightGui::synchronize_window_maximum(SDL_Window* window)
+{
+    if (window == nullptr) {
+        return false;
+    }
+    const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
+    if (display == 0) {
+        synchronized_maximum_display_ = 0;
+        if (!unknown_display_notification_sent_) {
+            notify(NotificationLevel::Error, "Could not determine the window display");
+            unknown_display_notification_sent_ = true;
+        }
+        return false;
+    }
+    unknown_display_notification_sent_ = false;
+    SDL_Rect usable_bounds;
+    if (!SDL_GetDisplayUsableBounds(display, &usable_bounds)) {
+        if (maximum_sync_failure_display_ != display) {
+            notify(NotificationLevel::Error, "Could not read the display usable bounds");
+            maximum_sync_failure_display_ = display;
+        }
+        return false;
+    }
+    const int maximum_width = std::max(usable_bounds.w, light_minimum_window_width);
+    const int maximum_height = std::max(usable_bounds.h, light_minimum_window_height);
+    if (display == synchronized_maximum_display_ && maximum_width == synchronized_maximum_width_
+        && maximum_height == synchronized_maximum_height_) {
+        return true;
+    }
+    if (!SDL_SetWindowMaximumSize(window, maximum_width, maximum_height)) {
+        if (maximum_sync_failure_display_ != display) {
+            notify(NotificationLevel::Error,
+                "Could not synchronize the window maximum size with the display usable bounds");
+            maximum_sync_failure_display_ = display;
+        }
+        return false;
+    }
+    synchronized_maximum_display_ = display;
+    synchronized_maximum_width_ = maximum_width;
+    synchronized_maximum_height_ = maximum_height;
+    maximum_sync_failure_display_ = 0;
+    return true;
 }
 
 void LightGui::render_toolbar(SDL_Window* window)
@@ -559,7 +744,7 @@ void LightGui::render_view_tabs()
     tab("Both##reference", ViewMode::ReferenceBoth);
 }
 
-void LightGui::render_both(ImPlotComponent& component, std::string_view id_prefix)
+bool LightGui::render_both(ImPlotComponent& component, std::string_view id_prefix)
 {
     const ImVec2 available = ImGui::GetContentRegionAvail();
     constexpr float splitter_width = 6.0F;
@@ -567,7 +752,8 @@ void LightGui::render_both(ImPlotComponent& component, std::string_view id_prefi
     const std::string left_id = std::string{id_prefix} + " trajectory pane";
     ImGui::BeginChild(left_id.c_str(), ImVec2{left_width, available.y}, false);
     const std::string trajectory_id = std::string{id_prefix} + " trajectory";
-    component.render_trajectory(trajectory_id, PlotAreaSize{-1.0, -1.0});
+    const bool trajectory_rendered =
+        component.render_trajectory(trajectory_id, PlotAreaSize{-1.0, -1.0});
     ImGui::EndChild();
     ImGui::SameLine(0.0F, 0.0F);
     const std::string splitter_id = std::string{id_prefix} + " splitter";
@@ -590,10 +776,13 @@ void LightGui::render_both(ImPlotComponent& component, std::string_view id_prefi
     const std::string time_id = std::string{id_prefix} + " time series";
     component.render_time_series(time_id, PlotAreaSize{-1.0, -1.0});
     ImGui::EndChild();
+    return trajectory_rendered;
 }
 
 void LightGui::render_plot_content()
 {
+    normal_trajectory_rendered_this_frame_ = false;
+    relative_trajectory_rendered_this_frame_ = false;
     ImGui::BeginChild("Plot content", ImVec2{0.0F, -(summary_height() + 4.0F)}, true);
     const bool reference = view_mode_ == ViewMode::ReferenceTrajectory
         || view_mode_ == ViewMode::ReferenceTimeSeries || view_mode_ == ViewMode::ReferenceBoth;
@@ -610,22 +799,24 @@ void LightGui::render_plot_content()
     }
     switch (view_mode_) {
     case ViewMode::NormalTrajectory:
-        normal_plot_.render_trajectory("Normal trajectory", PlotAreaSize{-1.0, -1.0});
+        normal_trajectory_rendered_this_frame_ =
+            normal_plot_.render_trajectory("Normal trajectory", PlotAreaSize{-1.0, -1.0});
         break;
     case ViewMode::NormalTimeSeries:
         normal_plot_.render_time_series("Normal time series", PlotAreaSize{-1.0, -1.0});
         break;
     case ViewMode::NormalBoth:
-        render_both(normal_plot_, "Normal");
+        normal_trajectory_rendered_this_frame_ = render_both(normal_plot_, "Normal");
         break;
     case ViewMode::ReferenceTrajectory:
-        relative_plot_.render_trajectory("Reference trajectory", PlotAreaSize{-1.0, -1.0});
+        relative_trajectory_rendered_this_frame_ =
+            relative_plot_.render_trajectory("Reference trajectory", PlotAreaSize{-1.0, -1.0});
         break;
     case ViewMode::ReferenceTimeSeries:
         relative_plot_.render_time_series("Reference time series", PlotAreaSize{-1.0, -1.0});
         break;
     case ViewMode::ReferenceBoth:
-        render_both(relative_plot_, "Reference");
+        relative_trajectory_rendered_this_frame_ = render_both(relative_plot_, "Reference");
         break;
     }
     ImGui::EndChild();
@@ -635,7 +826,8 @@ float LightGui::summary_height() const noexcept
 {
     const std::size_t visible_rows = std::min<std::size_t>(state_.files().size(), 5);
     return ImGui::GetStyle().WindowPadding.y * 2.0F + ImGui::GetFrameHeightWithSpacing()
-        + static_cast<float>(visible_rows) * ImGui::GetTextLineHeightWithSpacing();
+        + static_cast<float>(visible_rows) * ImGui::GetTextLineHeightWithSpacing()
+        + ImGui::GetStyle().ScrollbarSize;
 }
 
 void LightGui::render_summary()
@@ -817,37 +1009,266 @@ void LightGui::render_file_workflow_modals()
 
 void LightGui::apply_window_resize_request(SDL_Window* window)
 {
+    struct WindowGeometry {
+        int width;
+        int height;
+        int maximum_width;
+        int maximum_height;
+    };
+    const auto window_geometry = [this, window](
+                                     bool notify_errors = true) -> std::optional<WindowGeometry> {
+        if (window == nullptr) {
+            return std::nullopt;
+        }
+        int width = 0;
+        int height = 0;
+        if (!SDL_GetWindowSize(window, &width, &height)) {
+            if (notify_errors) {
+                notify(NotificationLevel::Error, "Could not read the window size");
+            }
+            return std::nullopt;
+        }
+        SDL_Rect usable_bounds;
+        const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
+        if (display == 0) {
+            if (notify_errors) {
+                notify(NotificationLevel::Error, "Could not determine the window display");
+            }
+            return std::nullopt;
+        }
+        if (!SDL_GetDisplayUsableBounds(display, &usable_bounds)) {
+            if (notify_errors) {
+                notify(NotificationLevel::Error, "Could not read the display usable bounds");
+            }
+            return std::nullopt;
+        }
+        const int maximum_width = std::max(usable_bounds.w, light_minimum_window_width);
+        const int maximum_height = std::max(usable_bounds.h, light_minimum_window_height);
+        return WindowGeometry{width, height, maximum_width, maximum_height};
+    };
+    const auto trajectory_width_response = [this](bool reference) {
+        const bool both =
+            reference ? view_mode_ == ViewMode::ReferenceBoth : view_mode_ == ViewMode::NormalBoth;
+        return both ? static_cast<double>(both_fraction_) : 1.0;
+    };
+    const auto trajectory_rendered = [this](bool reference) {
+        return reference ? relative_trajectory_rendered_this_frame_
+                         : normal_trajectory_rendered_this_frame_;
+    };
+    const auto apply_target = [](ImPlotComponent& component, const TrajectoryResizeRequest& request,
+                                  const TrajectoryPlotMetrics& metrics) {
+        NumericRange east = request.east;
+        NumericRange north = request.north;
+        if (request.fixed_target == TrajectoryResizeFixedTarget::DisplayScale) {
+            const double east_center = (east.minimum + east.maximum) * 0.5;
+            const double north_center = (north.minimum + north.maximum) * 0.5;
+            const double east_span = request.meters_per_pixel * metrics.east_axis_length_px;
+            const double north_span = request.meters_per_pixel * metrics.north_axis_length_px;
+            east = NumericRange{east_center - east_span * 0.5, east_center + east_span * 0.5};
+            north = NumericRange{north_center - north_span * 0.5, north_center + north_span * 0.5};
+        }
+        return component.set_trajectory_ranges(east, north);
+    };
+    const auto fixed_target_satisfied = [](const TrajectoryResizeRequest& request,
+                                            const TrajectoryPlotMetrics& metrics) {
+        if (request.fixed_target == TrajectoryResizeFixedTarget::DisplayScale) {
+            const double tolerance =
+                std::max(request.meters_per_pixel * 1.0e-6, std::numeric_limits<double>::epsilon());
+            return std::abs(metrics.meters_per_pixel - request.meters_per_pixel) <= tolerance;
+        }
+        const double tolerance = std::max(request.meters_per_pixel, 1.0) * 1.0e-6
+            + request.meters_per_pixel * trajectory_axis_size_tolerance_px;
+        return std::abs(metrics.east.minimum - request.east.minimum) <= tolerance
+            && std::abs(metrics.east.maximum - request.east.maximum) <= tolerance
+            && std::abs(metrics.north.minimum - request.north.minimum) <= tolerance
+            && std::abs(metrics.north.maximum - request.north.maximum) <= tolerance;
+    };
+    const auto request_window_size = [this, window](int width, int height) {
+        if (!synchronize_window_maximum(window)) {
+            return false;
+        }
+        if (!SDL_SetWindowSize(window, width, height)) {
+            notify(NotificationLevel::Error, "Could not resize the window");
+            return false;
+        }
+        if (!SDL_SyncWindow(window)) {
+            notify(NotificationLevel::Warning,
+                "The window manager did not confirm the trajectory resize");
+        }
+        return true;
+    };
     if (pending_trajectory_resize_.has_value()) {
-        ImPlotComponent& component =
-            pending_trajectory_resize_->reference ? relative_plot_ : normal_plot_;
-        if (component.trajectory_metrics().has_value()) {
-            const TrajectoryPlotMetrics& metrics = *component.trajectory_metrics();
-            const TrajectoryResizeRequest& request = pending_trajectory_resize_->request;
-            if (std::abs(metrics.east_axis_length_px - request.desired_east_axis_length_px) > 2.0
-                || std::abs(metrics.north_axis_length_px - request.desired_north_axis_length_px)
-                    > 2.0) {
+        PendingTrajectoryResize& pending = *pending_trajectory_resize_;
+        if (!trajectory_rendered(pending.reference)) {
+            return;
+        }
+        ImPlotComponent& component = pending.reference ? relative_plot_ : normal_plot_;
+        const std::optional<WindowGeometry> geometry = window_geometry(false);
+        if (!geometry.has_value()) {
+            ++pending.geometry_failure_observations;
+            if (pending.geometry_failure_observations == 1) {
                 notify(NotificationLevel::Warning,
-                    request.fixed_target == TrajectoryResizeFixedTarget::DisplayScale
-                        ? "Window or layout constraints prevented the requested trajectory axis "
-                          "range"
-                        : "Window or layout constraints prevented the requested trajectory scale");
+                    "Window geometry is temporarily unavailable; retrying the trajectory resize");
             }
-            NumericRange east = request.east;
-            NumericRange north = request.north;
-            if (request.fixed_target == TrajectoryResizeFixedTarget::DisplayScale) {
-                const double east_center = (east.minimum + east.maximum) * 0.5;
-                const double north_center = (north.minimum + north.maximum) * 0.5;
-                const double east_span = request.meters_per_pixel * metrics.east_axis_length_px;
-                const double north_span = request.meters_per_pixel * metrics.north_axis_length_px;
-                east = NumericRange{east_center - east_span * 0.5, east_center + east_span * 0.5};
-                north =
-                    NumericRange{north_center - north_span * 0.5, north_center + north_span * 0.5};
+            if (pending.geometry_failure_observations >= maximum_trajectory_geometry_failures) {
+                notify(NotificationLevel::Error,
+                    "Window geometry remained unavailable for three rendered frames; the pending "
+                    "trajectory resize was terminated");
+                pending_trajectory_resize_.reset();
             }
-            if (!component.set_trajectory_ranges(east, north)) {
-                notify(NotificationLevel::Warning,
-                    "Could not apply the requested trajectory axis range");
+            return;
+        }
+        pending.geometry_failure_observations = 0;
+        if (!component.trajectory_metrics().has_value()) {
+            return;
+        }
+        const TrajectoryPlotMetrics& metrics = *component.trajectory_metrics();
+        if (pending.phase == PendingTrajectoryResize::Phase::Rollback) {
+            pending.rollback_started = true;
+            const bool restored = geometry->width == pending.initial_width
+                && geometry->height == pending.initial_height;
+            if (!restored && pending.rollback_attempts < maximum_trajectory_rollback_attempts) {
+                ++pending.rollback_attempts;
+                if (request_window_size(pending.initial_width, pending.initial_height)) {
+                    return;
+                }
+                pending.rollback_failed = true;
+            } else if (!restored) {
+                pending.rollback_failed = true;
             }
+            if (pending.rollback_failed) {
+                notify(NotificationLevel::Error,
+                    "Trajectory resize rollback could not restore the initial window geometry; "
+                    "settling at the reached geometry");
+            }
+            pending.request = pending.original_request;
+            if (!apply_target(component, pending.original_request, metrics)) {
+                notify(NotificationLevel::Error,
+                    "Could not settle the trajectory fixed target after resize rollback");
+                pending_trajectory_resize_.reset();
+                return;
+            }
+            pending.phase = PendingTrajectoryResize::Phase::VerifySettle;
+            pending.settle_attempts = 1;
+            return;
+        }
+        if (pending.phase == PendingTrajectoryResize::Phase::VerifySettle) {
+            if (fixed_target_satisfied(pending.request, metrics)) {
+                if (pending.rollback_started && !pending.rollback_failed) {
+                    notify(NotificationLevel::Warning,
+                        "Trajectory resize did not converge; the initial window geometry and fixed "
+                        "target were restored");
+                }
+                pending_trajectory_resize_.reset();
+                return;
+            }
+            if (pending.settle_attempts < maximum_trajectory_settle_attempts
+                && apply_target(component, pending.request, metrics)) {
+                ++pending.settle_attempts;
+                return;
+            }
+            notify(NotificationLevel::Error,
+                pending.rollback_started
+                    ? "Trajectory resize rollback completed, but the fixed target could not be "
+                      "verified"
+                    : "Trajectory resize reached a window constraint, but the fixed target could "
+                      "not be verified");
             pending_trajectory_resize_.reset();
+            return;
+        }
+        const detail::TrajectoryWindowResize resize = detail::trajectory_window_resize(
+            geometry->width, geometry->height, geometry->maximum_width, geometry->maximum_height,
+            metrics, pending.request, pending.controller);
+
+        if (resize.window_manager_no_progress || resize.controller_termination) {
+            notify(NotificationLevel::Warning,
+                resize.window_manager_no_progress
+                    ? "The window manager made no progress; rolling back the trajectory resize"
+                    : "Trajectory resize stopped making progress; restoring the initial window "
+                      "geometry");
+            pending.phase = PendingTrajectoryResize::Phase::Rollback;
+            pending.rollback_started = true;
+            if (request_window_size(pending.initial_width, pending.initial_height)) {
+                pending.rollback_attempts = 1;
+            } else {
+                pending.rollback_failed = true;
+            }
+            return;
+        } else if (resize.east_constrained || resize.north_constrained) {
+            if (pending.request.fixed_target == TrajectoryResizeFixedTarget::AxisRange) {
+                const std::optional<TrajectoryResizeRequest> feasible =
+                    detail::feasible_axis_range_request(geometry->width, geometry->height,
+                        geometry->maximum_width, geometry->maximum_height, metrics,
+                        pending.original_request, pending.controller);
+                if (!feasible.has_value()) {
+                    notify(NotificationLevel::Warning,
+                        "No common trajectory scale can preserve both axis ranges within the "
+                        "window bounds; restoring the initial window geometry");
+                    pending.phase = PendingTrajectoryResize::Phase::Rollback;
+                    pending.rollback_started = true;
+                    if (request_window_size(pending.initial_width, pending.initial_height)) {
+                        pending.rollback_attempts = 1;
+                    } else {
+                        pending.rollback_failed = true;
+                    }
+                    return;
+                }
+                const bool scale_changed =
+                    std::abs(feasible->meters_per_pixel - pending.request.meters_per_pixel)
+                    > pending.request.meters_per_pixel * 1.0e-9;
+                pending.request = *feasible;
+                const double east_response = pending.controller.east.response;
+                const double north_response = pending.controller.north.response;
+                pending.controller = {};
+                pending.controller.east.response = east_response;
+                pending.controller.north.response = north_response;
+                if (scale_changed && !pending.scale_warning_sent) {
+                    notify(NotificationLevel::Warning,
+                        "The requested trajectory scale could not be maintained within the window "
+                        "bounds");
+                    pending.scale_warning_sent = true;
+                }
+                return;
+            }
+            notify(NotificationLevel::Warning,
+                "Window or layout constraints prevented the requested trajectory axis range");
+            pending.request = pending.original_request;
+            if (!apply_target(component, pending.original_request, metrics)) {
+                notify(NotificationLevel::Error,
+                    "Could not settle the trajectory display scale at the constrained window "
+                    "geometry");
+                pending.phase = PendingTrajectoryResize::Phase::Rollback;
+                pending.rollback_started = true;
+                pending.rollback_failed = true;
+                return;
+            }
+            pending.phase = PendingTrajectoryResize::Phase::VerifySettle;
+            pending.settle_attempts = 1;
+            return;
+        } else if (!resize.axis_size_satisfied) {
+            if (!request_window_size(resize.width, resize.height)) {
+                pending.phase = PendingTrajectoryResize::Phase::Rollback;
+                pending.rollback_started = true;
+                pending.rollback_failed = true;
+            }
+            return;
+        } else {
+            if (!apply_target(component, pending.request, metrics)) {
+                notify(NotificationLevel::Warning,
+                    "Could not apply the requested trajectory fixed target; restoring the initial "
+                    "window geometry");
+                pending.phase = PendingTrajectoryResize::Phase::Rollback;
+                pending.rollback_started = true;
+                if (request_window_size(pending.initial_width, pending.initial_height)) {
+                    pending.rollback_attempts = 1;
+                } else {
+                    pending.rollback_failed = true;
+                }
+                return;
+            }
+            pending.phase = PendingTrajectoryResize::Phase::VerifySettle;
+            pending.settle_attempts = 1;
+            return;
         }
     }
 
@@ -862,52 +1283,40 @@ void LightGui::apply_window_resize_request(SDL_Window* window)
     if (!factor.has_value()) {
         factor = relative_plot_.consume_window_resize_factor();
     }
-    if ((!factor.has_value() && !trajectory_resize.has_value()) || window == nullptr) {
-        return;
-    }
-    int width = 0;
-    int height = 0;
-    if (!SDL_GetWindowSize(window, &width, &height)) {
-        notify(NotificationLevel::Error, "Could not read the window size");
-        return;
-    }
-    int maximum_width = 7680;
-    int maximum_height = 4320;
-    SDL_Rect usable_bounds;
-    const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
-    if (display != 0 && SDL_GetDisplayUsableBounds(display, &usable_bounds)) {
-        maximum_width = std::max(usable_bounds.w, light_minimum_window_width);
-        maximum_height = std::max(usable_bounds.h, light_minimum_window_height);
-    }
-    double requested_width_value =
-        factor.has_value() ? static_cast<double>(width) * *factor : static_cast<double>(width);
-    double requested_height_value =
-        factor.has_value() ? static_cast<double>(height) * *factor : static_cast<double>(height);
     if (trajectory_resize.has_value()) {
-        ImPlotComponent& component = reference_resize ? relative_plot_ : normal_plot_;
-        if (!component.trajectory_metrics().has_value()) {
-            notify(
-                NotificationLevel::Warning, "Trajectory drawing area is unavailable for resizing");
+        const std::optional<WindowGeometry> geometry = window_geometry();
+        if (!geometry.has_value()) {
             return;
         }
-        const TrajectoryPlotMetrics& metrics = *component.trajectory_metrics();
-        requested_width_value +=
-            trajectory_resize->desired_east_axis_length_px - metrics.east_axis_length_px;
-        requested_height_value +=
-            trajectory_resize->desired_north_axis_length_px - metrics.north_axis_length_px;
+        PendingTrajectoryResize pending{reference_resize, *trajectory_resize, *trajectory_resize,
+            {}, geometry->width, geometry->height};
+        pending.controller.east.response = trajectory_width_response(reference_resize);
+        pending_trajectory_resize_ = std::move(pending);
+        return;
     }
-    requested_width_value = std::clamp(requested_width_value,
-        static_cast<double>(light_minimum_window_width), static_cast<double>(maximum_width));
-    requested_height_value = std::clamp(requested_height_value,
-        static_cast<double>(light_minimum_window_height), static_cast<double>(maximum_height));
+    if (!factor.has_value() || window == nullptr) {
+        return;
+    }
+    const std::optional<WindowGeometry> geometry = window_geometry();
+    if (!geometry.has_value()) {
+        return;
+    }
+    double requested_width_value = static_cast<double>(geometry->width) * *factor;
+    double requested_height_value = static_cast<double>(geometry->height) * *factor;
+    requested_width_value =
+        std::clamp(requested_width_value, static_cast<double>(light_minimum_window_width),
+            static_cast<double>(geometry->maximum_width));
+    requested_height_value =
+        std::clamp(requested_height_value, static_cast<double>(light_minimum_window_height),
+            static_cast<double>(geometry->maximum_height));
     const int requested_width = static_cast<int>(std::lround(requested_width_value));
     const int requested_height = static_cast<int>(std::lround(requested_height_value));
+    if (!synchronize_window_maximum(window)) {
+        return;
+    }
     if (!SDL_SetWindowSize(window, requested_width, requested_height)) {
         notify(NotificationLevel::Error, "Could not resize the window");
         return;
-    }
-    if (trajectory_resize.has_value()) {
-        pending_trajectory_resize_ = PendingTrajectoryResize{reference_resize, *trajectory_resize};
     }
 }
 
@@ -1393,6 +1802,9 @@ void LightGui::render(SDL_Window* window)
     drain_dialog_paths();
     process_load_queue();
     prepare_plots_if_needed();
+    if (window != nullptr) {
+        static_cast<void>(synchronize_window_maximum(window));
+    }
 
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
