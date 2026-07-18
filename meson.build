@@ -70,7 +70,10 @@ gui_include_directories = include_directories(
 model_include_directories = include_directories('include')
 model_library = static_library(
   'plotcore-model',
-  'src/model/loaded_file.cpp',
+  [
+    'src/model/loaded_file.cpp',
+    'src/model/notification.cpp',
+  ],
   include_directories : model_include_directories,
   install : false,
 )

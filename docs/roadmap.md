@@ -177,17 +177,22 @@ trajectoryおよび3段time-seriesを含む1 frameの時間を継続的に測定
 現在のlight applicationは、GUI framework非依存のapplication state、POS/NMEAのfile
 workflow、100 MiB以上の確認、形式およびNMEA補完dialog、固定layout、slot sidebar、
 6表示モード、Both splitter、共通時刻範囲、ENU基準、reference matching、Hz override、
-Recorded/Expected summary、diagnostic履歴、quality filter、描画設定、auto-fit、および
+Recorded/Expected summary、notification履歴とcaution indicator、quality filter、描画設定、auto-fit、および
 trajectory・時系列の数値range/scale入力を実装済みである。数値入力はEnter確定、
 非編集時3桁・編集中高精度表示、無効値の赤表示とfocus離脱時の有効値復帰、位置および
 scale単位切替に対応し、時系列縦軸rangeの一回適用とtrajectoryの矢印キーpanも提供する。
+summaryは5 slot分の行を確保し、6 slot以上をscroll表示する。Expected値を算出できない行は
+その状態を明示する。時系列はEast、Northおよび鉛直成分を個別に表示選択できる。
 trajectoryと時系列は通常ホイールの中心固定zoom、
 `Ctrl`ホイールのカーソル固定zoomに対応し、時系列ではhover中の縦軸または最下部の
 共有時刻軸だけを変更する。追加読み込み、visibility、並べ替えおよび削除ではplot rangeを
 維持する。4 file × 10,000 sampleのapplication-level headless testでは、全共有pipelineと
 light固定layoutの1 frameを継続的に計測する。window/panel resize時のtrajectory scale維持と
 `Alt`ホイールによるwindow寸法変更も実装済みである。各軸のmin/max/描画px長をplot上部へ
-表示し、min/max上のホイール操作を共通range APIへ接続した。上記の完了条件を満たしている
+表示し、min/max上のホイール操作を対象軸別range APIへ接続した。水平軌跡は表示縮尺優先と
+軸優先を切り替え、scale入力時は描画領域または軸rangeを固定対象として選択できる。window
+寸法が制約へ達した場合は選択された固定対象を保ち、指定rangeを維持できないことを通知する。
+上記の完了条件を満たしている
 ため、Phase 4は完了とする。
 
 ## 7. Phase 5: Light validation and shared-boundary cleanup

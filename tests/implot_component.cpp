@@ -100,6 +100,8 @@ int main()
         "trajectory rendering reports range, axis length, and meters per pixel");
     check(component.time_series_metrics().size() == 3,
         "normal time-series rendering produces linked East, North, and vertical panels");
+    check(component.time_series_panel_count() == 3,
+        "default time-series selection prepares three position panels");
 
     const double requested_scale = component.trajectory_metrics()->meters_per_pixel * 2.0;
     const std::optional<TimeRange> rendered_time = component.time_series_time_range();
@@ -229,6 +231,105 @@ int main()
                   - scale_before_resize)
             < scale_before_resize * 0.01,
         "trajectory keeps meters per pixel when its drawing area is resized");
+
+    ImPlotComponentOptions display_scale_options;
+    display_scale_options.trajectory_range_priority =
+        TrajectoryRangePriority::DisplayScale;
+    component.prepare(data, QualityFilter{}, display_scale_options, false);
+    const TrajectoryPlotMetrics priority_metrics =
+        *component.trajectory_metrics();
+    const NumericRange priority_east{-25.0, 35.0};
+    check(component.apply_trajectory_axis_range(
+            TrajectoryAxis::East, priority_east),
+        "display-scale priority accepts a numeric East trajectory range");
+    const std::optional<TrajectoryResizeRequest> scale_priority_request =
+        component.consume_trajectory_resize_request();
+    check(scale_priority_request.has_value()
+            && scale_priority_request->fixed_target
+                == TrajectoryResizeFixedTarget::DisplayScale
+            && std::abs(scale_priority_request->desired_east_axis_length_px
+                    - priority_east.length()
+                        / priority_metrics.meters_per_pixel)
+                < 0.001
+            && std::abs(scale_priority_request->desired_north_axis_length_px
+                    - priority_metrics.north_axis_length_px)
+                < 0.001,
+        "display-scale priority resizes only the target direction at the existing scale");
+
+    ImPlotComponentOptions fixed_axis_options = display_scale_options;
+    fixed_axis_options.trajectory_scale_fixed_target =
+        TrajectoryScaleFixedTarget::AxisRange;
+    component.prepare(data, QualityFilter{}, fixed_axis_options, false);
+    const TrajectoryPlotMetrics fixed_axis_metrics =
+        *component.trajectory_metrics();
+    const double fixed_axis_scale = fixed_axis_metrics.meters_per_pixel * 0.5;
+    check(component.apply_trajectory_meters_per_pixel(fixed_axis_scale),
+        "axis-range fixed target accepts a numeric trajectory scale");
+    const std::optional<TrajectoryResizeRequest> fixed_axis_request =
+        component.consume_trajectory_resize_request();
+    check(fixed_axis_request.has_value()
+            && fixed_axis_request->fixed_target
+                == TrajectoryResizeFixedTarget::AxisRange
+            && fixed_axis_request->east.minimum
+                == fixed_axis_metrics.east.minimum
+            && fixed_axis_request->east.maximum
+                == fixed_axis_metrics.east.maximum
+            && fixed_axis_request->north.minimum
+                == fixed_axis_metrics.north.minimum
+            && fixed_axis_request->north.maximum
+                == fixed_axis_metrics.north.maximum
+            && std::abs(fixed_axis_request->desired_east_axis_length_px
+                    - fixed_axis_metrics.east.length() / fixed_axis_scale)
+                < 0.001,
+        "axis-range fixed target preserves both ranges and requests a new drawing size");
+
+    ImPlotComponentOptions axis_priority_options;
+    axis_priority_options.trajectory_range_priority =
+        TrajectoryRangePriority::AxisRange;
+    component.prepare(data, QualityFilter{}, axis_priority_options, false);
+    const TrajectoryPlotMetrics before_axis_range =
+        *component.trajectory_metrics();
+    const double requested_east_center =
+        (before_axis_range.east.minimum + before_axis_range.east.maximum) * 0.5
+        + 2.0;
+    const double requested_east_span = before_axis_range.east.length() * 1.25;
+    const NumericRange requested_east{
+        requested_east_center - requested_east_span * 0.5,
+        requested_east_center + requested_east_span * 0.5};
+    check(component.apply_trajectory_axis_range(
+            TrajectoryAxis::East, requested_east),
+        "axis priority accepts a numeric East trajectory range");
+    for (int frame = 0; frame < 3; ++frame) {
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGui::Begin("trajectory axis priority", nullptr,
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+        component.render_trajectory("Trajectory", PlotAreaSize{1200.0, 500.0});
+        ImGui::End();
+        ImGui::Render();
+    }
+    check(std::abs(component.trajectory_metrics()->east.minimum
+                    - requested_east.minimum)
+                < requested_east_span * 0.001
+            && std::abs(component.trajectory_metrics()->east.maximum
+                    - requested_east.maximum)
+                < requested_east_span * 0.001
+            && std::abs(component.trajectory_metrics()->east.length()
+                        / component.trajectory_metrics()->east_axis_length_px
+                    - component.trajectory_metrics()->north.length()
+                        / component.trajectory_metrics()->north_axis_length_px)
+                < component.trajectory_metrics()->meters_per_pixel * 0.001,
+        "axis priority fixes the target range and symmetrically updates the other axis");
+
+    ImPlotComponent selected_panels;
+    ImPlotComponentOptions selected_options;
+    selected_options.show_east = false;
+    selected_options.show_north = true;
+    selected_options.show_vertical = false;
+    selected_panels.prepare(data, QualityFilter{}, selected_options);
+    check(selected_panels.time_series_panel_count() == 1,
+        "time-series selection prepares only enabled position components");
 
     const auto prepare_ms = std::chrono::duration<double, std::milli>(
         prepare_end - prepare_start).count();

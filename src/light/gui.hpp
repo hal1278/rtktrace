@@ -12,6 +12,7 @@
 #include <SDL3/SDL.h>
 
 #include "plotcore/session_state.hpp"
+#include "plotcore/model/notification.hpp"
 #include "plotcore/plot/implot_component.hpp"
 
 namespace plotcore {
@@ -51,12 +52,19 @@ private:
         int date[3]{2026, 1, 1};
     };
 
+    struct PendingTrajectoryResize {
+        bool reference;
+        TrajectoryResizeRequest request;
+    };
+
     static void SDLCALL file_dialog_callback(
         void* userdata, const char* const* filelist, int filter);
 
     void drain_dialog_paths();
     void process_load_queue();
     void attempt_load(PendingLoad load);
+    void notify(NotificationLevel level, std::string message, bool open = false);
+    void record_diagnostics(const std::vector<Diagnostic>& diagnostics);
     void prepare_plots_if_needed();
     void mark_plot_data_changed(bool fit_axes);
 
@@ -68,7 +76,8 @@ private:
     void apply_window_resize_request(SDL_Window* window);
     void render_both(ImPlotComponent& component, std::string_view id_prefix);
     void render_summary();
-    void render_diagnostics_window();
+    [[nodiscard]] float summary_height() const noexcept;
+    void render_notification_window();
     void render_file_workflow_modals();
     void render_time_range_dialog();
     void render_enu_dialog();
@@ -88,7 +97,8 @@ private:
     ViewMode view_mode_{ViewMode::NormalTrajectory};
     StatisticsMode statistics_mode_{StatisticsMode::Recorded};
     bool sidebar_expanded_{false};
-    bool diagnostics_open_{false};
+    bool notifications_open_{false};
+    NotificationHistory notifications_;
     float both_fraction_{0.5F};
     std::string status_message_;
     std::size_t hz_edit_slot_{0};
@@ -100,6 +110,7 @@ private:
     std::deque<PendingLoad> load_queue_;
     std::optional<PendingLoad> modal_load_;
     std::optional<PendingLoad> nmea_decision_;
+    std::optional<PendingTrajectoryResize> pending_trajectory_resize_;
     bool format_popup_requested_{false};
     bool large_file_popup_requested_{false};
     bool nmea_popup_requested_{false};

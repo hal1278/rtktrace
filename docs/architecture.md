@@ -125,7 +125,7 @@ filter適用後のdataをaxis計算と描画で共有する。auto-fitおよびr
 - common time range dialog
 - ENU基準dialog
 - Hz override操作
-- diagnostic履歴
+- notification履歴およびcaution indicator
 - NMEA日付およびジオイド高確認
 - 数値入力control
 - plot toolbarまたはplot control
@@ -290,15 +290,27 @@ lightは概念上、以下を保持する。
 PlotSessionState (shared files, processing configuration, caches and diagnostics)
 LightGui
   file/slot UI state
-  normal trajectory view
-  normal time-series view
-  relative trajectory view
-  relative time-series view
+  notification history
+  shared plot options
+  normal ImPlotComponent (trajectory and time-series view state)
+  relative ImPlotComponent (trajectory and time-series view state)
   selected tab
   Both splitter state
 ```
 
-Both表示は、trajectory plot componentとtime-series plot componentを同一画面へ配置するapplication固有compositionとする。
+Both表示は、選択中の`ImPlotComponent`が持つtrajectoryとtime-seriesを同一画面へ配置する
+application固有compositionとする。時系列のEast、Northおよび鉛直成分の選択はshared plot
+optionsとしてNormal/Relativeの両componentへ適用する。
+
+水平軌跡の表示縮尺優先操作でwindow寸法変更が必要な場合、`ImPlotComponent`は目標range、
+表示縮尺および必要な軸pixel長を含むresize requestを返す。`LightGui`はmain windowの最小寸法と
+display usable boundsを適用してSDL windowをresizeし、次の描画結果の実軸pixel長に対して
+表示縮尺または軸rangeの指定された固定対象を再適用する。寸法制約により利用者指定rangeを
+維持できない場合のnotificationは、このapplication compositionが生成する。
+
+通知履歴はparse diagnosticだけでなく、読み込み結果およびapplication操作の非modal警告も
+`NotificationHistory`へ統合する。Clearは履歴とcaution状態を同時に消去し、windowを開くだけでは
+caution状態を変更しない。
 
 ## 10. plotcore fullのcomposition
 
@@ -459,6 +471,8 @@ GUIを必要としない以下はunit test可能なcomponentとして実装す�
 - Hz推定
 - Expected count
 - axis rangeおよびauto-fit計算
+- notification historyおよびcaution状態
+- trajectory range-priority resize request
 
 plot renderingは、計算部分とgraphics API呼び出しを可能な範囲で分離する。固定済み
 Dear ImGui/ImPlot contextだけを使用するbackend-free testでは、light application stateへ

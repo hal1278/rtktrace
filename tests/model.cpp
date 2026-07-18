@@ -10,6 +10,7 @@
 
 #include "plotcore/model/diagnostic.hpp"
 #include "plotcore/model/loaded_file.hpp"
+#include "plotcore/model/notification.hpp"
 #include "plotcore/model/sample.hpp"
 
 namespace {
@@ -155,6 +156,32 @@ void test_loaded_file()
     check(file.samples.empty() && file.diagnostics.empty(), "loaded file owns sample and diagnostic lists");
 }
 
+void test_notification_history()
+{
+    using namespace plotcore;
+
+    NotificationHistory history;
+    history.add(NotificationLevel::Info, "Loaded survey.pos");
+    check(history.entries().size() == 1 && !history.has_caution(),
+        "informational notification does not raise caution");
+    history.add(Diagnostic{
+        .severity = DiagnosticSeverity::Warning,
+        .code = DiagnosticCode::ChecksumError,
+        .file_name = "receiver.nmea",
+        .source_line_number = 17,
+        .time = std::nullopt,
+        .message = "checksum mismatch",
+        .action = DiagnosticAction::SampleRemoved,
+    });
+    check(history.entries().size() == 2 && history.has_caution()
+            && history.entries().back().message
+                == "receiver.nmea: line 17: checksum mismatch",
+        "warning diagnostic records location and raises caution");
+    history.clear();
+    check(history.entries().empty() && !history.has_caution(),
+        "clearing history also clears caution state");
+}
+
 void test_slots()
 {
     using namespace plotcore;
@@ -196,6 +223,7 @@ int main()
     test_sample_types();
     test_diagnostic();
     test_loaded_file();
+    test_notification_history();
     test_slots();
 
     if (failures != 0) {
