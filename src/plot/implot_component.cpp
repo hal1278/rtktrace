@@ -430,6 +430,16 @@ void draw_rtkplot_grid(const std::vector<double>& x_ticks, const std::vector<dou
 void ImPlotComponent::prepare(const PlotDataView& data, const QualityFilter& filter,
     const ImPlotComponentOptions& options, bool fit_axes)
 {
+    // ImPlot subplot cell IDs shift as rows are added or removed, so preserve view state by
+    // component identity instead of relying on backend plot state.
+    std::array<std::optional<NumericRange>, 5> previous_position_ranges;
+    for (const TimeSeriesPanelMetrics& metrics : time_series_metrics_) {
+        const std::size_t component_index = static_cast<std::size_t>(metrics.component);
+        if (component_index < previous_position_ranges.size()) {
+            previous_position_ranges[component_index] = metrics.position;
+        }
+    }
+    const bool had_rendered_time_series = last_time_axis_length_px_ > 0.0;
     const bool time_layout_changed = options_.vertical_component != options.vertical_component
         || options_.show_east != options.show_east || options_.show_north != options.show_north
         || options_.show_vertical != options.show_vertical
@@ -456,12 +466,40 @@ void ImPlotComponent::prepare(const PlotDataView& data, const QualityFilter& fil
         time_series_.push_back(build_time_series_plot_batch(
             data, filter, PositionComponent::ReferenceRelativeDistance3d, options_.batch));
     }
+    std::vector<PositionComponent> row_components;
+    row_components.reserve(time_series_.size());
+    for (const PlotBatch& batch : time_series_) {
+        row_components.push_back(batch.component.value_or(PositionComponent::Up));
+    }
+    if (row_components != time_series_row_components_) {
+        time_series_row_components_ = std::move(row_components);
+        time_series_row_ratios_.assign(time_series_.size(),
+            time_series_.empty() ? 0.0F : 1.0F / static_cast<float>(time_series_.size()));
+    }
     if (fit_axes) {
         request_fit();
         trajectory_metrics_.reset();
         time_series_metrics_.clear();
     } else if (time_layout_changed) {
-        request_time_series_fit();
+        if (!fit_time_pending_) {
+            if (had_rendered_time_series) {
+                requested_time_limits_seconds_ = last_time_range_seconds_;
+            }
+            for (const PlotBatch& batch : time_series_) {
+                const PositionComponent component = batch.component.value_or(PositionComponent::Up);
+                const std::size_t component_index = static_cast<std::size_t>(component);
+                if (component_index >= requested_position_limits_.size()) {
+                    continue;
+                }
+                if (previous_position_ranges[component_index].has_value()) {
+                    requested_position_limits_[component_index] =
+                        previous_position_ranges[component_index];
+                } else if (batch.bounds.has_value()) {
+                    requested_position_limits_[component_index] =
+                        expand_position_range(batch.bounds->minimum_y, batch.bounds->maximum_y);
+                }
+            }
+        }
         time_series_metrics_.clear();
     }
 }
@@ -472,8 +510,11 @@ void ImPlotComponent::clear() noexcept
     trajectory_.visible_sample_count = 0;
     trajectory_.bounds.reset();
     time_series_.clear();
+    time_series_row_components_.clear();
+    time_series_row_ratios_.clear();
     trajectory_metrics_.reset();
     time_series_metrics_.clear();
+    last_time_series_widget_height_px_ = 0.0;
     last_time_axis_length_px_ = 0.0;
     requested_trajectory_limits_.reset();
     requested_trajectory_resize_.reset();
@@ -823,12 +864,14 @@ void ImPlotComponent::render_trajectory_axis_controls(std::string_view id)
 
 void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
 {
-    if (time_series_metrics_.empty()) {
-        return;
-    }
+    const float control_start_y = ImGui::GetCursorPosY();
+    const std::size_t maximum_component_rows = data_kind_ == PlotDataKind::Relative ? 4U : 3U;
+    const float reserved_height =
+        static_cast<float>(maximum_component_rows + 1) * ImGui::GetTextLineHeightWithSpacing();
     const std::string control_id = "time-axis-controls##" + std::string{id};
     ImGui::PushID(control_id.c_str());
-    if (const std::optional<TimeRange> time = time_series_time_range()) {
+    const std::optional<TimeRange> time = time_series_time_range();
+    if (!time_series_metrics_.empty() && time.has_value()) {
         const double start_seconds =
             static_cast<double>(time->start.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
         const double end_seconds =
@@ -860,16 +903,31 @@ void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
                 static_cast<void>(set_time_series_time_range(adjusted));
             }
         }
+    } else {
+        ImGui::TextDisabled("TIME (GPST) (unavailable)");
     }
-    for (const TimeSeriesPanelMetrics& metrics : time_series_metrics_) {
-        ImGui::TextUnformatted(component_label(metrics.component));
+
+    const std::array canonical_components{PositionComponent::East, PositionComponent::North,
+        options_.vertical_component, PositionComponent::ReferenceRelativeDistance3d};
+    for (std::size_t row = 0; row < maximum_component_rows; ++row) {
+        const PositionComponent component = canonical_components[row];
+        const auto metrics = std::find_if(time_series_metrics_.begin(), time_series_metrics_.end(),
+            [component](
+                const TimeSeriesPanelMetrics& item) { return item.component == component; });
+        ImGui::PushID(static_cast<int>(row));
+        if (metrics == time_series_metrics_.end()) {
+            ImGui::TextDisabled("%s (hidden)", component_label(component));
+            ImGui::PopID();
+            continue;
+        }
+        ImGui::TextUnformatted(component_label(component));
         ImGui::SameLine();
-        const double minimum_wheel = axis_value_wheel("min", metrics.position.minimum, "%.3g");
+        const double minimum_wheel = axis_value_wheel("min", metrics->position.minimum, "%.3g");
         ImGui::SameLine();
-        const double maximum_wheel = axis_value_wheel("max", metrics.position.maximum, "%.3g");
+        const double maximum_wheel = axis_value_wheel("max", metrics->position.maximum, "%.3g");
         ImGui::SameLine();
-        ImGui::TextDisabled("%.0f px", metrics.position_axis_length_px);
-        NumericRange range = metrics.position;
+        ImGui::TextDisabled("%.0f px", metrics->position_axis_length_px);
+        NumericRange range = metrics->position;
         if (minimum_wheel != 0.0) {
             range.minimum += range.length() * 0.01 * minimum_wheel;
         }
@@ -877,10 +935,12 @@ void ImPlotComponent::render_time_series_axis_controls(std::string_view id)
             range.maximum += range.length() * 0.01 * maximum_wheel;
         }
         if (minimum_wheel != 0.0 || maximum_wheel != 0.0) {
-            static_cast<void>(set_time_series_position_range(metrics.component, range));
+            static_cast<void>(set_time_series_position_range(component, range));
         }
+        ImGui::PopID();
     }
     ImGui::PopID();
+    ImGui::SetCursorPosY(std::max(ImGui::GetCursorPosY(), control_start_y + reserved_height));
 }
 
 bool ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize requested_size)
@@ -1065,15 +1125,18 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
     }
     const std::string subplot_id{id};
     if (!ImPlot::BeginSubplots(subplot_id.c_str(), static_cast<int>(time_series_.size()), 1,
-            frame_size, ImPlotSubplotFlags_LinkCols | ImPlotSubplotFlags_NoLegend)) {
+            frame_size,
+            ImPlotSubplotFlags_LinkCols | ImPlotSubplotFlags_NoLegend | ImPlotSubplotFlags_NoResize,
+            time_series_row_ratios_.data())) {
         return;
     }
+    last_time_series_widget_height_px_ = frame_size.y;
     const std::vector<TimeSeriesPanelMetrics> previous_metrics = time_series_metrics_;
     time_series_metrics_.clear();
     for (std::size_t index = 0; index < time_series_.size(); ++index) {
         PlotBatch& batch = time_series_[index];
         const PositionComponent component = batch.component.value_or(PositionComponent::Up);
-        const std::string plot_id = "##panel" + std::to_string(index);
+        const std::string plot_id = "##component-" + std::to_string(static_cast<int>(component));
         ImPlotInputMap& input_map = ImPlot::GetInputMap();
         const float previous_zoom_rate = input_map.ZoomRate;
         input_map.ZoomRate = 0.0F;
@@ -1089,8 +1152,11 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
         NumericRange y_tick_range = batch.bounds.has_value()
             ? expand_position_range(batch.bounds->minimum_y, batch.bounds->maximum_y)
             : NumericRange{-1.0, 1.0};
-        if (!fit_time_pending_ && index < previous_metrics.size()) {
-            y_tick_range = previous_metrics[index].position;
+        const auto previous = std::find_if(previous_metrics.begin(), previous_metrics.end(),
+            [component](
+                const TimeSeriesPanelMetrics& metrics) { return metrics.component == component; });
+        if (!fit_time_pending_ && previous != previous_metrics.end()) {
+            y_tick_range = previous->position;
         }
         const std::size_t component_index = static_cast<std::size_t>(component);
         const std::optional<NumericRange> requested_y =
@@ -1172,6 +1238,28 @@ void ImPlotComponent::render_time_series(std::string_view id, PlotAreaSize reque
     }
     fit_time_pending_ = false;
     ImPlot::EndSubplots();
+    if (time_series_metrics_.size() == time_series_row_ratios_.size()
+        && !time_series_metrics_.empty()) {
+        double average_height = 0.0;
+        for (const TimeSeriesPanelMetrics& metrics : time_series_metrics_) {
+            average_height += metrics.position_axis_length_px;
+        }
+        average_height /= static_cast<double>(time_series_metrics_.size());
+        float ratio_sum = 0.0F;
+        for (std::size_t index = 0; index < time_series_metrics_.size(); ++index) {
+            const double correction =
+                (average_height - time_series_metrics_[index].position_axis_length_px)
+                / std::max(static_cast<double>(frame_size.y), 1.0);
+            time_series_row_ratios_[index] =
+                std::max(time_series_row_ratios_[index] + static_cast<float>(correction), 0.01F);
+            ratio_sum += time_series_row_ratios_[index];
+        }
+        if (ratio_sum > 0.0F) {
+            for (float& ratio : time_series_row_ratios_) {
+                ratio /= ratio_sum;
+            }
+        }
+    }
 }
 
 bool ImPlotComponent::empty() const noexcept
@@ -1202,6 +1290,11 @@ const std::optional<TrajectoryPlotMetrics>& ImPlotComponent::trajectory_metrics(
 const std::vector<TimeSeriesPanelMetrics>& ImPlotComponent::time_series_metrics() const noexcept
 {
     return time_series_metrics_;
+}
+
+double ImPlotComponent::time_series_widget_height_px() const noexcept
+{
+    return last_time_series_widget_height_px_;
 }
 
 std::optional<TimeRange> ImPlotComponent::time_series_time_range() const noexcept

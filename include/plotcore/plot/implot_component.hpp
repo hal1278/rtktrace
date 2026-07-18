@@ -104,6 +104,7 @@ public:
     [[nodiscard]] std::size_t time_series_panel_count() const noexcept;
     [[nodiscard]] const std::optional<TrajectoryPlotMetrics>& trajectory_metrics() const noexcept;
     [[nodiscard]] const std::vector<TimeSeriesPanelMetrics>& time_series_metrics() const noexcept;
+    [[nodiscard]] double time_series_widget_height_px() const noexcept;
     [[nodiscard]] std::optional<TimeRange> time_series_time_range() const noexcept;
     [[nodiscard]] std::optional<double> consume_window_resize_factor() noexcept;
     [[nodiscard]] std::optional<TrajectoryResizeRequest>
@@ -122,6 +123,9 @@ private:
     bool fit_time_pending_{true};
     std::optional<TrajectoryPlotMetrics> trajectory_metrics_;
     std::vector<TimeSeriesPanelMetrics> time_series_metrics_;
+    std::vector<PositionComponent> time_series_row_components_;
+    std::vector<float> time_series_row_ratios_;
+    double last_time_series_widget_height_px_{0.0};
     NumericRange last_time_range_seconds_{0.0, 1.0};
     double last_time_axis_length_px_{0.0};
     std::optional<TrajectoryPlotMetrics> requested_trajectory_limits_;

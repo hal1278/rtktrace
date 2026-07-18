@@ -327,12 +327,143 @@ int main()
 
     ImPlotComponent selected_panels;
     ImPlotComponentOptions selected_options;
-    selected_options.show_east = false;
-    selected_options.show_north = true;
-    selected_options.show_vertical = false;
     selected_panels.prepare(data, QualityFilter{}, selected_options);
-    check(selected_panels.time_series_panel_count() == 1,
-        "time-series selection prepares only enabled position components");
+    const auto render_selected_panels = [&selected_panels, &io]() {
+        for (int frame = 0; frame < 3; ++frame) {
+            ImGui::NewFrame();
+            ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+            ImGui::SetNextWindowSize(io.DisplaySize);
+            ImGui::Begin("selected time-series panels", nullptr,
+                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+            selected_panels.render_time_series("Selected time series", PlotAreaSize{1200.0, 600.0});
+            ImGui::End();
+            ImGui::Render();
+        }
+    };
+    render_selected_panels();
+    const std::optional<TimeRange> fitted_selection_time = selected_panels.time_series_time_range();
+    const std::int64_t selection_time_span =
+        fitted_selection_time->end - fitted_selection_time->start;
+    const TimeRange custom_selection_time{
+        GpsTime{fitted_selection_time->start.nanoseconds_since_gps_epoch + selection_time_span / 4},
+        GpsTime{fitted_selection_time->end.nanoseconds_since_gps_epoch - selection_time_span / 4}};
+    const NumericRange custom_east{-20.0, 20.0};
+    const NumericRange custom_north{-30.0, 30.0};
+    const NumericRange custom_up{-40.0, 40.0};
+    const auto range_matches = [](NumericRange left, NumericRange right) {
+        return std::abs(left.minimum - right.minimum) < 1.0e-9
+            && std::abs(left.maximum - right.maximum) < 1.0e-9;
+    };
+    check(selected_panels.set_time_series_time_range(custom_selection_time)
+            && selected_panels.set_time_series_position_range(PositionComponent::East, custom_east)
+            && selected_panels.set_time_series_position_range(
+                PositionComponent::North, custom_north)
+            && selected_panels.set_time_series_position_range(PositionComponent::Up, custom_up),
+        "time-series selection test accepts custom shared and component ranges");
+    render_selected_panels();
+
+    selected_options.show_east = false;
+    selected_options.show_vertical = false;
+    selected_panels.prepare(data, QualityFilter{}, selected_options, false);
+    render_selected_panels();
+    check(selected_panels.time_series_panel_count() == 1
+            && selected_panels.time_series_metrics().front().component == PositionComponent::North
+            && range_matches(selected_panels.time_series_metrics().front().position, custom_north)
+            && selected_panels.time_series_time_range() == custom_selection_time,
+        "3-to-1 selection preserves shared time and surviving North range by component identity");
+
+    selected_options.show_east = true;
+    selected_panels.prepare(data, QualityFilter{}, selected_options, false);
+    render_selected_panels();
+    const auto selected_east = std::find_if(selected_panels.time_series_metrics().begin(),
+        selected_panels.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
+            return metrics.component == PositionComponent::East;
+        });
+    const auto selected_north = std::find_if(selected_panels.time_series_metrics().begin(),
+        selected_panels.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
+            return metrics.component == PositionComponent::North;
+        });
+    const double panel_height_difference = selected_panels.time_series_metrics().size() == 2
+        ? std::abs(selected_panels.time_series_metrics()[0].position_axis_length_px
+              - selected_panels.time_series_metrics()[1].position_axis_length_px)
+        : std::numeric_limits<double>::infinity();
+    check(selected_panels.time_series_panel_count() == 2
+            && selected_east != selected_panels.time_series_metrics().end()
+            && selected_north != selected_panels.time_series_metrics().end()
+            && range_matches(selected_north->position, custom_north)
+            && !range_matches(selected_east->position, custom_east)
+            && selected_panels.time_series_time_range() == custom_selection_time,
+        "1-to-2 selection preserves the survivor and fits only the newly added East component");
+    check(std::abs(selected_panels.time_series_widget_height_px() - 600.0) < 0.5
+            && panel_height_difference < 2.0,
+        "1-to-2 selection retains the 600 px subplot height and approximately equal panel rows");
+
+    selected_options.show_vertical = true;
+    selected_panels.prepare(data, QualityFilter{}, selected_options, false);
+    render_selected_panels();
+    selected_options.vertical_component = PositionComponent::EllipsoidalHeight;
+    selected_panels.prepare(data, QualityFilter{}, selected_options, false);
+    render_selected_panels();
+    const auto selected_height = std::find_if(selected_panels.time_series_metrics().begin(),
+        selected_panels.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
+            return metrics.component == PositionComponent::EllipsoidalHeight;
+        });
+    const auto preserved_north = std::find_if(selected_panels.time_series_metrics().begin(),
+        selected_panels.time_series_metrics().end(), [](const TimeSeriesPanelMetrics& metrics) {
+            return metrics.component == PositionComponent::North;
+        });
+    check(selected_height != selected_panels.time_series_metrics().end()
+            && preserved_north != selected_panels.time_series_metrics().end()
+            && range_matches(preserved_north->position, custom_north)
+            && !range_matches(selected_height->position, custom_up)
+            && selected_panels.time_series_time_range() == custom_selection_time,
+        "vertical replacement fits only Height while preserving shared time and surviving ranges");
+
+    selected_options.show_east = false;
+    selected_options.show_north = false;
+    selected_options.show_vertical = false;
+    selected_panels.prepare(data, QualityFilter{}, selected_options, false);
+    render_selected_panels();
+    selected_options.show_north = true;
+    selected_panels.prepare(data, QualityFilter{}, selected_options, false);
+    render_selected_panels();
+    check(selected_panels.time_series_panel_count() == 1
+            && selected_panels.time_series_time_range() == custom_selection_time,
+        "shared time range survives a one-to-zero-to-one component selection interval");
+
+    ImPlotComponent auto_height_panels;
+    ImPlotComponentOptions auto_height_options;
+    auto_height_panels.prepare(data, QualityFilter{}, auto_height_options);
+    const auto render_auto_height_panels = [&auto_height_panels, &io]() {
+        for (int frame = 0; frame < 3; ++frame) {
+            ImGui::NewFrame();
+            ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+            ImGui::SetNextWindowSize(io.DisplaySize);
+            ImGui::Begin("auto-height time-series parent", nullptr,
+                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+            ImGui::BeginChild("fixed time-series parent", ImVec2{1200.0F, 800.0F}, false);
+            auto_height_panels.render_time_series(
+                "Auto-height time series", PlotAreaSize{-1.0, -1.0});
+            ImGui::EndChild();
+            ImGui::End();
+            ImGui::Render();
+        }
+    };
+    render_auto_height_panels();
+    const double three_component_widget_height = auto_height_panels.time_series_widget_height_px();
+    auto_height_options.show_east = false;
+    auto_height_options.show_vertical = false;
+    auto_height_panels.prepare(data, QualityFilter{}, auto_height_options, false);
+    render_auto_height_panels();
+    const double one_component_widget_height = auto_height_panels.time_series_widget_height_px();
+    auto_height_options.show_east = true;
+    auto_height_panels.prepare(data, QualityFilter{}, auto_height_options, false);
+    render_auto_height_panels();
+    const double two_component_widget_height = auto_height_panels.time_series_widget_height_px();
+    check(std::abs(three_component_widget_height - one_component_widget_height) < 0.5
+            && std::abs(three_component_widget_height - two_component_widget_height) < 0.5,
+        "canonical visible and hidden control rows keep auto-height subplot constant across "
+        "3-to-1-to-2 selection");
 
     const auto prepare_ms =
         std::chrono::duration<double, std::milli>(prepare_end - prepare_start).count();

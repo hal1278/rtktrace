@@ -554,26 +554,18 @@ void LightGui::render_toolbar(SDL_Window* window)
         plot_options_.vertical_component =
             vertical == 0 ? PositionComponent::Up : PositionComponent::EllipsoidalHeight;
         ++plot_settings_revision_;
-        normal_plot_.request_time_series_fit();
-        relative_plot_.request_time_series_fit();
     }
     ImGui::SameLine();
     if (ImGui::Checkbox("E", &plot_options_.show_east)) {
         ++plot_settings_revision_;
-        normal_plot_.request_time_series_fit();
-        relative_plot_.request_time_series_fit();
     }
     ImGui::SameLine();
     if (ImGui::Checkbox("N", &plot_options_.show_north)) {
         ++plot_settings_revision_;
-        normal_plot_.request_time_series_fit();
-        relative_plot_.request_time_series_fit();
     }
     ImGui::SameLine();
     if (ImGui::Checkbox("V", &plot_options_.show_vertical)) {
         ++plot_settings_revision_;
-        normal_plot_.request_time_series_fit();
-        relative_plot_.request_time_series_fit();
     }
     ImGui::SameLine();
     ImGui::SetNextItemWidth(110.0F);

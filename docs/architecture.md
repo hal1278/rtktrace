@@ -203,6 +203,12 @@ lightは固定数のview stateを持つ。
 
 fullは各plot instanceが1個のview stateを持つ。
 
+時系列subplotのview stateはImPlotのsubplot cell indexまたはbackend内部IDへ永続化を
+委ねない。成分選択または順序の変更ではcell indexに対応する実効IDが変わり得るため、
+`ImPlotComponent`は`PositionComponent`をidentityとして共有time rangeと各成分の
+vertical rangeをsnapshotし、再構成後に明示的に再適用する。このcomponent-keyed stateを
+source of truthとする。
+
 ### 6.3 full固有状態
 
 fullだけが以下を保持する。
