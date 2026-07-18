@@ -477,6 +477,7 @@ void ImPlotComponent::clear() noexcept
     last_time_axis_length_px_ = 0.0;
     requested_trajectory_limits_.reset();
     requested_trajectory_resize_.reset();
+    last_trajectory_widget_size_.reset();
     requested_time_limits_seconds_.reset();
     for (std::optional<NumericRange>& range : requested_position_limits_) {
         range.reset();
@@ -894,6 +895,7 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
     if (frame_size.y <= 0.0F) {
         frame_size.y = available.y;
     }
+    const std::optional<PlotAreaSize> previous_widget_size = last_trajectory_widget_size_;
     const std::optional<TrajectoryPlotMetrics> previous_metrics = trajectory_metrics_;
     const bool limits_requested_this_frame =
         fit_trajectory_pending_ || requested_trajectory_limits_.has_value();
@@ -958,15 +960,31 @@ void ImPlotComponent::render_trajectory(std::string_view id, PlotAreaSize reques
         actual_size.x,
         actual_size.y,
     };
+    last_trajectory_widget_size_ =
+        PlotAreaSize{static_cast<double>(frame_size.x), static_cast<double>(frame_size.y)};
+    const bool east_axis_size_changed = previous_metrics.has_value()
+        && std::abs(previous_metrics->east_axis_length_px - actual_size.x) > 0.5;
+    const bool north_axis_size_changed = previous_metrics.has_value()
+        && std::abs(previous_metrics->north_axis_length_px - actual_size.y) > 0.5;
     if (previous_metrics.has_value() && !limits_requested_this_frame
-        && (std::abs(previous_metrics->east_axis_length_px - actual_size.x) > 0.5
-            || std::abs(previous_metrics->north_axis_length_px - actual_size.y) > 0.5)) {
+        && (east_axis_size_changed || north_axis_size_changed)) {
         if (options_.trajectory_range_priority == TrajectoryRangePriority::DisplayScale) {
             static_cast<void>(set_trajectory_meters_per_pixel(previous_metrics->meters_per_pixel));
         } else {
-            static_cast<void>(apply_trajectory_axis_range(range_priority_axis_,
-                range_priority_axis_ == TrajectoryAxis::East ? previous_metrics->east
-                                                             : previous_metrics->north));
+            const bool widget_width_changed = previous_widget_size.has_value()
+                && std::abs(previous_widget_size->width_px - frame_size.x) > 0.5;
+            const bool widget_height_changed = previous_widget_size.has_value()
+                && std::abs(previous_widget_size->height_px - frame_size.y) > 0.5;
+            TrajectoryAxis resized_axis = range_priority_axis_;
+            if (widget_width_changed != widget_height_changed) {
+                resized_axis = widget_width_changed ? TrajectoryAxis::East : TrajectoryAxis::North;
+            } else if (east_axis_size_changed != north_axis_size_changed) {
+                resized_axis =
+                    east_axis_size_changed ? TrajectoryAxis::East : TrajectoryAxis::North;
+            }
+            static_cast<void>(apply_trajectory_axis_range(resized_axis,
+                resized_axis == TrajectoryAxis::East ? previous_metrics->east
+                                                     : previous_metrics->north));
         }
     }
     if (plot_hovered && io.MouseWheel != 0.0F && custom_zoom_modifiers) {

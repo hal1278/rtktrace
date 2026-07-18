@@ -268,16 +268,19 @@ int main()
         requested_east_center + requested_east_span * 0.5};
     check(component.apply_trajectory_axis_range(TrajectoryAxis::East, requested_east),
         "axis priority accepts a numeric East trajectory range");
-    for (int frame = 0; frame < 3; ++frame) {
-        ImGui::NewFrame();
-        ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
-        ImGui::SetNextWindowSize(io.DisplaySize);
-        ImGui::Begin("trajectory axis priority", nullptr,
-            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
-        component.render_trajectory("Trajectory", PlotAreaSize{1200.0, 500.0});
-        ImGui::End();
-        ImGui::Render();
-    }
+    const auto render_axis_priority = [&component, &io](PlotAreaSize size) {
+        for (int frame = 0; frame < 3; ++frame) {
+            ImGui::NewFrame();
+            ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+            ImGui::SetNextWindowSize(io.DisplaySize);
+            ImGui::Begin("trajectory axis priority", nullptr,
+                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+            component.render_trajectory("Trajectory", size);
+            ImGui::End();
+            ImGui::Render();
+        }
+    };
+    render_axis_priority(PlotAreaSize{1200.0, 500.0});
     check(std::abs(component.trajectory_metrics()->east.minimum - requested_east.minimum)
                 < requested_east_span * 0.001
             && std::abs(component.trajectory_metrics()->east.maximum - requested_east.maximum)
@@ -288,6 +291,38 @@ int main()
                        / component.trajectory_metrics()->north_axis_length_px)
                 < component.trajectory_metrics()->meters_per_pixel * 0.001,
         "axis priority fixes the target range and symmetrically updates the other axis");
+
+    const NumericRange north_before_width_setup = component.trajectory_metrics()->north;
+    check(component.apply_trajectory_axis_range(TrajectoryAxis::North, north_before_width_setup),
+        "axis priority accepts a North range before width-only resize");
+    render_axis_priority(PlotAreaSize{1200.0, 500.0});
+    const TrajectoryPlotMetrics before_width_resize = *component.trajectory_metrics();
+    render_axis_priority(PlotAreaSize{1400.0, 500.0});
+    const TrajectoryPlotMetrics after_width_resize = *component.trajectory_metrics();
+    check(std::abs(after_width_resize.east.minimum - before_width_resize.east.minimum)
+                < before_width_resize.east.length() * 0.001
+            && std::abs(after_width_resize.east.maximum - before_width_resize.east.maximum)
+                < before_width_resize.east.length() * 0.001
+            && std::abs(
+                   after_width_resize.east_axis_length_px - before_width_resize.east_axis_length_px)
+                > 0.5
+            && std::abs(after_width_resize.north_axis_length_px
+                   - before_width_resize.north_axis_length_px)
+                <= 0.5,
+        "axis priority preserves East range on width-only resize even after North was edited");
+
+    const TrajectoryPlotMetrics before_height_resize = *component.trajectory_metrics();
+    render_axis_priority(PlotAreaSize{1400.0, 650.0});
+    const TrajectoryPlotMetrics after_height_resize = *component.trajectory_metrics();
+    check(std::abs(after_height_resize.north.minimum - before_height_resize.north.minimum)
+                < before_height_resize.north.length() * 0.001
+            && std::abs(after_height_resize.north.maximum - before_height_resize.north.maximum)
+                < before_height_resize.north.length() * 0.001,
+        "axis priority preserves North range on height-only resize even after East was preserved");
+    check(std::abs(
+              after_height_resize.north_axis_length_px - before_height_resize.north_axis_length_px)
+            > 0.5,
+        "height-only widget resize changes the North axis pixel length");
 
     ImPlotComponent selected_panels;
     ImPlotComponentOptions selected_options;

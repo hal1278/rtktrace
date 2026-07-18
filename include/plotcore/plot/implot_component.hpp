@@ -126,6 +126,7 @@ private:
     double last_time_axis_length_px_{0.0};
     std::optional<TrajectoryPlotMetrics> requested_trajectory_limits_;
     std::optional<TrajectoryResizeRequest> requested_trajectory_resize_;
+    std::optional<PlotAreaSize> last_trajectory_widget_size_;
     TrajectoryAxis range_priority_axis_{TrajectoryAxis::East};
     std::optional<NumericRange> requested_time_limits_seconds_;
     std::array<std::optional<NumericRange>, 5> requested_position_limits_{};
