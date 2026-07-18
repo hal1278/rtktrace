@@ -337,7 +337,7 @@ PlotWindowId = monotonic uint64 identifier (再利用しない)
 PlotType     = NormalTrajectory | NormalTimeSeries |
                RelativeTrajectory | RelativeTimeSeries
 
-create_plot(PlotType) -> PlotWindowId
+create_plot(PlotType) -> optional PlotWindowId
 set_plot_visible(PlotWindowId, bool)
 erase_plot(PlotWindowId)
 find_plot(PlotWindowId) -> PlotInstance
@@ -434,6 +434,9 @@ shared libraries
   plotcore-plot-gui
   plotcore-session
   plotcore-ui-common
+
+application-state libraries
+  plotcore-full-state
 
 executables
   plotcore-light

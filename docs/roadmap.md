@@ -256,6 +256,12 @@ light固有layoutをshared sessionまたはplot componentから除去できて�
 - 非表示instanceのstateを保持し、再表示できる。
 - 複数instance表示時の性能を測定できる。
 
+Phase 6のfoundationとして、backend非依存の`FullApplicationState`と
+`plotcore-full-state` targetを追加した。4種類の`PlotType`、再利用しないmonotonic
+`PlotWindowId`、instance作成、検索、title変更、表示・非表示、削除、共有quality filter
+revision、および単一`PlotSessionState` ownershipをunit testで検証する。GUI compositionと
+floating plot lifecycleはこのstate API上へ実装する。
+
 ## 9. Phase 7: Full extensions
 
 以下はfullの基本機能完了後に必要性を評価する。

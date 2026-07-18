@@ -140,6 +140,17 @@ session_dep = declare_dependency(
   link_with : session_library,
 )
 
+full_state_library = static_library(
+  'plotcore-full-state',
+  'src/full/application_state.cpp',
+  dependencies : session_dep,
+  install : false,
+)
+full_state_dep = declare_dependency(
+  dependencies : session_dep,
+  link_with : full_state_library,
+)
+
 gui_dependencies = static_library(
   'plotcore-gui-dependencies',
   imgui_sources,
@@ -283,6 +294,15 @@ session_state_test = executable(
 )
 
 test('plotcore-session-state', session_state_test)
+
+full_application_state_test = executable(
+  'plotcore-full-application-state-test',
+  'tests/full_application_state.cpp',
+  dependencies : full_state_dep,
+  install : false,
+)
+
+test('plotcore-full-application-state', full_application_state_test)
 
 statistics_test = executable(
   'plotcore-statistics-test',
