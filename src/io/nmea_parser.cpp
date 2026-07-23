@@ -1,4 +1,4 @@
-#include "plotcore/io/nmea_parser.hpp"
+#include "rtktrace/io/nmea_parser.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -12,10 +12,10 @@
 #include <utility>
 #include <vector>
 
-#include "plotcore/analysis/coordinates.hpp"
-#include "plotcore/analysis/gps_time.hpp"
+#include "rtktrace/analysis/coordinates.hpp"
+#include "rtktrace/analysis/gps_time.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 constexpr std::int64_t nanoseconds_per_second = 1'000'000'000;
@@ -659,4 +659,4 @@ LoadedFile parse_nmea(
     return file;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

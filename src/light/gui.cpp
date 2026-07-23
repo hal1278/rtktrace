@@ -18,7 +18,7 @@
 
 #include "imgui.h"
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 constexpr std::uintmax_t large_file_threshold_bytes = 100ULL * 1024ULL * 1024ULL;
@@ -626,12 +626,12 @@ bool LightGui::render_slot_rail()
             ImGui::SetTooltip("%s", file.source_path.filename().string().c_str());
         }
         if (ImGui::BeginDragDropSource()) {
-            ImGui::SetDragDropPayload("PLOTCORE_SLOT", &slot, sizeof(slot));
+            ImGui::SetDragDropPayload("RTKTRACE_SLOT", &slot, sizeof(slot));
             ImGui::Text("Move slot %zu", slot);
             ImGui::EndDragDropSource();
         }
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PLOTCORE_SLOT")) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RTKTRACE_SLOT")) {
                 const std::size_t from = *static_cast<const std::size_t*>(payload->Data);
                 move = std::pair{from, slot};
             }
@@ -1801,7 +1801,7 @@ void LightGui::render(SDL_Window* window)
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
-    ImGui::Begin("plotcore light", nullptr,
+    ImGui::Begin("rtktrace light", nullptr,
         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
     render_toolbar(window);
     ImGui::Separator();
@@ -1830,4 +1830,4 @@ void LightGui::render(SDL_Window* window)
     render_notification_window();
 }
 
-} // namespace plotcore
+} // namespace rtktrace

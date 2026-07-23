@@ -8,10 +8,10 @@
 #include <type_traits>
 #include <utility>
 
-#include "plotcore/model/diagnostic.hpp"
-#include "plotcore/model/loaded_file.hpp"
-#include "plotcore/model/notification.hpp"
-#include "plotcore/model/sample.hpp"
+#include "rtktrace/model/diagnostic.hpp"
+#include "rtktrace/model/loaded_file.hpp"
+#include "rtktrace/model/notification.hpp"
+#include "rtktrace/model/sample.hpp"
 
 namespace {
 
@@ -27,7 +27,7 @@ void check(bool condition, std::string_view description)
 
 void test_gps_time()
 {
-    using plotcore::GpsTime;
+    using rtktrace::GpsTime;
 
     static_assert(std::is_same_v<decltype(std::declval<GpsTime>().nanoseconds_since_gps_epoch),
         std::int64_t>);
@@ -50,7 +50,7 @@ void test_gps_time()
 
 void test_sample_types()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     constexpr Wgs84Llh llh{0.62, 2.44, 12.5};
     constexpr Ecef ecef{-3'950'000.0, 3'350'000.0, 3'700'000.0};
@@ -94,7 +94,7 @@ void test_sample_types()
 
 void test_diagnostic()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     const Diagnostic located{
         .severity = DiagnosticSeverity::Warning,
@@ -126,7 +126,7 @@ void test_diagnostic()
 
 void test_loaded_file()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     LoadedFile file{std::filesystem::path{"survey.pos"}, InputFormat::Pos};
     check(!file.estimated_hz().has_value(), "estimated Hz initially unknown");
@@ -159,7 +159,7 @@ void test_loaded_file()
 
 void test_notification_history()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     NotificationHistory history;
     history.add(NotificationLevel::Info, "Loaded survey.pos");
@@ -184,7 +184,7 @@ void test_notification_history()
 
 void test_slots()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     LoadedFiles files;
     check(reference_file(files) == nullptr, "empty slots have no reference file");

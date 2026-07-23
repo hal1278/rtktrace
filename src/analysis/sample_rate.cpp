@@ -1,9 +1,9 @@
-#include "plotcore/analysis/sample_rate.hpp"
+#include "rtktrace/analysis/sample_rate.hpp"
 
 #include <algorithm>
 #include <limits>
 
-namespace plotcore {
+namespace rtktrace {
 
 std::optional<double> estimate_sample_rate_hz(
     std::span<const NormalizedSample> samples, std::int64_t rate_min_interval_ns) noexcept
@@ -29,4 +29,4 @@ std::optional<double> estimate_sample_rate_hz(
     return 1'000'000'000.0 / static_cast<double>(minimum_interval_ns);
 }
 
-} // namespace plotcore
+} // namespace rtktrace

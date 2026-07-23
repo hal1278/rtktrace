@@ -11,7 +11,7 @@
 #include "../src/light/gui.hpp"
 #include "imgui.h"
 #include "implot.h"
-#include "plotcore/analysis/coordinates.hpp"
+#include "rtktrace/analysis/coordinates.hpp"
 
 namespace {
 
@@ -23,9 +23,9 @@ bool check(bool condition, const char* message)
     return condition;
 }
 
-[[nodiscard]] plotcore::LoadedFile synthetic_file(std::size_t slot, std::size_t sample_count)
+[[nodiscard]] rtktrace::LoadedFile synthetic_file(std::size_t slot, std::size_t sample_count)
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     LoadedFile file{
         std::filesystem::path{"synthetic-" + std::to_string(slot) + ".pos"}, InputFormat::Pos};
     file.samples.reserve(sample_count);
@@ -56,7 +56,7 @@ bool check(bool condition, const char* message)
 
 int main()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     constexpr std::size_t slot_count = 4;
     constexpr std::size_t samples_per_slot = 10'000;
 
@@ -231,7 +231,7 @@ int main()
         std::chrono::duration<double, std::milli>(setup_end - setup_start).count();
     const double frame_ms =
         std::chrono::duration<double, std::milli>(frame_end - frame_start).count();
-    std::cout << "plotcore light performance: " << slot_count << " slots x " << samples_per_slot
+    std::cout << "rtktrace light performance: " << slot_count << " slots x " << samples_per_slot
               << " samples; pipeline=" << setup_ms << " ms, headless frame=" << frame_ms << " ms\n";
 
     ImPlot::DestroyContext();

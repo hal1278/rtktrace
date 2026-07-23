@@ -6,9 +6,9 @@
 #include <span>
 #include <vector>
 
-#include "plotcore/analysis/common_time_index.hpp"
+#include "rtktrace/analysis/common_time_index.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 struct ReferenceMatchConfiguration {
     bool tolerance_check_enabled;
@@ -28,4 +28,4 @@ struct ReferenceMatch {
     std::span<const NormalizedSample> comparison_samples, SampleRangeIndex comparison_range,
     ReferenceMatchConfiguration configuration);
 
-} // namespace plotcore
+} // namespace rtktrace

@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#include "plotcore/analysis/reference_matching.hpp"
+#include "rtktrace/analysis/reference_matching.hpp"
 
 namespace {
 
@@ -19,23 +19,23 @@ void check(bool condition, std::string_view description)
     }
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns)
+[[nodiscard]] rtktrace::NormalizedSample sample_at(std::int64_t time_ns)
 {
-    return plotcore::NormalizedSample{
-        .time = plotcore::GpsTime{time_ns},
+    return rtktrace::NormalizedSample{
+        .time = rtktrace::GpsTime{time_ns},
         .llh = {},
         .ecef = {},
         .enu = {},
-        .quality = plotcore::SolutionQuality::InvalidOrUnknown,
+        .quality = rtktrace::SolutionQuality::InvalidOrUnknown,
         .source_line_number = 1,
         .continuous_from_previous = false,
     };
 }
 
-[[nodiscard]] plotcore::LoadedFile file_at_times(
+[[nodiscard]] rtktrace::LoadedFile file_at_times(
     std::string_view name, std::initializer_list<std::int64_t> times)
 {
-    plotcore::LoadedFile file{std::filesystem::path{name}, plotcore::InputFormat::Pos};
+    rtktrace::LoadedFile file{std::filesystem::path{name}, rtktrace::InputFormat::Pos};
     for (const std::int64_t time : times) {
         file.samples.push_back(sample_at(time));
     }
@@ -44,7 +44,7 @@ void check(bool condition, std::string_view description)
 
 void test_sample_range_index()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector samples{sample_at(0), sample_at(10), sample_at(20), sample_at(30)};
 
     const std::optional<SampleRangeIndex> middle =
@@ -65,7 +65,7 @@ void test_sample_range_index()
 
 void test_common_time_range_cache()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     LoadedFiles files;
     files.push_back(file_at_times("one.pos", {0, 10, 20}));
     files.push_back(file_at_times("two.pos", {5, 15, 25}));
@@ -95,7 +95,7 @@ void test_common_time_range_cache()
 
 void test_reference_matching_without_tolerance()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector references{sample_at(10), sample_at(20), sample_at(30)};
     const std::vector comparisons{
         sample_at(5),
@@ -128,7 +128,7 @@ void test_reference_matching_without_tolerance()
 
 void test_reference_range_and_tolerance()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector references{sample_at(10), sample_at(20), sample_at(20), sample_at(30)};
     const std::vector comparisons{
         sample_at(15),
@@ -162,7 +162,7 @@ void test_reference_range_and_tolerance()
 
 void test_invalid_matching_inputs()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector ordered{sample_at(0), sample_at(10)};
     const std::vector unsorted{sample_at(10), sample_at(0)};
     check(!match_reference_epochs(ordered, SampleRangeIndex{0, 3}, ordered, SampleRangeIndex{0, 2},

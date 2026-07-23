@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string_view>
 
-#include "plotcore/analysis/gps_time.hpp"
+#include "rtktrace/analysis/gps_time.hpp"
 
 namespace {
 
@@ -21,7 +21,7 @@ void check(bool condition, std::string_view description)
 
 void test_fraction_rounding()
 {
-    using plotcore::round_fractional_seconds_to_nanoseconds;
+    using rtktrace::round_fractional_seconds_to_nanoseconds;
 
     check(round_fractional_seconds_to_nanoseconds("") == 0, "omitted fraction is zero");
     check(round_fractional_seconds_to_nanoseconds("1") == 100'000'000,
@@ -40,11 +40,11 @@ void test_fraction_rounding()
 
 void test_gps_epoch_and_current_offset()
 {
-    using plotcore::utc_civil_to_gps_time;
-    using plotcore::UtcCivilTime;
+    using rtktrace::utc_civil_to_gps_time;
+    using rtktrace::UtcCivilTime;
 
     const auto epoch = utc_civil_to_gps_time(UtcCivilTime{1980, 1, 6, 0, 0, 0, 0});
-    check(epoch == plotcore::GpsTime{0}, "GPS epoch UTC maps to zero");
+    check(epoch == rtktrace::GpsTime{0}, "GPS epoch UTC maps to zero");
 
     const auto current = utc_civil_to_gps_time(UtcCivilTime{2017, 1, 1, 0, 0, 0, 250});
     check(current.has_value(), "post-2017 UTC converts to GPST");
@@ -60,8 +60,8 @@ void test_gps_epoch_and_current_offset()
 
 void test_leap_second_continuity()
 {
-    using plotcore::utc_civil_to_gps_time;
-    using plotcore::UtcCivilTime;
+    using rtktrace::utc_civil_to_gps_time;
+    using rtktrace::UtcCivilTime;
 
     const auto before = utc_civil_to_gps_time(UtcCivilTime{2016, 12, 31, 23, 59, 59, 0});
     const auto leap = utc_civil_to_gps_time(UtcCivilTime{2016, 12, 31, 23, 59, 60, 0});
@@ -117,8 +117,8 @@ void test_leap_second_continuity()
 
 void test_invalid_utc()
 {
-    using plotcore::utc_civil_to_gps_time;
-    using plotcore::UtcCivilTime;
+    using rtktrace::utc_civil_to_gps_time;
+    using rtktrace::UtcCivilTime;
 
     check(!utc_civil_to_gps_time(UtcCivilTime{1979, 12, 31, 23, 59, 59, 0}).has_value(),
         "UTC before GPS epoch is rejected");
@@ -136,13 +136,13 @@ void test_invalid_utc()
 
 void test_gps_civil_time()
 {
-    using plotcore::gps_civil_to_gps_time;
-    using plotcore::GpsCivilTime;
+    using rtktrace::gps_civil_to_gps_time;
+    using rtktrace::GpsCivilTime;
 
-    check(gps_civil_to_gps_time(GpsCivilTime{1980, 1, 6, 0, 0, 0, 0}) == plotcore::GpsTime{0},
+    check(gps_civil_to_gps_time(GpsCivilTime{1980, 1, 6, 0, 0, 0, 0}) == rtktrace::GpsTime{0},
         "GPS civil epoch maps to zero without a UTC offset");
     check(gps_civil_to_gps_time(GpsCivilTime{1980, 1, 7, 0, 0, 0, 25})
-            == plotcore::GpsTime{86'400 * second_ns + 25},
+            == rtktrace::GpsTime{86'400 * second_ns + 25},
         "GPS civil time is interpreted directly as GPST");
     check(!gps_civil_to_gps_time(GpsCivilTime{2023, 2, 29, 0, 0, 0, 0}).has_value(),
         "invalid GPS civil date is rejected");

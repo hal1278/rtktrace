@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string_view>
 
-#include "plotcore/analysis/common_time_range.hpp"
+#include "rtktrace/analysis/common_time_range.hpp"
 
 namespace {
 
@@ -17,23 +17,23 @@ void check(bool condition, std::string_view description)
     }
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns)
+[[nodiscard]] rtktrace::NormalizedSample sample_at(std::int64_t time_ns)
 {
-    return plotcore::NormalizedSample{
-        .time = plotcore::GpsTime{time_ns},
+    return rtktrace::NormalizedSample{
+        .time = rtktrace::GpsTime{time_ns},
         .llh = {},
         .ecef = {},
         .enu = {},
-        .quality = plotcore::SolutionQuality::InvalidOrUnknown,
+        .quality = rtktrace::SolutionQuality::InvalidOrUnknown,
         .source_line_number = 1,
         .continuous_from_previous = false,
     };
 }
 
-[[nodiscard]] plotcore::LoadedFile file_with_range(
+[[nodiscard]] rtktrace::LoadedFile file_with_range(
     const char* name, std::int64_t start_ns, std::int64_t end_ns)
 {
-    plotcore::LoadedFile file{std::filesystem::path{name}, plotcore::InputFormat::Pos};
+    rtktrace::LoadedFile file{std::filesystem::path{name}, rtktrace::InputFormat::Pos};
     file.samples.push_back(sample_at(start_ns));
     file.samples.push_back(sample_at(end_ns));
     return file;
@@ -41,7 +41,7 @@ void check(bool condition, std::string_view description)
 
 void test_union_and_intersection()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     LoadedFiles files;
     files.emplace_back(std::filesystem::path{"empty.pos"}, InputFormat::Pos);
@@ -61,7 +61,7 @@ void test_union_and_intersection()
 
 void test_effective_range()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     const TimeRange union_range{GpsTime{10}, GpsTime{30}};
     CommonTimeRange configured;
@@ -90,7 +90,7 @@ void test_effective_range()
 
 void test_intersection_operation()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     LoadedFiles overlapping;
     overlapping.push_back(file_with_range("first.pos", 10, 20));

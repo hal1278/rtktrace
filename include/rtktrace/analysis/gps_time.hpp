@@ -4,9 +4,9 @@
 #include <optional>
 #include <string_view>
 
-#include "plotcore/model/sample.hpp"
+#include "rtktrace/model/sample.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 struct UtcCivilTime {
     int year;
@@ -35,4 +35,4 @@ struct GpsCivilTime {
 [[nodiscard]] std::optional<GpsTime> utc_civil_to_gps_time(UtcCivilTime utc) noexcept;
 [[nodiscard]] std::optional<GpsTime> gps_civil_to_gps_time(GpsCivilTime gps) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

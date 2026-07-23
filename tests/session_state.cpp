@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string_view>
 
-#include "plotcore/session_state.hpp"
+#include "rtktrace/session_state.hpp"
 
 namespace {
 
@@ -20,18 +20,18 @@ void check(bool condition, std::string_view description)
     }
 }
 
-[[nodiscard]] plotcore::LoadedFile parsed_file(std::string_view name, double longitude_offset)
+[[nodiscard]] rtktrace::LoadedFile parsed_file(std::string_view name, double longitude_offset)
 {
     std::ostringstream text;
     text << "0 0.0 35.0 " << 139.0 + longitude_offset << " 10.0 1\n"
          << "0 1.0 35.0 " << 139.0 + longitude_offset << " 11.0 2\n";
     std::istringstream input{text.str()};
-    return plotcore::parse_pos(input, std::filesystem::path{name});
+    return rtktrace::parse_pos(input, std::filesystem::path{name});
 }
 
 void test_format_detection()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     check(infer_input_format("solution.POS") == InputFormat::Pos,
         "POS extension detection is case-insensitive");
     check(infer_input_format("receiver.gga") == InputFormat::Nmea,
@@ -42,7 +42,7 @@ void test_format_detection()
 
 void test_processing_pipeline_and_slots()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     PlotSessionState state;
     check(state.add_loaded_file(parsed_file("one.pos", 0.0))
             && state.add_loaded_file(parsed_file("two.pos", 0.00001)),
@@ -73,7 +73,7 @@ void test_processing_pipeline_and_slots()
 
 void test_configuration_validation()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     PlotSessionState state;
     static_cast<void>(state.add_loaded_file(parsed_file("one.pos", 0.0)));
     CommonTimeRange invalid;

@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string_view>
 
-#include "plotcore/io/pos_parser.hpp"
+#include "rtktrace/io/pos_parser.hpp"
 
 namespace {
 
@@ -20,10 +20,10 @@ void check(bool condition, std::string_view description)
 }
 
 [[nodiscard]] std::size_t diagnostic_count(
-    const plotcore::LoadedFile& file, plotcore::DiagnosticCode code)
+    const rtktrace::LoadedFile& file, rtktrace::DiagnosticCode code)
 {
     std::size_t count = 0;
-    for (const plotcore::Diagnostic& diagnostic : file.diagnostics) {
+    for (const rtktrace::Diagnostic& diagnostic : file.diagnostics) {
         if (diagnostic.code == code) {
             ++count;
         }
@@ -33,7 +33,7 @@ void check(bool condition, std::string_view description)
 
 void test_time_formats_and_quality()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     std::istringstream input{"  % ignored header\n"
                              "\n"
@@ -68,7 +68,7 @@ void test_time_formats_and_quality()
 
 void test_partial_loading_and_normalization()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     std::istringstream input{"0 0.000 35 139 10 1\n"
                              "0 0.500 invalid 139 10 1\n"
@@ -106,7 +106,7 @@ void test_partial_loading_and_normalization()
 
 void test_rejected_input()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     std::istringstream empty{"% header only\n"};
     const LoadedFile rejected = parse_pos(empty, "empty.pos");
@@ -125,7 +125,7 @@ void test_rejected_input()
 
 void test_pos_fixture(const char* path)
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     std::ifstream input{path};
     check(input.is_open(), "fictional POS fixture opens");

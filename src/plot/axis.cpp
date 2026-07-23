@@ -1,10 +1,10 @@
-#include "plotcore/plot/axis.hpp"
+#include "rtktrace/plot/axis.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 struct Bounds {
@@ -189,4 +189,4 @@ std::optional<TimeRange> auto_fit_time_axis(
     return TimeRange{*minimum, *maximum};
 }
 
-} // namespace plotcore
+} // namespace rtktrace

@@ -1,10 +1,10 @@
-#include "plotcore/analysis/statistics.hpp"
+#include "rtktrace/analysis/statistics.hpp"
 
 #include <cmath>
 #include <limits>
 #include <numeric>
 
-namespace plotcore {
+namespace rtktrace {
 
 RecordedStatistics calculate_recorded_statistics(
     std::span<const NormalizedSample> samples, TimeRange range) noexcept
@@ -65,4 +65,4 @@ std::optional<double> quality_percentage(
     return static_cast<double>(quality_count) / static_cast<double>(denominator) * 100.0;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

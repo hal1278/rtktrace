@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#include "plotcore/analysis/statistics.hpp"
+#include "rtktrace/analysis/statistics.hpp"
 
 namespace {
 
@@ -19,11 +19,11 @@ void check(bool condition, std::string_view description)
     }
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(
-    std::int64_t time_ns, plotcore::SolutionQuality quality)
+[[nodiscard]] rtktrace::NormalizedSample sample_at(
+    std::int64_t time_ns, rtktrace::SolutionQuality quality)
 {
-    return plotcore::NormalizedSample{
-        .time = plotcore::GpsTime{time_ns},
+    return rtktrace::NormalizedSample{
+        .time = rtktrace::GpsTime{time_ns},
         .llh = {},
         .ecef = {},
         .enu = {},
@@ -40,7 +40,7 @@ void check(bool condition, std::string_view description)
 
 void test_recorded_statistics()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     const std::vector samples{
         sample_at(0, SolutionQuality::Fixed),
@@ -71,7 +71,7 @@ void test_recorded_statistics()
 
 void test_expected_count()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     check(calculate_expected_sample_count(TimeRange{GpsTime{0}, GpsTime{3'000'000'000}}, 1.0) == 4,
         "expected count includes both endpoints");
@@ -94,14 +94,14 @@ void test_expected_count()
 
 void test_percentages()
 {
-    const std::optional<double> recorded = plotcore::quality_percentage(1, 4);
+    const std::optional<double> recorded = rtktrace::quality_percentage(1, 4);
     check(recorded.has_value() && near(*recorded, 25.0),
         "quality percentage uses the supplied denominator");
 
-    const std::optional<double> over_expected = plotcore::quality_percentage(5, 4);
+    const std::optional<double> over_expected = rtktrace::quality_percentage(5, 4);
     check(over_expected.has_value() && near(*over_expected, 125.0),
         "quality percentage is not clamped to 100 percent");
-    check(!plotcore::quality_percentage(0, 0).has_value(), "zero denominator has no percentage");
+    check(!rtktrace::quality_percentage(0, 0).has_value(), "zero denominator has no percentage");
 }
 
 } // namespace

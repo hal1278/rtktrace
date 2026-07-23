@@ -8,10 +8,10 @@
 #include <variant>
 #include <vector>
 
-#include "plotcore/analysis/common_time_index.hpp"
-#include "plotcore/analysis/relative.hpp"
+#include "rtktrace/analysis/common_time_index.hpp"
+#include "rtktrace/analysis/relative.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class PlotDataKind : std::uint8_t {
     Normal,
@@ -57,4 +57,4 @@ struct PlotDataView {
 [[nodiscard]] std::optional<PlotDataView> make_relative_plot_data_view(
     const LoadedFiles& files, const RelativeCache& relative_cache);
 
-} // namespace plotcore
+} // namespace rtktrace

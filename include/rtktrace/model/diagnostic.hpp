@@ -5,9 +5,9 @@
 #include <optional>
 #include <string>
 
-#include "plotcore/model/sample.hpp"
+#include "rtktrace/model/sample.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class DiagnosticSeverity : std::uint8_t {
     Info,
@@ -57,4 +57,4 @@ struct Diagnostic {
     DiagnosticAction action;
 };
 
-} // namespace plotcore
+} // namespace rtktrace

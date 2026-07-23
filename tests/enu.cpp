@@ -6,7 +6,7 @@
 #include <numbers>
 #include <string_view>
 
-#include "plotcore/analysis/enu.hpp"
+#include "rtktrace/analysis/enu.hpp"
 
 namespace {
 
@@ -25,13 +25,13 @@ void check(bool condition, std::string_view description)
     return std::abs(actual - expected) <= tolerance;
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns, plotcore::Wgs84Llh llh,
-    plotcore::SolutionQuality quality = plotcore::SolutionQuality::Fixed)
+[[nodiscard]] rtktrace::NormalizedSample sample_at(std::int64_t time_ns, rtktrace::Wgs84Llh llh,
+    rtktrace::SolutionQuality quality = rtktrace::SolutionQuality::Fixed)
 {
-    return plotcore::NormalizedSample{
-        .time = plotcore::GpsTime{time_ns},
+    return rtktrace::NormalizedSample{
+        .time = rtktrace::GpsTime{time_ns},
         .llh = llh,
-        .ecef = plotcore::wgs84_llh_to_ecef(llh),
+        .ecef = rtktrace::wgs84_llh_to_ecef(llh),
         .enu = {},
         .quality = quality,
         .source_line_number = 1,
@@ -39,19 +39,19 @@ void check(bool condition, std::string_view description)
     };
 }
 
-[[nodiscard]] plotcore::LoadedFile file_with_samples(
-    std::string_view name, std::initializer_list<plotcore::NormalizedSample> samples)
+[[nodiscard]] rtktrace::LoadedFile file_with_samples(
+    std::string_view name, std::initializer_list<rtktrace::NormalizedSample> samples)
 {
-    plotcore::LoadedFile file{std::filesystem::path{name}, plotcore::InputFormat::Pos};
+    rtktrace::LoadedFile file{std::filesystem::path{name}, rtktrace::InputFormat::Pos};
     file.samples.assign(samples);
     return file;
 }
 
 [[nodiscard]] std::size_t diagnostic_count(
-    const plotcore::LoadedFile& file, plotcore::DiagnosticCode code)
+    const rtktrace::LoadedFile& file, rtktrace::DiagnosticCode code)
 {
     std::size_t count = 0;
-    for (const plotcore::Diagnostic& diagnostic : file.diagnostics) {
+    for (const rtktrace::Diagnostic& diagnostic : file.diagnostics) {
         if (diagnostic.code == code) {
             ++count;
         }
@@ -61,7 +61,7 @@ void check(bool condition, std::string_view description)
 
 void test_slot_reference_methods()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     constexpr double pi = std::numbers::pi_v<double>;
     const Wgs84Llh first{35.0 * pi / 180.0, 139.0 * pi / 180.0, 10.0};
     const Wgs84Llh middle{35.1 * pi / 180.0, 139.1 * pi / 180.0, 20.0};
@@ -109,7 +109,7 @@ void test_slot_reference_methods()
 
 void test_user_specified_reference()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     constexpr double pi = std::numbers::pi_v<double>;
     EnuReferenceConfiguration llh_configuration{
         .method = EnuReferenceMethod::UserSpecified,
@@ -149,7 +149,7 @@ void test_user_specified_reference()
 
 void test_cache_rebuild_and_retention()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     constexpr double pi = std::numbers::pi_v<double>;
     const Wgs84Llh first_reference{35.0 * pi / 180.0, 139.0 * pi / 180.0, 10.0};
     const Wgs84Llh second_reference{36.0 * pi / 180.0, 140.0 * pi / 180.0, 20.0};

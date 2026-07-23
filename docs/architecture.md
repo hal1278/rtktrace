@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-本書は、`plotcore light`および`plotcore full`が共有する実装境界、application target、依存方向、状態所有および実装上の決定事項を定義する。
+本書は、`rtktrace light`および`rtktrace full`が共有する実装境界、application target、依存方向、状態所有および実装上の決定事項を定義する。
 
 利用者から見える動作は`requirements.md`、入力データの意味および計算規則は`data-specification.md`、実装順序と完了条件は`roadmap.md`で定義する。
 
@@ -21,17 +21,17 @@
 
 ## 3. Application target
 
-### 3.1 plotcore light
+### 3.1 rtktrace light
 
-`plotcore light`は最初に実装するapplication targetである。
+`rtktrace light`は最初に実装するapplication targetである。
 
 lightは固定的で簡潔なwindow layoutを構成し、固定数のplot view stateを保持する。通常表示、基準相対表示、水平軌跡、時系列およびBoth表示の切り替えをapplication layerで管理する。
 
 lightは共有plot componentを固定layoutへ配置する。共有plot componentはtab、Both表示またはsplitterの存在を認識しない。
 
-### 3.2 plotcore full
+### 3.2 rtktrace full
 
-`plotcore full`はlightの後に実装するapplication targetである。
+`rtktrace full`はlightの後に実装するapplication targetである。
 
 fullは以下の4種類のplot instanceを任意個保持する。
 
@@ -145,8 +145,8 @@ application layerはdata modelおよび共有componentを利用するが、共�
 依存方向は概念上、以下とする。矢印は利用側から依存先を指す。
 
 ```text
-plotcore-light / plotcore-full -> shared UI / plot
-plotcore-light / plotcore-full -> I/O
+rtktrace-light / rtktrace-full -> shared UI / plot
+rtktrace-light / rtktrace-full -> I/O
 shared UI / plot              -> model / analysis
 I/O                           -> model / analysis
 analysis                      -> model
@@ -288,7 +288,7 @@ matching設定およびslot構成が同じ場合は再matchingしない。
 
 axis range、zoom、pan、draw modeその他のview state変更では、parser、座標正規化およびreference matchingを再実行しない。
 
-## 9. plotcore lightのcomposition
+## 9. rtktrace lightのcomposition
 
 lightは概念上、以下を保持する。
 
@@ -318,7 +318,7 @@ display usable boundsを適用してSDL windowをresizeし、次の描画結果�
 `NotificationHistory`へ統合する。Clearは履歴とcaution状態を同時に消去し、windowを開くだけでは
 caution状態を変更しない。
 
-## 10. plotcore fullのcomposition
+## 10. rtktrace fullのcomposition
 
 fullは概念上、以下を保持する。
 
@@ -401,13 +401,13 @@ backend選定によって、I/O、model、analysisおよびdata specificationを
 
 Nix flakeがcompiler、linker、build tool、target sysrootおよび全external dependencyのversionとsource revisionを固定する。Linux native buildとLinuxからWindows x86-64へのcross buildは同じtop-level `meson.build`とsource listを使用する。
 
-`plotcore`本体のbuildにはCMakeを使用しない。external dependencyが自身のupstream build工程で使用するbuild systemは制限せず、Nix derivation内でCMakeを使用してよい。
+`rtktrace`本体のbuildにはCMakeを使用しない。external dependencyが自身のupstream build工程で使用するbuild systemは制限せず、Nix derivation内でCMakeを使用してよい。
 
 Mesonのexternal dependency探索方法はdependencyごとに明示的に固定する。Meson Wrap、subproject fallback、`method : 'auto'`およびbuild時downloadを使用しない。必要なdependencyを解決できない場合はconfigure時に失敗させる。
 
 ## 13. Threading
 
-初期実装はsingle-threadedとする。shared data-processing functionは同期的に実行し、呼出元threadへ結果を返す。初期`plotcore light`ではapplicationのUI threadからこれらのfunctionを呼び出してよい。
+初期実装はsingle-threadedとする。shared data-processing functionは同期的に実行し、呼出元threadへ結果を返す。初期`rtktrace light`ではapplicationのUI threadからこれらのfunctionを呼び出してよい。
 
 初期実装へworker thread、task queue、future、callbackまたは非同期job stateを導入しない。
 
@@ -435,33 +435,33 @@ downsamplingを評価し、data-processing workerでrenderer bottleneckを隠さ
 
 ## 14. Build target
 
-application executable target名は`plotcore-light`とする。ImPlot依存の共有描画componentは
-`plotcore-plot-gui`、graphics API非依存のdata view、axisおよびbatch処理は
-`plotcore-plot`へ分離する。lightとfullが共有するfile workflowと処理pipelineの状態管理は、
-GUI frameworkへ依存しない`plotcore-session`へ分離する。headless ImPlot regression
-testはapplicationと同じ`plotcore-plot-gui`を使用する。
+application executable target名は`rtktrace-light`とする。ImPlot依存の共有描画componentは
+`rtktrace-plot-gui`、graphics API非依存のdata view、axisおよびbatch処理は
+`rtktrace-plot`へ分離する。lightとfullが共有するfile workflowと処理pipelineの状態管理は、
+GUI frameworkへ依存しない`rtktrace-session`へ分離する。headless ImPlot regression
+testはapplicationと同じ`rtktrace-plot-gui`を使用する。
 
 将来の想定target構成は以下とする。
 
 ```text
 shared libraries
-  plotcore-io
-  plotcore-model
-  plotcore-analysis
-  plotcore-plot
-  plotcore-plot-gui
-  plotcore-session
-  plotcore-ui-common
+  rtktrace-io
+  rtktrace-model
+  rtktrace-analysis
+  rtktrace-plot
+  rtktrace-plot-gui
+  rtktrace-session
+  rtktrace-ui-common
 
 application-state libraries
-  plotcore-full-state
+  rtktrace-full-state
 
 executables
-  plotcore-light
-  plotcore-full
+  rtktrace-light
+  rtktrace-full
 ```
 
-最初は`plotcore-light`だけをbuild可能としてよい。shared libraryは必要以上に細分化せず、依存境界が明確になる最小単位で構成する。
+最初は`rtktrace-light`だけをbuild可能としてよい。shared libraryは必要以上に細分化せず、依存境界が明確になる最小単位で構成する。
 
 ## 15. Testing
 
@@ -490,7 +490,7 @@ Linux native checkではgraphics backendを必要としないC++20 componentお�
 
 ## 16. 確定事項
 
-- application targetは`plotcore light`および`plotcore full`とする。
+- application targetは`rtktrace light`および`rtktrace full`とする。
 - lightを先に実装し、その後にfullを拡張として実装する。
 - lightとfullは共通のdata-processingおよびplot componentを使用する。
 - lightとfullは別のapplication targetとする。
@@ -504,7 +504,7 @@ Linux native checkではgraphics backendを必要としないC++20 componentお�
 - Dear ImGuiは`master`系の固定release/tagまたはcommitを使用する。
 - 初期実装ではdockingおよびmulti-viewportを無効とする。
 - 初期OpenGL loaderはDear ImGui OpenGL3 backend内蔵loaderだけとする。
-- `plotcore`本体ではCMake、Meson Wrapおよびdependency fallbackを使用しない。
+- `rtktrace`本体ではCMake、Meson Wrapおよびdependency fallbackを使用しない。
 - 初期実装はsingle-threadedとし、shared data-processing functionは同期的に実行する。
 
 ## 17. 未確定事項

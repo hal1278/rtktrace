@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "plotcore/analysis/relative.hpp"
+#include "rtktrace/analysis/relative.hpp"
 
 namespace {
 
@@ -26,13 +26,13 @@ void check(bool condition, std::string_view description)
     return std::abs(actual - expected) <= tolerance;
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns, plotcore::Enu enu,
-    double height_m, plotcore::Ecef ecef,
-    plotcore::SolutionQuality quality = plotcore::SolutionQuality::Fixed)
+[[nodiscard]] rtktrace::NormalizedSample sample_at(std::int64_t time_ns, rtktrace::Enu enu,
+    double height_m, rtktrace::Ecef ecef,
+    rtktrace::SolutionQuality quality = rtktrace::SolutionQuality::Fixed)
 {
-    return plotcore::NormalizedSample{
-        .time = plotcore::GpsTime{time_ns},
-        .llh = plotcore::Wgs84Llh{0.0, 0.0, height_m},
+    return rtktrace::NormalizedSample{
+        .time = rtktrace::GpsTime{time_ns},
+        .llh = rtktrace::Wgs84Llh{0.0, 0.0, height_m},
         .ecef = ecef,
         .enu = enu,
         .quality = quality,
@@ -41,26 +41,26 @@ void check(bool condition, std::string_view description)
     };
 }
 
-[[nodiscard]] plotcore::LoadedFile file_with_samples(
-    std::string_view name, std::vector<plotcore::NormalizedSample> samples)
+[[nodiscard]] rtktrace::LoadedFile file_with_samples(
+    std::string_view name, std::vector<rtktrace::NormalizedSample> samples)
 {
-    plotcore::LoadedFile file{std::filesystem::path{name}, plotcore::InputFormat::Pos};
+    rtktrace::LoadedFile file{std::filesystem::path{name}, rtktrace::InputFormat::Pos};
     file.samples = std::move(samples);
     return file;
 }
 
-[[nodiscard]] std::vector<plotcore::NormalizedSample> reference_samples()
+[[nodiscard]] std::vector<rtktrace::NormalizedSample> reference_samples()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     return {
         sample_at(0, Enu{1.0, 2.0, 3.0}, 10.0, Ecef{100.0, 200.0, 300.0}),
         sample_at(10, Enu{10.0, 20.0, 30.0}, 20.0, Ecef{110.0, 210.0, 310.0}),
     };
 }
 
-[[nodiscard]] std::vector<plotcore::NormalizedSample> comparison_samples()
+[[nodiscard]] std::vector<rtktrace::NormalizedSample> comparison_samples()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     return {
         sample_at(5, Enu{4.0, 8.0, 12.0}, 15.0, Ecef{103.0, 204.0, 312.0}, SolutionQuality::Float),
         sample_at(
@@ -72,7 +72,7 @@ void check(bool condition, std::string_view description)
 
 void test_relative_components()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector references = reference_samples();
     const std::vector comparisons = comparison_samples();
     const std::optional<std::vector<RelativeSample>> relative =
@@ -113,7 +113,7 @@ void test_relative_components()
 
 void test_invalid_relative_values()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     std::vector references = reference_samples();
     std::vector comparisons = comparison_samples();
     comparisons[0].ecef.x_m = std::numeric_limits<double>::infinity();
@@ -125,7 +125,7 @@ void test_invalid_relative_values()
 
 void test_relative_cache_dependencies()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     LoadedFiles files;
     files.push_back(file_with_samples("reference.pos", reference_samples()));
     files.push_back(file_with_samples("comparison.pos", comparison_samples()));
@@ -199,7 +199,7 @@ void test_relative_cache_dependencies()
 
 void test_slot_order_invalidation()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     LoadedFiles files;
     files.push_back(file_with_samples("reference.pos", reference_samples()));
     files.push_back(file_with_samples("comparison.pos", comparison_samples()));

@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace plotcore {
+namespace rtktrace {
 
 struct GpsTime {
     std::int64_t nanoseconds_since_gps_epoch;
@@ -58,4 +58,4 @@ struct NormalizedSample {
     bool continuous_from_previous;
 };
 
-} // namespace plotcore
+} // namespace rtktrace

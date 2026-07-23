@@ -2,7 +2,7 @@
 
 ## 1. 目的と対象範囲
 
-本書は、`plotcore light`および`plotcore full`が共通して使用するデータ仕様を定義する。
+本書は、`rtktrace light`および`rtktrace full`が共通して使用するデータ仕様を定義する。
 
 対応ファイルを読み込み、入力形式に依存しない位置sampleへ正規化し、通常表示、基準相対表示および統計処理へ渡すまでの規則は、applicationのwindow layoutに依存しない。
 

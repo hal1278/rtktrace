@@ -1,5 +1,5 @@
 {
-  description = "Native and Windows cross-build environment for plotcore";
+  description = "Native and Windows cross-build environment for rtktrace";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
@@ -24,22 +24,22 @@
         hash = "sha256-HNzNRHPLr352EDkAci4nx5qQnPI308rGH8yHkF+n5OY=";
       };
 
-      mkPlotcore = targetPkgs:
+      mkRtktrace = targetPkgs:
         targetPkgs.callPackage ./nix/package.nix {
           inherit imguiSource implotSource;
         };
 
-      linuxPackage = mkPlotcore pkgs;
-      windowsPackage = mkPlotcore windowsPkgs;
+      linuxPackage = mkRtktrace pkgs;
+      windowsPackage = mkRtktrace windowsPkgs;
 
-      windowsPkgConfig = pkgs.writeShellScript "plotcore-windows-pkg-config" ''
+      windowsPkgConfig = pkgs.writeShellScript "rtktrace-windows-pkg-config" ''
         export PKG_CONFIG_LIBDIR="${pkgs.lib.getDev windowsPkgs.sdl3}/lib/pkgconfig"
         export PKG_CONFIG_PATH=
         exec ${pkgs.pkg-config}/bin/pkg-config "$@"
       '';
 
       targetPrefix = windowsPkgs.stdenv.cc.targetPrefix;
-      windowsCrossFile = pkgs.writeText "plotcore-windows-cross.ini" ''
+      windowsCrossFile = pkgs.writeText "rtktrace-windows-cross.ini" ''
         [binaries]
         c = '${windowsPkgs.stdenv.cc}/bin/${targetPrefix}gcc'
         cpp = '${windowsPkgs.stdenv.cc}/bin/${targetPrefix}g++'
@@ -61,8 +61,8 @@
     {
       packages.${system} = {
         default = linuxPackage;
-        plotcore-light-linux = linuxPackage;
-        plotcore-light-windows = windowsPackage;
+        rtktrace-light-linux = linuxPackage;
+        rtktrace-light-windows = windowsPackage;
       };
 
       devShells.${system} = {
@@ -89,7 +89,7 @@
           ];
           IMGUI_SOURCE_DIR = toString imguiSource;
           IMPLOT_SOURCE_DIR = toString implotSource;
-          PLOTCORE_MESON_CROSS_FILE = toString windowsCrossFile;
+          RTKTRACE_MESON_CROSS_FILE = toString windowsCrossFile;
         };
       };
 

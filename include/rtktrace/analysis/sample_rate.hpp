@@ -4,9 +4,9 @@
 #include <optional>
 #include <span>
 
-#include "plotcore/model/sample.hpp"
+#include "rtktrace/model/sample.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 inline constexpr std::int64_t default_rate_min_interval_ns = 5'000'000;
 
@@ -14,4 +14,4 @@ inline constexpr std::int64_t default_rate_min_interval_ns = 5'000'000;
     std::span<const NormalizedSample> samples,
     std::int64_t rate_min_interval_ns = default_rate_min_interval_ns) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

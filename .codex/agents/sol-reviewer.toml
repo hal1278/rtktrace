@@ -1,5 +1,5 @@
 name = "sol_reviewer"
-description = "Read-only owner-level reviewer for significant plotcore changes."
+description = "Read-only owner-level reviewer for significant rtktrace changes."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"

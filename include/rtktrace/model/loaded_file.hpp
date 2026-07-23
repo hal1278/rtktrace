@@ -6,10 +6,10 @@
 #include <optional>
 #include <vector>
 
-#include "plotcore/model/diagnostic.hpp"
-#include "plotcore/model/sample.hpp"
+#include "rtktrace/model/diagnostic.hpp"
+#include "rtktrace/model/sample.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class InputFormat : std::uint8_t {
     Pos,
@@ -52,4 +52,4 @@ using LoadedFiles = std::vector<LoadedFile>;
     LoadedFiles& files, std::size_t from_slot_number, std::size_t to_slot_number);
 [[nodiscard]] bool erase_slot(LoadedFiles& files, std::size_t slot_number);
 
-} // namespace plotcore
+} // namespace rtktrace

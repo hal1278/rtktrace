@@ -1,8 +1,8 @@
-#include "plotcore/analysis/reference_matching.hpp"
+#include "rtktrace/analysis/reference_matching.hpp"
 
 #include <limits>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 [[nodiscard]] bool valid_range(SampleRangeIndex range, std::size_t size) noexcept
@@ -90,4 +90,4 @@ std::optional<std::vector<ReferenceMatch>> match_reference_epochs(
     return matches;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

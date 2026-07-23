@@ -1,4 +1,4 @@
-#include "plotcore/io/pos_parser.hpp"
+#include "rtktrace/io/pos_parser.hpp"
 
 #include <charconv>
 #include <cmath>
@@ -10,10 +10,10 @@
 #include <utility>
 #include <vector>
 
-#include "plotcore/analysis/coordinates.hpp"
-#include "plotcore/analysis/gps_time.hpp"
+#include "rtktrace/analysis/coordinates.hpp"
+#include "rtktrace/analysis/gps_time.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 constexpr std::int64_t nanoseconds_per_second = 1'000'000'000;
@@ -325,4 +325,4 @@ LoadedFile parse_pos(
     return file;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

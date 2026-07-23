@@ -1,4 +1,4 @@
-#include "plotcore/plot/batch.hpp"
+#include "rtktrace/plot/batch.hpp"
 
 #include <algorithm>
 #include <array>
@@ -6,7 +6,7 @@
 #include <functional>
 #include <utility>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 constexpr std::int64_t nanoseconds_per_second = 1'000'000'000;
@@ -222,4 +222,4 @@ PlotBatch build_time_series_plot_batch(const PlotDataView& data, const QualityFi
         });
 }
 
-} // namespace plotcore
+} // namespace rtktrace

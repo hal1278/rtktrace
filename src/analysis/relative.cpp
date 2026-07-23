@@ -1,10 +1,10 @@
-#include "plotcore/analysis/relative.hpp"
+#include "rtktrace/analysis/relative.hpp"
 
 #include <cmath>
 #include <limits>
 #include <utility>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 [[nodiscard]] std::optional<RelativeSample> make_relative_sample(const NormalizedSample& reference,
@@ -127,4 +127,4 @@ const std::vector<RelativeSample>* relative_samples_at_slot(
     return &cache.samples_by_slot[slot_number - 1];
 }
 
-} // namespace plotcore
+} // namespace rtktrace

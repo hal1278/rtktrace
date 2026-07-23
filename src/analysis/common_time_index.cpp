@@ -1,10 +1,10 @@
-#include "plotcore/analysis/common_time_index.hpp"
+#include "rtktrace/analysis/common_time_index.hpp"
 
 #include <algorithm>
 #include <limits>
 #include <utility>
 
-namespace plotcore {
+namespace rtktrace {
 
 std::optional<SampleRangeIndex> sample_range_index(
     std::span<const NormalizedSample> samples, TimeRange range) noexcept
@@ -60,4 +60,4 @@ const SampleRangeIndex* range_at_slot(
     return &index.file_ranges[slot_number - 1];
 }
 
-} // namespace plotcore
+} // namespace rtktrace

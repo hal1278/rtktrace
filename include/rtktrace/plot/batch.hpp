@@ -7,9 +7,9 @@
 #include <optional>
 #include <vector>
 
-#include "plotcore/plot/axis.hpp"
+#include "rtktrace/plot/axis.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class DrawMode : std::uint8_t {
     Line,
@@ -107,4 +107,4 @@ struct PlotBatch {
 [[nodiscard]] PlotBatch build_time_series_plot_batch(const PlotDataView& data,
     const QualityFilter& filter, PositionComponent component, const PlotBatchOptions& options);
 
-} // namespace plotcore
+} // namespace rtktrace

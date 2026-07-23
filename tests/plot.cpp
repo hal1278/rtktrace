@@ -6,8 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "plotcore/plot/axis.hpp"
-#include "plotcore/plot/batch.hpp"
+#include "rtktrace/plot/axis.hpp"
+#include "rtktrace/plot/batch.hpp"
 
 namespace {
 
@@ -26,31 +26,31 @@ void check(bool condition, std::string_view description)
     return std::abs(actual - expected) <= tolerance;
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(std::int64_t time_ns, double east_m,
-    double north_m, double up_m, double height_m, plotcore::SolutionQuality quality)
+[[nodiscard]] rtktrace::NormalizedSample sample_at(std::int64_t time_ns, double east_m,
+    double north_m, double up_m, double height_m, rtktrace::SolutionQuality quality)
 {
-    return plotcore::NormalizedSample{
-        .time = plotcore::GpsTime{time_ns},
-        .llh = plotcore::Wgs84Llh{0.0, 0.0, height_m},
+    return rtktrace::NormalizedSample{
+        .time = rtktrace::GpsTime{time_ns},
+        .llh = rtktrace::Wgs84Llh{0.0, 0.0, height_m},
         .ecef = {},
-        .enu = plotcore::Enu{east_m, north_m, up_m},
+        .enu = rtktrace::Enu{east_m, north_m, up_m},
         .quality = quality,
         .source_line_number = 1,
         .continuous_from_previous = false,
     };
 }
 
-[[nodiscard]] plotcore::LoadedFile file_with_samples(
-    std::string_view name, std::vector<plotcore::NormalizedSample> samples)
+[[nodiscard]] rtktrace::LoadedFile file_with_samples(
+    std::string_view name, std::vector<rtktrace::NormalizedSample> samples)
 {
-    plotcore::LoadedFile file{std::filesystem::path{name}, plotcore::InputFormat::Pos};
+    rtktrace::LoadedFile file{std::filesystem::path{name}, rtktrace::InputFormat::Pos};
     file.samples = std::move(samples);
     return file;
 }
 
 void test_normal_and_relative_data_views()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     LoadedFiles files;
     files.push_back(file_with_samples("one.pos",
         {
@@ -122,7 +122,7 @@ void test_normal_and_relative_data_views()
 
 void test_auto_fit_trajectory_and_components()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector samples{
         sample_at(0, 0.0, 0.0, 7.0, 100.0, SolutionQuality::Fixed),
         sample_at(2'000'000'000, 9.0, 18.0, 7.0, 109.0, SolutionQuality::Float),
@@ -175,7 +175,7 @@ void test_auto_fit_trajectory_and_components()
 
 void test_minimum_ranges_and_visibility()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector tiny{
         sample_at(0, 0.0, 0.0, 0.0, 0.0, SolutionQuality::Fixed),
         sample_at(100, 0.0001, 0.0001, 0.0001, 0.0001, SolutionQuality::Fixed),
@@ -208,7 +208,7 @@ void test_minimum_ranges_and_visibility()
 
 void test_plot_batch_style_and_drawing_order()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::vector slot_one{
         sample_at(0, 0.0, 10.0, 20.0, 30.0, SolutionQuality::Fixed),
         sample_at(1'000'000'000, 1.0, 11.0, 21.0, 31.0, SolutionQuality::Single),
@@ -258,7 +258,7 @@ void test_plot_batch_style_and_drawing_order()
 
 void test_time_series_plot_batch()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     constexpr std::int64_t week_ns = 604'800'000'000'000;
     const std::vector samples{
         sample_at(week_ns + 500'000'000, 1.0, 2.0, 3.0, 4.0, SolutionQuality::Fixed),

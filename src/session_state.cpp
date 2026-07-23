@@ -1,4 +1,4 @@
-#include "plotcore/session_state.hpp"
+#include "rtktrace/session_state.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -7,9 +7,9 @@
 #include <string>
 #include <utility>
 
-#include "plotcore/analysis/sample_rate.hpp"
+#include "rtktrace/analysis/sample_rate.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 [[nodiscard]] std::string lowercase_extension(const std::filesystem::path& path)
@@ -318,4 +318,4 @@ void PlotSessionState::record_diagnostics(const LoadedFile& file)
         diagnostic_history_.end(), file.diagnostics.begin(), file.diagnostics.end());
 }
 
-} // namespace plotcore
+} // namespace rtktrace

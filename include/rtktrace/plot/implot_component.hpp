@@ -7,9 +7,9 @@
 #include <string_view>
 #include <vector>
 
-#include "plotcore/plot/batch.hpp"
+#include "rtktrace/plot/batch.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class TrajectoryRangePriority : std::uint8_t {
     AxisRange,
@@ -137,4 +137,4 @@ private:
     double pending_window_resize_wheel_{0.0};
 };
 
-} // namespace plotcore
+} // namespace rtktrace

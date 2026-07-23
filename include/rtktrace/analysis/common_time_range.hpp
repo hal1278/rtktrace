@@ -3,9 +3,9 @@
 #include <compare>
 #include <optional>
 
-#include "plotcore/model/loaded_file.hpp"
+#include "rtktrace/model/loaded_file.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 struct TimeRange {
     GpsTime start;
@@ -33,4 +33,4 @@ struct CommonTimeRange {
     return range.start <= time && time <= range.end;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

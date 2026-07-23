@@ -10,7 +10,7 @@
 
 #include "imgui.h"
 #include "implot.h"
-#include "plotcore/plot/implot_component.hpp"
+#include "rtktrace/plot/implot_component.hpp"
 
 namespace {
 
@@ -24,17 +24,17 @@ void check(bool condition, std::string_view description)
     }
 }
 
-[[nodiscard]] plotcore::NormalizedSample sample_at(
+[[nodiscard]] rtktrace::NormalizedSample sample_at(
     std::int64_t time_ns, std::size_t slot, std::size_t index)
 {
     const double offset = static_cast<double>(slot) * 0.25;
     const double position = static_cast<double>(index) * 0.001;
-    return plotcore::NormalizedSample{
-        .time = plotcore::GpsTime{time_ns},
-        .llh = plotcore::Wgs84Llh{0.0, 0.0, 100.0 + offset + position},
+    return rtktrace::NormalizedSample{
+        .time = rtktrace::GpsTime{time_ns},
+        .llh = rtktrace::Wgs84Llh{0.0, 0.0, 100.0 + offset + position},
         .ecef = {},
-        .enu = plotcore::Enu{position, offset + position * 0.5, position * 0.1},
-        .quality = static_cast<plotcore::SolutionQuality>(index % 6 + 1),
+        .enu = rtktrace::Enu{position, offset + position * 0.5, position * 0.1},
+        .quality = static_cast<rtktrace::SolutionQuality>(index % 6 + 1),
         .source_line_number = index + 1,
         .continuous_from_previous = index != 0,
     };
@@ -44,7 +44,7 @@ void check(bool condition, std::string_view description)
 
 int main()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     constexpr std::size_t slot_count = 4;
     constexpr std::size_t samples_per_slot = 10'000;
     std::vector<std::vector<NormalizedSample>> samples(slot_count);

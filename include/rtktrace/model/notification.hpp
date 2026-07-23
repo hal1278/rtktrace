@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "plotcore/model/diagnostic.hpp"
+#include "rtktrace/model/diagnostic.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class NotificationLevel : std::uint8_t {
     Info,
@@ -34,4 +34,4 @@ private:
 
 [[nodiscard]] const char* notification_level_name(NotificationLevel level) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

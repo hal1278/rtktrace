@@ -2,11 +2,11 @@
 
 ## 1. Purpose
 
-`plotcore` provides fast, interactive visualization of GNSS positioning solution data for inspecting and comparing trajectories and solution quality.
+`rtktrace` provides fast, interactive visualization of GNSS positioning solution data for inspecting and comparing trajectories and solution quality.
 
 The project consists of multiple native applications that share file parsing, normalized data, coordinate processing, reference comparison, statistics, diagnostics, and plotting components.
 
-The first implementation target is `plotcore light`, which provides a fixed and compact interface. `plotcore full` is implemented after light as an extension that provides a workspace-style multi-area interface while reusing the same shared components.
+The first implementation target is `rtktrace light`, which provides a fixed and compact interface. `rtktrace full` is implemented after light as an extension that provides a workspace-style multi-area interface while reusing the same shared components.
 
 The project does not aim to perform positioning computations or reproduce the complete RTKPLOT feature set. It focuses on the plotting functions required for efficient inspection of recorded positioning results.
 
@@ -14,16 +14,16 @@ The project does not aim to perform positioning computations or reproduce the co
 
 ### 2.1 製品構成と実装順
 
-`plotcore`は、共通のデータ処理、解析およびプロットcomponentを使用する複数のnative applicationで構成する。
+`rtktrace`は、共通のデータ処理、解析およびプロットcomponentを使用する複数のnative applicationで構成する。
 
-- `plotcore light`: 固定的で簡潔なwindow layoutを持つapplication
-- `plotcore full`: 任意個のfloating plot areaを扱うworkspace型application
+- `rtktrace light`: 固定的で簡潔なwindow layoutを持つapplication
+- `rtktrace full`: 任意個のfloating plot areaを扱うworkspace型application
 
-現在の実装対象は`plotcore light`とする。`plotcore full`は、lightで共通componentの機能、性能および境界を検証した後に、同じcomponentを再利用する拡張として実装する。
+現在の実装対象は`rtktrace light`とする。`rtktrace full`は、lightで共通componentの機能、性能および境界を検証した後に、同じcomponentを再利用する拡張として実装する。
 
 lightとfullは同一application内の表示modeではなく、別のapplication targetとして定義する。
 
-### 2.2 plotcore lightの初期実装対象
+### 2.2 rtktrace lightの初期実装対象
 
 初期実装では、以下の機能を対象とする。
 
@@ -47,11 +47,11 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 
 対応する入力形式およびデータの解釈規則の詳細は、`data-specification.md`で定義する。
 
-### 2.3 plotcore lightの初期実装対象外
+### 2.3 rtktrace lightの初期実装対象外
 
 初期実装では、以下の機能を対象外とする。
 
-- `plotcore full`固有の任意個のfloating plot areaおよびそのinstance管理
+- `rtktrace full`固有の任意個のfloating plot areaおよびそのinstance管理
 - GNSS測位計算
 - 受信機からのリアルタイム入力
 - シリアルポートからの入力
@@ -69,9 +69,9 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 - RTKPLOTとの設定互換性
 - ブラウザ、ElectronまたはWebViewを利用した実行（恒久的に対象外）
 
-### 2.4 plotcore fullの対象
+### 2.4 rtktrace fullの対象
 
-`plotcore full`では、共通機能に加えて以下を対象とする。
+`rtktrace full`では、共通機能に加えて以下を対象とする。
 
 - File/Slots areaの表示および非表示
 - Normal 2D、Normal Time Series、Relative 2DおよびRelative Time Seriesの4種類のplot area
@@ -81,7 +81,7 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 - plot areaごとの軸範囲、描画領域長、表示縮尺、zoom/pan状態および表示成分
 - 全plot areaで共有するファイル、スロット、品質filter、共通時刻範囲、ENU基準およびrelative data
 
-`plotcore full`の実装は、`plotcore light`の初期実装完了後に行う。
+`rtktrace full`の実装は、`rtktrace light`の初期実装完了後に行う。
 
 ### 2.5 将来検討する機能
 
@@ -103,7 +103,7 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 - RTKPLOTが提供する追加のプロット種別
 - Windows向け配布パッケージ
 
-本節に将来検討項目として記載した機能は、`plotcore light`の初期実装要件には含めない。
+本節に将来検討項目として記載した機能は、`rtktrace light`の初期実装要件には含めない。
 
 ## 3. 利用ワークフロー
 
@@ -135,9 +135,9 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 
 各ファイルは個別に表示または非表示へ切り替えられる。測位解品質による表示条件は、表示中の全ファイルに共通して適用する。
 
-### 3.4 plotcore lightの表示モードを切り替える
+### 3.4 rtktrace lightの表示モードを切り替える
 
-`plotcore light`の利用者は、通常表示および基準相対表示について、それぞれ水平軌跡、時系列または両方の表示をタブで選択できる。
+`rtktrace light`の利用者は、通常表示および基準相対表示について、それぞれ水平軌跡、時系列または両方の表示をタブで選択できる。
 
 両方表示では、水平軌跡と時系列を左右に配置する。中央の境界線をドラッグして左右の表示幅を変更でき、境界線をダブルクリックすると中央へ戻る。
 
@@ -171,9 +171,9 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 
 すべてのファイルを削除した場合は、データのない空のプロットを表示する。削除時の確認操作は必須としない。
 
-### 3.8 plotcore fullでplot areaを管理する
+### 3.8 rtktrace fullでplot areaを管理する
 
-`plotcore full`の利用者は、Normal 2D、Normal Time Series、Relative 2DおよびRelative Time Seriesのplot areaを任意個生成できる。
+`rtktrace full`の利用者は、Normal 2D、Normal Time Series、Relative 2DおよびRelative Time Seriesのplot areaを任意個生成できる。
 
 各plot areaは独立したfloating areaとして配置し、個別に表示、非表示、再表示または削除できる。各instanceの軸範囲、描画領域長、表示縮尺、zoom/pan状態および表示成分は、他のinstanceから独立して保持する。
 
@@ -227,7 +227,7 @@ File/Slots areaおよび全plot areaは同じ読み込み済みファイル、�
 
 各スロットは個別に表示または非表示へ切り替えられる。非表示にした場合も読み込み済みデータを保持し、表示状態の変更によって表示範囲を自動変更しない。
 
-### 4.3 plotcore lightの表示モード
+### 4.3 rtktrace lightの表示モード
 
 #### FR-VIEW-001 タブ構成
 
@@ -388,7 +388,7 @@ r = 1 m / min(pE, pN)
 
 #### FR-AREA-003 寸法制約
 
-`plotcore light`のmain windowは800 × 600 px以上、現在のdisplayのusable bounds以下とする。
+`rtktrace light`のmain windowは800 × 600 px以上、現在のdisplayのusable bounds以下とする。
 各描画領域の最大寸法は、軸、toolbar、tab、summaryおよびsidebarを除くpanelの利用可能寸法
 から導出する。`Both`ではtrajectoryおよび時系列の各panel幅を、splitterを除く利用可能幅の
 15%以上とする。windowが最小寸法へ達した場合も、水平軌跡と時系列の両方へ利用可能領域を
@@ -637,22 +637,22 @@ dialogにはファイル時刻から取得した日付を入力欄へ反映す�
 
 `GP`および`GN`以外のtalker IDを持つGGA、RMCまたはZDAは読み飛ばし、警告する。
 
-### 4.19 plotcore fullのplot area
+### 4.19 rtktrace fullのplot area
 
 #### FR-FULL-001 File/Slots area
 
-`plotcore full`は、読み込み済みファイルおよびスロットを操作するFile/Slots areaを持つ。File/Slots areaは表示および非表示を切り替えられるものとする。
+`rtktrace full`は、読み込み済みファイルおよびスロットを操作するFile/Slots areaを持つ。File/Slots areaは表示および非表示を切り替えられるものとする。
 
 #### FR-FULL-002 plot areaの種類
 
-`plotcore full`は、以下の4種類のplot areaを生成できるものとする。
+`rtktrace full`は、以下の4種類のplot areaを生成できるものとする。
 
 - Normal 2D
 - Normal Time Series
 - Relative 2D
 - Relative Time Series
 
-`plotcore full`では、水平軌跡と時系列を1個のareaへ組み合わせるBoth表示を設けない。
+`rtktrace full`では、水平軌跡と時系列を1個のareaへ組み合わせるBoth表示を設けない。
 
 #### FR-FULL-003 任意個のinstance
 
@@ -682,7 +682,7 @@ plot instanceの追加によって、同一の正規化処理、ENU変換また�
 
 入力データの解釈、時刻の正規化、重複epochの処理、基準epochとの対応付けおよび測位解品質の分類規則は、`data-specification.md`で定義する。
 
-### 5.1 plotcore lightの画面構成およびタブ
+### 5.1 rtktrace lightの画面構成およびタブ
 
 #### DR-VIEW-001 タブバー
 
@@ -711,7 +711,7 @@ plot instanceの追加によって、同一の正規化処理、ENU変換また�
 
 軸、目盛り、入力欄、操作ボタンその他のUIに必要な領域を除き、未使用の空白領域を設けない。
 
-### 5.2 plotcore lightのファイルスロット表示と操作
+### 5.2 rtktrace lightのファイルスロット表示と操作
 
 #### DR-SLOT-001 左サイドバー
 
@@ -931,7 +931,7 @@ caution indicatorは、通知履歴のClear操作によって消去する。
 
 部分読み込み、時刻逆行および時刻重複等、処理を継続できる警告は非modal通知として通知履歴へ追加する。
 
-### 5.10 plotcore fullのwindow表示
+### 5.10 rtktrace fullのwindow表示
 
 #### DR-FULL-001 File/Slots area
 

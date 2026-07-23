@@ -5,7 +5,7 @@
 #include <numbers>
 #include <string_view>
 
-#include "plotcore/analysis/coordinates.hpp"
+#include "rtktrace/analysis/coordinates.hpp"
 
 namespace {
 
@@ -34,7 +34,7 @@ void check(bool condition, std::string_view description)
 
 void test_known_wgs84_points()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     const Ecef equator = wgs84_llh_to_ecef(Wgs84Llh{0.0, 0.0, 0.0});
     check(near(equator.x_m, wgs84_semi_major_axis_m, 1.0e-9), "equator ECEF x");
@@ -62,7 +62,7 @@ void test_known_wgs84_points()
 
 void test_round_trips()
 {
-    using plotcore::Wgs84Llh;
+    using rtktrace::Wgs84Llh;
 
     constexpr std::array positions{
         Wgs84Llh{35.681236 * pi / 180.0, 139.767125 * pi / 180.0, 42.25},
@@ -72,7 +72,7 @@ void test_round_trips()
     };
 
     for (const Wgs84Llh original : positions) {
-        const auto converted = plotcore::wgs84_ecef_to_llh(plotcore::wgs84_llh_to_ecef(original));
+        const auto converted = rtktrace::wgs84_ecef_to_llh(rtktrace::wgs84_llh_to_ecef(original));
         check(converted.has_value(), "LLH/ECEF round trip produces a result");
         if (!converted.has_value()) {
             continue;
@@ -89,8 +89,8 @@ void test_round_trips()
 
 void test_undefined_inverse_inputs()
 {
-    using plotcore::Ecef;
-    using plotcore::wgs84_ecef_to_llh;
+    using rtktrace::Ecef;
+    using rtktrace::wgs84_ecef_to_llh;
 
     check(!wgs84_ecef_to_llh(Ecef{0.0, 0.0, 0.0}).has_value(), "Earth centre has no unique LLH");
     check(!wgs84_ecef_to_llh(Ecef{std::numeric_limits<double>::infinity(), 0.0, 0.0}).has_value(),
@@ -99,7 +99,7 @@ void test_undefined_inverse_inputs()
 
 void test_ecef_enu_transform()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
 
     const std::optional<EnuReference> reference = make_enu_reference(Wgs84Llh{0.0, 0.0, 0.0});
     check(reference.has_value(), "finite LLH creates an ENU reference");

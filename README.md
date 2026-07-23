@@ -1,13 +1,13 @@
-# plotcore
+# rtktrace
 
-`plotcore` is a family of native desktop applications for interactively visualizing GNSS positioning solutions.
+`rtktrace` is a family of native desktop applications for interactively visualizing GNSS positioning solutions.
 
 The application targets are:
 
-- **plotcore light** — a fixed, compact interface for quickly opening and inspecting positioning results
-- **plotcore full** — a workspace-style interface that can create an arbitrary number of independent floating plot areas
+- **rtktrace light** — a fixed, compact interface for quickly opening and inspecting positioning results
+- **rtktrace full** — a workspace-style interface that can create an arbitrary number of independent floating plot areas
 
-The current implementation target is **plotcore light**. After the shared data-processing and plotting components have been validated through light, **plotcore full** will be implemented as an extension using the same shared components.
+The current implementation target is **rtktrace light**. After the shared data-processing and plotting components have been validated through light, **rtktrace full** will be implemented as an extension using the same shared components.
 
 The project goal is to provide the subset of RTKPLOT-like functionality required for inspecting positioning trajectories and solution quality, without reproducing the complete RTKPLOT feature set.
 
@@ -25,12 +25,12 @@ No stable application interface, file-format compatibility guarantee, or release
 
 The current executable remains a GUI smoke target only. It creates an SDL3/OpenGL window,
 initializes Dear ImGui and ImPlot, and displays a fixed four-point sample plot. The shared data
-components are not yet connected to file loading or the application-specific `plotcore light`
+components are not yet connected to file loading or the application-specific `rtktrace light`
 layout described below.
 
 ## Current implementation scope
 
-The initial `plotcore light` implementation is intended to support:
+The initial `rtktrace light` implementation is intended to support:
 
 - RTKLIB/MRTKLIB-style position solution files
 - NMEA position logs
@@ -75,7 +75,7 @@ The application is intended to run as a native desktop program and must not depe
 The project documentation is organized by concern:
 
 - `docs/requirements.md`  
-  Common functional requirements and application-specific requirements for plotcore light and plotcore full.
+  Common functional requirements and application-specific requirements for rtktrace light and rtktrace full.
 
 - `docs/data-specification.md`  
   Input formats and the shared semantics of time, coordinates, height, solution quality, reference comparison, and statistics.
@@ -95,7 +95,7 @@ The implementation should prioritize:
 1. correct interpretation of input data
 2. interactive performance with multiple trajectories
 3. clear separation between file parsing, data normalization, plotting, and application-specific window composition
-4. reuse of the same data-processing and plotting components by plotcore light and plotcore full
+4. reuse of the same data-processing and plotting components by rtktrace light and rtktrace full
 5. limited implementation complexity
 6. readable and maintainable code
 7. portability between Linux and Windows where practical
@@ -104,25 +104,25 @@ Optimization should be based on measured bottlenecks. Complex level-of-detail pr
 
 ## Build foundation
 
-The implementation language is C++20. A Nix flake fixes the build environment and dependency versions, Meson defines the `plotcore` build, and Ninja executes it. The GUI stack is Dear ImGui with the official SDL3 platform backend and official OpenGL3 renderer backend, plus ImPlot. The renderer uses the loader embedded in `imgui_impl_opengl3.cpp`; no additional OpenGL loader is used.
+The implementation language is C++20. A Nix flake fixes the build environment and dependency versions, Meson defines the `rtktrace` build, and Ninja executes it. The GUI stack is Dear ImGui with the official SDL3 platform backend and official OpenGL3 renderer backend, plus ImPlot. The renderer uses the loader embedded in `imgui_impl_opengl3.cpp`; no additional OpenGL loader is used.
 
-Nix is the only dependency source. The project does not use Meson Wrap downloads or dependency fallbacks. CMake is not used to build `plotcore` itself. An external dependency may use its own upstream build system, including CMake, inside its Nix derivation.
+Nix is the only dependency source. The project does not use Meson Wrap downloads or dependency fallbacks. CMake is not used to build `rtktrace` itself. An external dependency may use its own upstream build system, including CMake, inside its Nix derivation.
 
 The canonical Linux native build is:
 
-```bash
-nix build .#plotcore-light-linux
+```shell
+nix build .#rtktrace-light-linux
 ```
 
 The canonical Windows x86-64 cross build is:
 
-```bash
-nix build .#plotcore-light-windows
+```shell
+nix build .#rtktrace-light-windows
 ```
 
 The Linux development environment provides the pinned sources through environment variables:
 
-```bash
+```shell
 nix develop .#linux
 meson setup build/linux \
   -Dimgui_source_dir="$IMGUI_SOURCE_DIR" \
@@ -133,10 +133,10 @@ meson test -C build/linux
 
 The Windows cross development environment additionally provides a generated Meson cross file. Cross-built tests are compiled but are not run on Linux:
 
-```bash
+```shell
 nix develop .#windows
 meson setup build/windows \
-  --cross-file "$PLOTCORE_MESON_CROSS_FILE" \
+  --cross-file "$RTKTRACE_MESON_CROSS_FILE" \
   -Dimgui_source_dir="$IMGUI_SOURCE_DIR" \
   -Dimplot_source_dir="$IMPLOT_SOURCE_DIR"
 meson compile -C build/windows
@@ -144,11 +144,11 @@ meson compile -C build/windows
 
 Run all sandbox build checks with:
 
-```bash
+```shell
 nix flake check
 ```
 
-The GUI smoke executable is installed as `bin/plotcore-light` for Linux and `bin/plotcore-light.exe` for Windows. Its OpenGL 3.3 core-profile request is a prototype choice, not a permanent product minimum.
+The GUI smoke executable is installed as `bin/rtktrace-light` for Linux and `bin/rtktrace-light.exe` for Windows. Its OpenGL 3.3 core-profile request is a prototype choice, not a permanent product minimum.
 
 ## License
 

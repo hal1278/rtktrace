@@ -4,10 +4,10 @@
 #include <optional>
 #include <variant>
 
-#include "plotcore/analysis/common_time_range.hpp"
-#include "plotcore/analysis/coordinates.hpp"
+#include "rtktrace/analysis/common_time_range.hpp"
+#include "rtktrace/analysis/coordinates.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class EnuReferenceMethod : std::uint8_t {
     Slot1Start,
@@ -46,4 +46,4 @@ enum class EnuCacheUpdateStatus : std::uint8_t {
 [[nodiscard]] EnuCacheUpdateStatus rebuild_enu_cache(LoadedFiles& files, TimeRange range,
     const EnuReferenceConfiguration& configuration, EnuCache& cache);
 
-} // namespace plotcore
+} // namespace rtktrace

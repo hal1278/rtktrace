@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "plotcore/session_state.hpp"
+#include "rtktrace/session_state.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 struct PlotWindowId {
     std::uint64_t value;
@@ -59,4 +59,4 @@ private:
 
 [[nodiscard]] const char* plot_type_name(PlotType type) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <optional>
 
-#include "plotcore/plot/data_view.hpp"
+#include "rtktrace/plot/data_view.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 inline constexpr double minimum_position_axis_range_m = 0.001;
 inline constexpr std::int64_t minimum_time_axis_range_ns = 1'000'000;
@@ -47,4 +47,4 @@ enum class PositionComponent : std::uint8_t {
 [[nodiscard]] std::optional<TimeRange> auto_fit_time_axis(
     const PlotDataView& data, const QualityFilter& filter) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

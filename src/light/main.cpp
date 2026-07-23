@@ -28,14 +28,14 @@ int main(int argc, char** argv)
 
     const SDL_WindowFlags window_flags =
         static_cast<SDL_WindowFlags>(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
-    SDL_Window* window = SDL_CreateWindow("plotcore light", 1280, 720, window_flags);
+    SDL_Window* window = SDL_CreateWindow("rtktrace light", 1280, 720, window_flags);
     if (window == nullptr) {
         std::fprintf(stderr, "SDL window creation failed: %s\n", SDL_GetError());
         SDL_Quit();
         return 1;
     }
     if (!SDL_SetWindowMinimumSize(
-            window, plotcore::light_minimum_window_width, plotcore::light_minimum_window_height)) {
+            window, rtktrace::light_minimum_window_width, rtktrace::light_minimum_window_height)) {
         std::fprintf(stderr, "Window minimum size configuration failed: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -45,11 +45,11 @@ int main(int argc, char** argv)
     const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
     if (display != 0 && SDL_GetDisplayUsableBounds(display, &usable_bounds)) {
         static_cast<void>(SDL_SetWindowMaximumSize(window,
-            usable_bounds.w < plotcore::light_minimum_window_width
-                ? plotcore::light_minimum_window_width
+            usable_bounds.w < rtktrace::light_minimum_window_width
+                ? rtktrace::light_minimum_window_width
                 : usable_bounds.w,
-            usable_bounds.h < plotcore::light_minimum_window_height
-                ? plotcore::light_minimum_window_height
+            usable_bounds.h < rtktrace::light_minimum_window_height
+                ? rtktrace::light_minimum_window_height
                 : usable_bounds.h));
     }
 
@@ -109,12 +109,12 @@ int main(int argc, char** argv)
 
     SDL_ShowWindow(window);
 
-    plotcore::LightGui gui;
+    rtktrace::LightGui gui;
     for (int index = 1; index < argc; ++index) {
         gui.enqueue_file(argv[index]);
     }
     int smoke_frames = 0;
-    if (const char* configured_frames = std::getenv("PLOTCORE_SMOKE_FRAMES")) {
+    if (const char* configured_frames = std::getenv("RTKTRACE_SMOKE_FRAMES")) {
         smoke_frames = std::atoi(configured_frames);
     }
 

@@ -1,8 +1,8 @@
-#include "plotcore/analysis/common_time_range.hpp"
+#include "rtktrace/analysis/common_time_range.hpp"
 
 #include <algorithm>
 
-namespace plotcore {
+namespace rtktrace {
 
 std::optional<TimeRange> file_time_range(const LoadedFile& file) noexcept
 {
@@ -82,4 +82,4 @@ bool apply_intersection(CommonTimeRange& configured_range, const LoadedFiles& fi
     return true;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

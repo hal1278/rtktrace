@@ -6,8 +6,8 @@
 #include <string>
 #include <string_view>
 
-#include "plotcore/analysis/gps_time.hpp"
-#include "plotcore/io/nmea_parser.hpp"
+#include "rtktrace/analysis/gps_time.hpp"
+#include "rtktrace/io/nmea_parser.hpp"
 
 namespace {
 
@@ -34,10 +34,10 @@ void check(bool condition, std::string_view description)
 }
 
 [[nodiscard]] std::size_t diagnostic_count(
-    const plotcore::LoadedFile& file, plotcore::DiagnosticCode code)
+    const rtktrace::LoadedFile& file, rtktrace::DiagnosticCode code)
 {
     std::size_t count = 0;
-    for (const plotcore::Diagnostic& diagnostic : file.diagnostics) {
+    for (const rtktrace::Diagnostic& diagnostic : file.diagnostics) {
         if (diagnostic.code == code) {
             ++count;
         }
@@ -47,7 +47,7 @@ void check(bool condition, std::string_view description)
 
 void test_date_coordinates_quality_and_talker_priority()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     std::istringstream input{sentence("GPRMC,120000.000,A,,,,,,,010724,,")
         + sentence("GPGGA,115959.000,3500.000,N,13900.000,E,1,12,0.8,10.0,M,30.0,M,,")
         + sentence("GPGGA,120000.000,3500.000,N,13900.000,E,4,12,0.8,11.0,M,31.0,M,,")
@@ -81,7 +81,7 @@ void test_date_coordinates_quality_and_talker_priority()
 
 void test_user_decisions()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     const std::string without_context =
         sentence("GPGGA,120000.000,3500.000,N,13900.000,E,1,12,0.8,10.0,M,,M,,");
     std::istringstream undecided_input{without_context};
@@ -109,7 +109,7 @@ void test_user_decisions()
 
 void test_rollover_partial_loading_and_validation()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     std::string text;
     text += sentence("GPGGA,235959.000,3500.000,N,13900.000,E,1,12,0.8,10.0,M,30.0,M,,");
     text += sentence("GPRMC,000000.000,A,,,,,,,020724,,");
@@ -154,7 +154,7 @@ void test_rollover_partial_loading_and_validation()
 
 void test_rejected_options_and_empty_input()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     std::istringstream valid{sentence("GPRMC,120000.000,A,,,,,,,010724,,")
         + sentence("GPGGA,120000.000,3500.000,N,13900.000,E,1,12,0.8,10.0,M,30.0,M,,")};
     NmeaParseOptions invalid_options;

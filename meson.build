@@ -1,5 +1,5 @@
 project(
-  'plotcore',
+  'rtktrace',
   'cpp',
   default_options : [
     'cpp_std=c++20',
@@ -69,7 +69,7 @@ gui_include_directories = include_directories(
 
 model_include_directories = include_directories('include')
 model_library = static_library(
-  'plotcore-model',
+  'rtktrace-model',
   [
     'src/model/loaded_file.cpp',
     'src/model/notification.cpp',
@@ -83,7 +83,7 @@ model_dep = declare_dependency(
 )
 
 analysis_library = static_library(
-  'plotcore-analysis',
+  'rtktrace-analysis',
   [
     'src/analysis/common_time_range.cpp',
     'src/analysis/common_time_index.cpp',
@@ -104,7 +104,7 @@ analysis_dep = declare_dependency(
 )
 
 plot_library = static_library(
-  'plotcore-plot',
+  'rtktrace-plot',
   [
     'src/plot/axis.cpp',
     'src/plot/batch.cpp',
@@ -119,7 +119,7 @@ plot_dep = declare_dependency(
 )
 
 io_library = static_library(
-  'plotcore-io',
+  'rtktrace-io',
   [
     'src/io/nmea_parser.cpp',
     'src/io/pos_parser.cpp',
@@ -133,7 +133,7 @@ io_dep = declare_dependency(
 )
 
 session_library = static_library(
-  'plotcore-session',
+  'rtktrace-session',
   'src/session_state.cpp',
   dependencies : [io_dep, plot_dep],
   install : false,
@@ -144,7 +144,7 @@ session_dep = declare_dependency(
 )
 
 full_state_library = static_library(
-  'plotcore-full-state',
+  'rtktrace-full-state',
   'src/full/application_state.cpp',
   dependencies : session_dep,
   install : false,
@@ -155,7 +155,7 @@ full_state_dep = declare_dependency(
 )
 
 gui_dependencies = static_library(
-  'plotcore-gui-dependencies',
+  'rtktrace-gui-dependencies',
   imgui_sources,
   implot_sources,
   include_directories : gui_include_directories,
@@ -164,7 +164,7 @@ gui_dependencies = static_library(
 )
 
 plot_gui_library = static_library(
-  'plotcore-plot-gui',
+  'rtktrace-plot-gui',
   'src/plot/implot_component.cpp',
   include_directories : gui_include_directories,
   dependencies : plot_dep,
@@ -172,7 +172,7 @@ plot_gui_library = static_library(
 )
 
 executable(
-  'plotcore-light',
+  'rtktrace-light',
   [
     'src/light/gui.cpp',
     'src/light/main.cpp',
@@ -184,88 +184,88 @@ executable(
 )
 
 model_test = executable(
-  'plotcore-model-test',
+  'rtktrace-model-test',
   'tests/model.cpp',
   dependencies : model_dep,
   install : false,
 )
 
-test('plotcore-model', model_test)
+test('rtktrace-model', model_test)
 
 coordinates_test = executable(
-  'plotcore-coordinates-test',
+  'rtktrace-coordinates-test',
   'tests/coordinates.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-coordinates', coordinates_test)
+test('rtktrace-coordinates', coordinates_test)
 
 enu_test = executable(
-  'plotcore-enu-test',
+  'rtktrace-enu-test',
   'tests/enu.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-enu', enu_test)
+test('rtktrace-enu', enu_test)
 
 sample_rate_test = executable(
-  'plotcore-sample-rate-test',
+  'rtktrace-sample-rate-test',
   'tests/sample_rate.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-sample-rate', sample_rate_test)
+test('rtktrace-sample-rate', sample_rate_test)
 
 gps_time_test = executable(
-  'plotcore-gps-time-test',
+  'rtktrace-gps-time-test',
   'tests/gps_time.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-gps-time', gps_time_test)
+test('rtktrace-gps-time', gps_time_test)
 
 common_time_range_test = executable(
-  'plotcore-common-time-range-test',
+  'rtktrace-common-time-range-test',
   'tests/common_time_range.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-common-time-range', common_time_range_test)
+test('rtktrace-common-time-range', common_time_range_test)
 
 reference_matching_test = executable(
-  'plotcore-reference-matching-test',
+  'rtktrace-reference-matching-test',
   'tests/reference_matching.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-reference-matching', reference_matching_test)
+test('rtktrace-reference-matching', reference_matching_test)
 
 relative_test = executable(
-  'plotcore-relative-test',
+  'rtktrace-relative-test',
   'tests/relative.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-relative', relative_test)
+test('rtktrace-relative', relative_test)
 
 plot_test = executable(
-  'plotcore-plot-test',
+  'rtktrace-plot-test',
   'tests/plot.cpp',
   dependencies : plot_dep,
   install : false,
 )
 
-test('plotcore-plot', plot_test)
+test('rtktrace-plot', plot_test)
 
 implot_component_test = executable(
-  'plotcore-implot-component-test',
+  'rtktrace-implot-component-test',
   'tests/implot_component.cpp',
   include_directories : gui_include_directories,
   dependencies : [plot_dep, sdl3_dep, opengl_dep],
@@ -273,10 +273,10 @@ implot_component_test = executable(
   install : false,
 )
 
-test('plotcore-implot-component', implot_component_test, timeout : 30)
+test('rtktrace-implot-component', implot_component_test, timeout : 30)
 
 light_gui_test = executable(
-  'plotcore-light-gui-test',
+  'rtktrace-light-gui-test',
   [
     'src/light/gui.cpp',
     'tests/light_gui.cpp',
@@ -287,53 +287,53 @@ light_gui_test = executable(
   install : false,
 )
 
-test('plotcore-light-gui', light_gui_test, timeout : 30)
+test('rtktrace-light-gui', light_gui_test, timeout : 30)
 
 session_state_test = executable(
-  'plotcore-session-state-test',
+  'rtktrace-session-state-test',
   'tests/session_state.cpp',
   dependencies : session_dep,
   install : false,
 )
 
-test('plotcore-session-state', session_state_test)
+test('rtktrace-session-state', session_state_test)
 
 full_application_state_test = executable(
-  'plotcore-full-application-state-test',
+  'rtktrace-full-application-state-test',
   'tests/full_application_state.cpp',
   dependencies : full_state_dep,
   install : false,
 )
 
-test('plotcore-full-application-state', full_application_state_test)
+test('rtktrace-full-application-state', full_application_state_test)
 
 statistics_test = executable(
-  'plotcore-statistics-test',
+  'rtktrace-statistics-test',
   'tests/statistics.cpp',
   dependencies : analysis_dep,
   install : false,
 )
 
-test('plotcore-statistics', statistics_test)
+test('rtktrace-statistics', statistics_test)
 
 pos_parser_test = executable(
-  'plotcore-pos-parser-test',
+  'rtktrace-pos-parser-test',
   'tests/pos_parser.cpp',
   dependencies : io_dep,
   install : false,
 )
 
 test(
-  'plotcore-pos-parser',
+  'rtktrace-pos-parser',
   pos_parser_test,
   args : join_paths(meson.project_source_root(), 'tests', 'data', 'fictional.pos'),
 )
 
 nmea_parser_test = executable(
-  'plotcore-nmea-parser-test',
+  'rtktrace-nmea-parser-test',
   'tests/nmea_parser.cpp',
   dependencies : io_dep,
   install : false,
 )
 
-test('plotcore-nmea-parser', nmea_parser_test)
+test('rtktrace-nmea-parser', nmea_parser_test)

@@ -1,10 +1,10 @@
-#include "plotcore/analysis/gps_time.hpp"
+#include "rtktrace/analysis/gps_time.hpp"
 
 #include <array>
 #include <chrono>
 #include <limits>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 struct LeapSecondTransition {
@@ -155,4 +155,4 @@ std::optional<GpsTime> gps_civil_to_gps_time(GpsCivilTime gps) noexcept
         gps_seconds * nanoseconds_per_second + static_cast<std::int64_t>(gps.nanosecond)};
 }
 
-} // namespace plotcore
+} // namespace rtktrace

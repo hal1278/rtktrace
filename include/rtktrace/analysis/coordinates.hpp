@@ -2,9 +2,9 @@
 
 #include <optional>
 
-#include "plotcore/model/sample.hpp"
+#include "rtktrace/model/sample.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 struct EnuReference {
     Ecef origin_ecef;
@@ -19,4 +19,4 @@ struct EnuReference {
 [[nodiscard]] Enu ecef_to_enu(Ecef position, const EnuReference& reference) noexcept;
 [[nodiscard]] Ecef enu_to_ecef(Enu position, const EnuReference& reference) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

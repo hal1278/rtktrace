@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string_view>
 
-#include "plotcore/full/application_state.hpp"
+#include "rtktrace/full/application_state.hpp"
 
 namespace {
 
@@ -20,7 +20,7 @@ void check(bool condition, std::string_view description)
 
 int main()
 {
-    using namespace plotcore;
+    using namespace rtktrace;
     FullApplicationState state;
     const auto normal_trajectory = state.create_plot(PlotType::NormalTrajectory);
     const auto normal_time = state.create_plot(PlotType::NormalTimeSeries);

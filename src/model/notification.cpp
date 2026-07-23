@@ -1,9 +1,9 @@
-#include "plotcore/model/notification.hpp"
+#include "rtktrace/model/notification.hpp"
 
 #include <algorithm>
 #include <utility>
 
-namespace plotcore {
+namespace rtktrace {
 
 const char* notification_level_name(NotificationLevel level) noexcept
 {
@@ -59,4 +59,4 @@ bool NotificationHistory::has_caution() const noexcept
         [](const auto& entry) { return entry.level != NotificationLevel::Info; });
 }
 
-} // namespace plotcore
+} // namespace rtktrace

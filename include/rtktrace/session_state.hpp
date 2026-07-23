@@ -6,12 +6,12 @@
 #include <optional>
 #include <vector>
 
-#include "plotcore/analysis/statistics.hpp"
-#include "plotcore/io/nmea_parser.hpp"
-#include "plotcore/io/pos_parser.hpp"
-#include "plotcore/plot/data_view.hpp"
+#include "rtktrace/analysis/statistics.hpp"
+#include "rtktrace/io/nmea_parser.hpp"
+#include "rtktrace/io/pos_parser.hpp"
+#include "rtktrace/plot/data_view.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 enum class FileLoadStatus : std::uint8_t {
     Loaded,
@@ -74,4 +74,4 @@ private:
     std::uint64_t revision_{0};
 };
 
-} // namespace plotcore
+} // namespace rtktrace

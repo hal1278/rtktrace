@@ -1,8 +1,8 @@
-#include "plotcore/plot/data_view.hpp"
+#include "rtktrace/plot/data_view.hpp"
 
 #include <type_traits>
 
-namespace plotcore {
+namespace rtktrace {
 
 bool quality_is_visible(const QualityFilter& filter, SolutionQuality quality) noexcept
 {
@@ -99,4 +99,4 @@ std::optional<PlotDataView> make_relative_plot_data_view(
     return view;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

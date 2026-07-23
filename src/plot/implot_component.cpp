@@ -1,4 +1,4 @@
-#include "plotcore/plot/implot_component.hpp"
+#include "rtktrace/plot/implot_component.hpp"
 
 #include <algorithm>
 #include <array>
@@ -15,7 +15,7 @@
 #include "imgui.h"
 #include "implot.h"
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 constexpr double trajectory_data_fraction = 0.9;
@@ -1335,4 +1335,4 @@ std::optional<TrajectoryResizeRequest> ImPlotComponent::consume_trajectory_resiz
     return request;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

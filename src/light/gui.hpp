@@ -11,11 +11,11 @@
 
 #include <SDL3/SDL.h>
 
-#include "plotcore/model/notification.hpp"
-#include "plotcore/plot/implot_component.hpp"
-#include "plotcore/session_state.hpp"
+#include "rtktrace/model/notification.hpp"
+#include "rtktrace/plot/implot_component.hpp"
+#include "rtktrace/session_state.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 inline constexpr int light_minimum_window_width = 800;
 inline constexpr int light_minimum_window_height = 600;
@@ -217,4 +217,4 @@ private:
     int plot_scale_unit_index_{1};
 };
 
-} // namespace plotcore
+} // namespace rtktrace

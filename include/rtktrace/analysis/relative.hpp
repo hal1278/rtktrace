@@ -6,10 +6,10 @@
 #include <span>
 #include <vector>
 
-#include "plotcore/analysis/enu.hpp"
-#include "plotcore/analysis/reference_matching.hpp"
+#include "rtktrace/analysis/enu.hpp"
+#include "rtktrace/analysis/reference_matching.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 struct RelativeSample {
     GpsTime time;
@@ -56,4 +56,4 @@ enum class RelativeCacheUpdateStatus : std::uint8_t {
 [[nodiscard]] const std::vector<RelativeSample>* relative_samples_at_slot(
     const RelativeCache& cache, std::size_t slot_number) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

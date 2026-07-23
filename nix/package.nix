@@ -11,7 +11,7 @@
 }:
 
 stdenv.mkDerivation {
-  pname = "plotcore-light";
+  pname = "rtktrace-light";
   version = "0.1.0";
 
   src = lib.cleanSource ../.;
@@ -44,14 +44,14 @@ stdenv.mkDerivation {
 
   postInstall = ''
     install -Dm644 ${imguiSource}/LICENSE.txt \
-      "$out/share/licenses/plotcore/imgui-LICENSE.txt"
+      "$out/share/licenses/rtktrace/imgui-LICENSE.txt"
     install -Dm644 ${implotSource}/LICENSE \
-      "$out/share/licenses/plotcore/implot-LICENSE"
+      "$out/share/licenses/rtktrace/implot-LICENSE"
   '';
 
   meta = {
     description = "Minimal SDL3, Dear ImGui, ImPlot, and OpenGL GUI smoke target";
-    mainProgram = "plotcore-light";
+    mainProgram = "rtktrace-light";
     platforms = [
       "x86_64-linux"
       "x86_64-windows"

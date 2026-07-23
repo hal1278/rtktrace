@@ -1,11 +1,11 @@
 name = "terra_worker"
-description = "Implementation worker for bounded plotcore features and fixes."
+description = "Implementation worker for bounded rtktrace features and fixes."
 model = "gpt-5.6-terra"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Implement the assigned plotcore feature within the stated design and file scope.
+Implement the assigned rtktrace feature within the stated design and file scope.
 
 Read the applicable AGENTS.md and docs before editing.
 Preserve established terminology, data semantics, units, coordinate systems,

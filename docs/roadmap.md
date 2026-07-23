@@ -2,9 +2,9 @@
 
 ## 1. 方針
 
-`plotcore`は、共通のデータ処理、解析およびplot componentを先に構築し、最初のapplication targetとして`plotcore light`を実装する。
+`rtktrace`は、共通のデータ処理、解析およびplot componentを先に構築し、最初のapplication targetとして`rtktrace light`を実装する。
 
-lightの機能、性能およびcomponent境界を検証した後、同じshared componentを使用して`plotcore full`を実装する。
+lightの機能、性能およびcomponent境界を検証した後、同じshared componentを使用して`rtktrace full`を実装する。
 
 各phaseの詳細実装は、前phaseの完了条件を満たした後に確定する。性能最適化は測定結果に基づいて行う。
 
@@ -143,11 +143,11 @@ quality/slot drawing order、pan/zoom後のaxis metrics、およびRTKPLOT準拠
 実装済みである。4 file × 10,000 sampleのheadless regression testは、描画batch準備と
 trajectoryおよび3段time-seriesを含む1 frameの時間を継続的に測定して出力する。
 
-## 6. Phase 4: plotcore light
+## 6. Phase 4: rtktrace light
 
 ### 目的
 
-最初の利用可能なapplicationとしてplotcore lightを完成させる。
+最初の利用可能なapplicationとしてrtktrace lightを完成させる。
 
 ### 内容
 
@@ -221,7 +221,7 @@ full実装前に、light固有処理とshared componentの境界を検証する�
 
 Phase 5の最初の境界整理として、light配下に置かれていたGUI非依存のfile workflow、
 処理設定、ENU/relative cacheおよびdiagnostic ownershipを共有`PlotSessionState`と
-`plotcore-session` targetへ移した。light GUIはこの共有sessionをcompositionし、将来の
+`rtktrace-session` targetへ移した。light GUIはこの共有sessionをcompositionし、将来の
 fullもlight namespaceへ依存せず同じsessionとdata viewを利用できる。
 
 data/cacheと共有表示設定のownership、instance固有view state、monotonic `PlotWindowId`と
@@ -231,7 +231,7 @@ data/cacheと共有表示設定のownership、instance固有view state、monoton
 light固有layoutをshared sessionまたはplot componentから除去できている。上記の完了条件を
 満たしているため、Phase 5は完了とする。
 
-## 8. Phase 6: plotcore full
+## 8. Phase 6: rtktrace full
 
 ### 目的
 
@@ -262,7 +262,7 @@ light固有layoutをshared sessionまたはplot componentから除去できて�
 - 複数instance表示時の性能を測定できる。
 
 Phase 6のfoundationとして、backend非依存の`FullApplicationState`と
-`plotcore-full-state` targetを追加した。4種類の`PlotType`、再利用しないmonotonic
+`rtktrace-full-state` targetを追加した。4種類の`PlotType`、再利用しないmonotonic
 `PlotWindowId`、instance作成、検索、title変更、表示・非表示、削除、共有quality filter
 revision、および単一`PlotSessionState` ownershipをunit testで検証する。GUI compositionと
 floating plot lifecycleはこのstate API上へ実装する。

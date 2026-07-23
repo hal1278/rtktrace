@@ -5,10 +5,10 @@
 #include <istream>
 #include <optional>
 
-#include "plotcore/analysis/sample_rate.hpp"
-#include "plotcore/model/loaded_file.hpp"
+#include "rtktrace/analysis/sample_rate.hpp"
+#include "rtktrace/model/loaded_file.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 inline constexpr std::int64_t default_nmea_rollover_tolerance_ns = 300'000'000'000;
 inline constexpr std::int64_t default_nmea_datetime_validation_tolerance_ns = 300'000'000'000;
@@ -38,4 +38,4 @@ struct NmeaParseOptions {
 [[nodiscard]] LoadedFile parse_nmea(
     std::istream& input, std::filesystem::path source_path, NmeaParseOptions options = {});
 
-} // namespace plotcore
+} // namespace rtktrace

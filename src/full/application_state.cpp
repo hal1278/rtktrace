@@ -1,10 +1,10 @@
-#include "plotcore/full/application_state.hpp"
+#include "rtktrace/full/application_state.hpp"
 
 #include <algorithm>
 #include <limits>
 #include <utility>
 
-namespace plotcore {
+namespace rtktrace {
 
 const char* plot_type_name(PlotType type) noexcept
 {
@@ -126,4 +126,4 @@ const PlotSessionState& FullApplicationState::session() const noexcept
     return session_;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

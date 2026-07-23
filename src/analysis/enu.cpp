@@ -1,10 +1,10 @@
-#include "plotcore/analysis/enu.hpp"
+#include "rtktrace/analysis/enu.hpp"
 
 #include <cmath>
 #include <limits>
 #include <numbers>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 [[nodiscard]] std::optional<EnuReference> reference_from_sample(
@@ -142,4 +142,4 @@ EnuCacheUpdateStatus rebuild_enu_cache(LoadedFiles& files, TimeRange range,
     return EnuCacheUpdateStatus::Updated;
 }
 
-} // namespace plotcore
+} // namespace rtktrace

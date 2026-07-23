@@ -1,9 +1,9 @@
-#include "plotcore/analysis/coordinates.hpp"
+#include "rtktrace/analysis/coordinates.hpp"
 
 #include <cmath>
 #include <numbers>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 constexpr double wgs84_semi_major_axis_m = 6'378'137.0;
@@ -151,4 +151,4 @@ Ecef enu_to_ecef(Enu position, const EnuReference& reference) noexcept
     };
 }
 
-} // namespace plotcore
+} // namespace rtktrace

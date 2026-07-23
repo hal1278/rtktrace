@@ -5,9 +5,9 @@
 #include <optional>
 #include <span>
 
-#include "plotcore/analysis/common_time_range.hpp"
+#include "rtktrace/analysis/common_time_range.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 using QualityCounts = std::array<std::size_t, solution_quality_count>;
 
@@ -25,4 +25,4 @@ struct RecordedStatistics {
 [[nodiscard]] std::optional<double> quality_percentage(
     std::size_t quality_count, std::size_t denominator) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

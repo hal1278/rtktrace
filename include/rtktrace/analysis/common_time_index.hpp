@@ -6,9 +6,9 @@
 #include <span>
 #include <vector>
 
-#include "plotcore/analysis/common_time_range.hpp"
+#include "rtktrace/analysis/common_time_range.hpp"
 
-namespace plotcore {
+namespace rtktrace {
 
 struct SampleRangeIndex {
     std::size_t begin;
@@ -40,4 +40,4 @@ struct CommonTimeRangeIndex {
 [[nodiscard]] const SampleRangeIndex* range_at_slot(
     const CommonTimeRangeIndex& index, std::size_t slot_number) noexcept;
 
-} // namespace plotcore
+} // namespace rtktrace

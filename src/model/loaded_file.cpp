@@ -1,9 +1,9 @@
-#include "plotcore/model/loaded_file.hpp"
+#include "rtktrace/model/loaded_file.hpp"
 
 #include <cmath>
 #include <utility>
 
-namespace plotcore {
+namespace rtktrace {
 namespace {
 
 [[nodiscard]] bool is_valid_hz(double hz) noexcept
@@ -112,4 +112,4 @@ bool erase_slot(LoadedFiles& files, std::size_t slot_number)
     return true;
 }
 
-} // namespace plotcore
+} // namespace rtktrace
