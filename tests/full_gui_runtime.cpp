@@ -151,16 +151,123 @@ int main()
             && hidden_visible_samples == 1,
         "first display prepares against the latest shared filter and fits once");
 
+    options.trajectory_fit_ratio = 0.75;
+    options.time_series_fit_ratio = 0.8;
+    options.zoom_center_modifier = ImGuiMod_Shift;
+    options.window_resize_modifier = ImGuiMod_Ctrl;
+    options.batch.slot_order = SlotDrawingOrder::SmallerSlotInFront;
+    options.batch.quality_order = QualityDrawingOrder::LowerQualityInFront;
+    options.marker_size_px = 6.0F;
+    static_cast<void>(state.set_plot_visible(second, false));
     runtime.render_visible(state, options, 2, {});
-    const auto second_after_options = runtime.runtime_info(second);
-    check(second_after_options->prepare_count == 4
-            && second_after_options->prepared_options_revision == 2
-            && !second_after_options->last_prepare_fit_axes,
-        "plot option revision updates existing visible components without refitting");
+    const auto first_after_shared_options = runtime.runtime_info(first);
+    const auto second_after_shared_options = runtime.runtime_info(second);
+    const auto first_shared_options = runtime.plot_options(first);
+    const auto second_shared_options = runtime.plot_options(second);
+    check(first_after_shared_options->prepare_count == 4
+            && second_after_shared_options->prepare_count == 3
+            && second_after_shared_options->prepared_options_revision == 1,
+        "shared rendering Options reprepare visible components but leave hidden components stale");
+    check(first_shared_options->trajectory_fit_ratio == 0.75
+            && first_shared_options->time_series_fit_ratio == 0.8
+            && first_shared_options->zoom_center_modifier == ImGuiMod_Shift
+            && first_shared_options->window_resize_modifier == ImGuiMod_Ctrl
+            && first_shared_options->batch.slot_order
+                == SlotDrawingOrder::SmallerSlotInFront
+            && first_shared_options->batch.quality_order
+                == QualityDrawingOrder::LowerQualityInFront
+            && first_shared_options->marker_size_px == 2.0F
+            && second_shared_options->marker_size_px == 2.0F,
+        "shared Fit ratios, modifiers, and drawing order propagate while existing point sizes "
+        "remain unchanged");
+    static_cast<void>(state.set_plot_visible(second, true));
+    runtime.render_visible(state, options, 2, {});
+    const auto second_after_shared_reshow = runtime.runtime_info(second);
+    check(second_after_shared_reshow->prepare_count == 4
+            && second_after_shared_reshow->prepared_options_revision == 2
+            && !second_after_shared_reshow->last_prepare_fit_axes,
+        "reshow applies shared Options lazily without fitting retained view state");
+
+    check(runtime.set_current_point_size(first, 4.0F)
+            && runtime.set_draw_mode(first, DrawMode::Point)
+            && runtime.set_time_series_components(
+                initially_hidden, false, true, false)
+            && runtime.set_vertical_component(
+                initially_hidden, PositionComponent::EllipsoidalHeight),
+        "instance-local plot toolbar options accept valid updates");
+    check(!runtime.set_current_point_size(first, 0.0F)
+            && !runtime.set_draw_mode(first, static_cast<DrawMode>(99))
+            && !runtime.set_vertical_component(first, PositionComponent::East)
+            && !runtime.set_current_point_size(PlotWindowId{999}, 2.0F),
+        "instance-local plot toolbar options reject invalid values and unknown IDs");
+    runtime.render_visible(state, options, 2, {});
+    const auto first_after_local_options = runtime.runtime_info(first);
+    const auto second_after_local_options = runtime.runtime_info(second);
+    const auto hidden_after_local_options = runtime.runtime_info(initially_hidden);
+    const auto first_local_options = runtime.plot_options(first);
+    const auto second_local_options = runtime.plot_options(second);
+    const auto time_series_local_options = runtime.plot_options(initially_hidden);
+    check(first_after_local_options->prepare_count == 5
+            && second_after_local_options->prepare_count == 4
+            && hidden_after_local_options->prepare_count == 3
+            && !first_after_local_options->last_prepare_fit_axes
+            && !hidden_after_local_options->last_prepare_fit_axes,
+        "only instances with changed local options reprepare without fitting");
+    check(first_local_options->marker_size_px == 4.0F
+            && first_local_options->batch.draw_mode == DrawMode::Point
+            && second_local_options->marker_size_px == 2.0F
+            && second_local_options->batch.draw_mode == DrawMode::LineAndPoint
+            && !time_series_local_options->show_east
+            && time_series_local_options->show_north
+            && !time_series_local_options->show_vertical
+            && time_series_local_options->vertical_component
+                == PositionComponent::EllipsoidalHeight,
+        "point size, draw mode, time-series components, and vertical component are independent");
+
+    static_cast<void>(state.set_plot_visible(second, false));
+    check(runtime.set_current_point_size(second, 5.0F)
+            && runtime.set_draw_mode(second, DrawMode::Line),
+        "hidden instance local options remain editable");
+    runtime.render_visible(state, options, 2, {});
+    check(runtime.runtime_info(second)->prepare_count == 4,
+        "hidden instance local option changes do not prepare eagerly");
+    static_cast<void>(state.set_plot_visible(second, true));
+    runtime.render_visible(state, options, 2, {});
+    const auto second_after_local_reshow = runtime.runtime_info(second);
+    check(second_after_local_reshow->prepare_count == 5
+            && !second_after_local_reshow->last_prepare_fit_axes
+            && runtime.plot_options(second)->marker_size_px == 5.0F
+            && runtime.plot_options(second)->batch.draw_mode == DrawMode::Line,
+        "reshow applies hidden local changes lazily while preserving view state");
+
+    options.marker_size_px = 8.0F;
+    const PlotWindowId after_default_change =
+        *state.create_plot(PlotType::NormalTrajectory);
+    static_cast<void>(state.set_plot_visible(after_default_change, false));
+    runtime.synchronize(state, options, 3);
+    check(runtime.plot_options(after_default_change)->marker_size_px == 8.0F
+            && !runtime.runtime_info(after_default_change)->synchronized,
+        "creation-time runtime registration snapshots Options for a hidden new instance");
+
+    options.marker_size_px = 9.0F;
+    runtime.render_visible(state, options, 4, {});
+    check(runtime.plot_options(after_default_change)->marker_size_px == 8.0F
+            && runtime.runtime_info(after_default_change)->prepare_count == 0,
+        "later default point-size change neither replaces the snapshot nor prepares hidden data");
+    static_cast<void>(state.set_plot_visible(after_default_change, true));
+    runtime.render_visible(state, options, 4, {});
+    const auto new_options = runtime.plot_options(after_default_change);
+    check(runtime.runtime_info(first)->prepare_count == 5
+            && runtime.runtime_info(second)->prepare_count == 5
+            && runtime.plot_options(first)->marker_size_px == 4.0F
+            && runtime.plot_options(second)->marker_size_px == 5.0F
+            && new_options.has_value() && new_options->marker_size_px == 8.0F
+            && runtime.runtime_info(after_default_change)->last_prepare_fit_axes,
+        "first render uses the creation-time point-size snapshot and fits the new instance");
 
     check(state.erase_plot(first), "plot instance deletion succeeds in application state");
     runtime.synchronize(state);
-    check(runtime.runtime_count() == 4 && !runtime.runtime_info(first).has_value()
+    check(runtime.runtime_count() == 5 && !runtime.runtime_info(first).has_value()
             && runtime.runtime_info(second).has_value(),
         "runtime synchronization destroys the component of an erased plot instance");
 

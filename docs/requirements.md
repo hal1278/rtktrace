@@ -19,7 +19,7 @@ The project does not aim to perform positioning computations or reproduce the co
 - `rtktrace light`: 固定的で簡潔なwindow layoutを持つapplication
 - `rtktrace full`: 任意個のfloating plot areaを扱うworkspace型application
 
-現在の実装対象は`rtktrace light`とする。`rtktrace full`は、lightで共通componentの機能、性能および境界を検証した後に、同じcomponentを再利用する拡張として実装する。
+現在の実装対象は`rtktrace full`とする。`rtktrace full`は、lightで検証済みの共通componentを再利用する拡張として実装する。
 
 lightとfullは同一application内の表示modeではなく、別のapplication targetとして定義する。
 

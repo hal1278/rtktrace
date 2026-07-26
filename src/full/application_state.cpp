@@ -10,15 +10,61 @@ const char* plot_type_name(PlotType type) noexcept
 {
     switch (type) {
     case PlotType::NormalTrajectory:
-        return "Normal Trajectory";
+        return "Normal 2D";
     case PlotType::NormalTimeSeries:
         return "Normal Time Series";
     case PlotType::RelativeTrajectory:
-        return "Reference Trajectory";
+        return "Relative 2D";
     case PlotType::RelativeTimeSeries:
-        return "Reference Time Series";
+        return "Relative Time Series";
     }
     return "Plot";
+}
+
+bool FullApplicationState::application_window_visible(ApplicationWindow window) const noexcept
+{
+    switch (window) {
+    case ApplicationWindow::FileSlots:
+        return file_slots_visible_;
+    case ApplicationWindow::SharedControls:
+        return shared_controls_visible_;
+    case ApplicationWindow::WindowManager:
+        return window_manager_visible_;
+    }
+    return false;
+}
+
+bool FullApplicationState::set_application_window_visible(
+    ApplicationWindow window, bool visible) noexcept
+{
+    switch (window) {
+    case ApplicationWindow::FileSlots:
+        file_slots_visible_ = visible;
+        return true;
+    case ApplicationWindow::SharedControls:
+        shared_controls_visible_ = visible;
+        return true;
+    case ApplicationWindow::WindowManager:
+        window_manager_visible_ = visible;
+        return true;
+    }
+    return false;
+}
+
+bool FullApplicationState::toggle_application_window(ApplicationWindow window) noexcept
+{
+    switch (window) {
+    case ApplicationWindow::FileSlots:
+        file_slots_visible_ = !file_slots_visible_;
+        return true;
+    case ApplicationWindow::SharedControls:
+        shared_controls_visible_ = !shared_controls_visible_;
+        return true;
+    case ApplicationWindow::WindowManager:
+        window_manager_visible_ = !window_manager_visible_;
+        return true;
+    }
+    return false;
 }
 
 std::optional<PlotWindowId> FullApplicationState::create_plot(PlotType type)
@@ -37,6 +83,8 @@ std::optional<PlotWindowId> FullApplicationState::create_plot(PlotType type)
         type,
         std::string{plot_type_name(type)} + " " + std::to_string(id.value),
         true,
+        std::nullopt,
+        std::nullopt,
     });
     return id;
 }
@@ -58,6 +106,28 @@ bool FullApplicationState::set_plot_title(PlotWindowId id, std::string title)
         return false;
     }
     plot->title = std::move(title);
+    return true;
+}
+
+bool FullApplicationState::set_plot_position(
+    PlotWindowId id, std::optional<FloatingWindowPosition> position) noexcept
+{
+    PlotInstanceState* plot = find_plot(id);
+    if (plot == nullptr) {
+        return false;
+    }
+    plot->position = position;
+    return true;
+}
+
+bool FullApplicationState::set_plot_size(
+    PlotWindowId id, std::optional<FloatingWindowSize> size) noexcept
+{
+    PlotInstanceState* plot = find_plot(id);
+    if (plot == nullptr) {
+        return false;
+    }
+    plot->size = size;
     return true;
 }
 

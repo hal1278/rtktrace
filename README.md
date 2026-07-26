@@ -20,10 +20,11 @@ backend-free regression tests.
 
 No stable application interface, file-format compatibility guarantee, or release is currently available.
 
-Phase 6 work currently provides the backend-free full application state and a full GUI runtime
-boundary. Plot instances have monotonic IDs and independent plot components while sharing one
-session and quality filter. The production `rtktrace-full` executable and its floating-window
-composition are not yet available.
+Phase 6 work provides the backend-free full application state, the full GUI runtime boundary,
+and the production `rtktrace-full` executable. Plot instances have monotonic IDs and independent
+plot components while sharing one session and quality filter. The executable composes the
+File/Slots, Window Manager, Shared Controls, and floating plot windows described in the project
+documentation.
 
 ## Current implementation scope
 
@@ -109,12 +110,14 @@ The canonical Linux native build is:
 
 ```shell
 nix build .#rtktrace-light-linux
+nix build .#rtktrace-full-linux
 ```
 
 The canonical Windows x86-64 cross build is:
 
 ```shell
 nix build .#rtktrace-light-windows
+nix build .#rtktrace-full-windows
 ```
 
 The Linux development environment provides the pinned sources through environment variables:
@@ -145,9 +148,9 @@ Run all sandbox build checks with:
 nix flake check
 ```
 
-The light executable is installed as `bin/rtktrace-light` for Linux and
-`bin/rtktrace-light.exe` for Windows. Its OpenGL 3.3 core-profile request is a prototype choice,
-not a permanent product minimum.
+The package installs `bin/rtktrace-light` and `bin/rtktrace-full` for Linux, with corresponding
+`.exe` files for Windows. Their OpenGL 3.3 core-profile request is a prototype choice, not a
+permanent product minimum.
 
 ## License
 

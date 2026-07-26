@@ -11,7 +11,7 @@
 }:
 
 stdenv.mkDerivation {
-  pname = "rtktrace-light";
+  pname = "rtktrace";
   version = "0.1.0";
 
   src = lib.cleanSource ../.;
@@ -50,8 +50,8 @@ stdenv.mkDerivation {
   '';
 
   meta = {
-    description = "Minimal SDL3, Dear ImGui, ImPlot, and OpenGL GUI smoke target";
-    mainProgram = "rtktrace-light";
+    description = "Native GNSS positioning solution visualization applications";
+    mainProgram = "rtktrace-full";
     platforms = [
       "x86_64-linux"
       "x86_64-windows"

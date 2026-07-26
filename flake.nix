@@ -63,6 +63,8 @@
         default = linuxPackage;
         rtktrace-light-linux = linuxPackage;
         rtktrace-light-windows = windowsPackage;
+        rtktrace-full-linux = linuxPackage;
+        rtktrace-full-windows = windowsPackage;
       };
 
       devShells.${system} = {

@@ -271,22 +271,23 @@ light固有layoutをshared sessionまたはplot componentから除去できて�
 - 非表示instanceのstateを保持し、再表示できる。
 - 複数instance表示時の性能を測定できる。
 
-Phase 6のfoundationとして、backend非依存の`FullApplicationState`と
-`rtktrace-full-state` targetを追加した。4種類の`PlotType`、再利用しないmonotonic
-`PlotWindowId`、instance作成、検索、title変更、表示・非表示、削除、共有quality filter
-revision、および単一`PlotSessionState` ownershipをunit testで検証する。GUI compositionと
-floating plot lifecycleはこのstate API上へ実装する。
+backend非依存の`FullApplicationState`と`rtktrace-full-state` targetを実装済みである。
+4種類の`PlotType`、再利用しないmonotonic `PlotWindowId`、instance作成、検索、title変更、
+表示・非表示、削除、floating window geometry、application windowの表示状態、共有quality
+filter revision、および単一`PlotSessionState` ownershipをunit testで検証する。
 
-次のcomposition境界として、`PlotWindowId`ごとに独立した`ImPlotComponent`を所有する
-full GUI runtimeを追加した。visibleなinstanceだけをsession、quality filterおよびOptionsの
+`PlotWindowId`ごとに独立した`ImPlotComponent`を所有するfull GUI runtimeも実装済みである。
+visibleなinstanceだけをsession、quality filter、共有Optionsおよびinstance固有Optionsの
 revision差分時にprepareし、非表示中はprepareとrenderを抑止する。再表示時は保持したview
 stateを再fitせず最新の共有dataへ遅延更新し、削除時は対応するruntimeを破棄する。
 
-production GUI compositionでは、File/Slotsを左、Window Managerを中央上、Shared Controlsを
-中央下、初期Normal 2Dを右へ配置する。Window Managerはapplication windowの表示状態とplot
-instanceの全lifecycleを管理し、plot windowのcloseは非表示、削除はconfirmation modalを伴う
-明示操作とする。各plot windowはinstance固有toolbarを持ち、Shared Controlsはquality filter、
-common time range、ENU reference、reference matching、Optionsおよびnotification操作を持つ。
+production `rtktrace-full` executableは、File/Slotsを左、Window Managerを中央上、
+Shared Controlsを中央下、初期Normal 2Dを右へ配置する。Window Managerはapplication
+windowの表示状態とplot instanceの全lifecycleを管理し、plot windowのcloseは非表示、
+削除はconfirmation modalを伴う明示操作とする。各plot windowはinstance固有toolbarを持ち、
+Shared Controlsはquality filter、common time range、ENU reference、reference matching、
+Optionsおよびnotification操作を持つ。正規build、全自動testおよび複数instance表示時の
+性能確認を終えるまではPhase 6を進行中とする。
 
 ## 9. Phase 7: Full extensions
 
