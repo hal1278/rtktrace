@@ -123,7 +123,7 @@ filter適用後のdataをaxis計算と描画で共有する。auto-fitおよびr
 - File/Slots内容
 - file open dialog
 - common time range dialog
-- ENU基準dialog
+- ENU基準toolbar pull-downおよび`User specified`の`Edit...`操作
 - Hz override操作
 - notification履歴およびcaution indicator
 - NMEA日付およびジオイド高確認

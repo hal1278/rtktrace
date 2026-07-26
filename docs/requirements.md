@@ -99,11 +99,24 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 - 入力ファイル変更時の自動再読み込み
 - 処理済みデータの出力
 - プロジェクトまたはワークスペースの保存
+- configurationおよびapplication stateの永続化
 - リアルタイムデータ入力
 - RTKPLOTが提供する追加のプロット種別
 - Windows向け配布パッケージ
 
 本節に将来検討項目として記載した機能は、`rtktrace light`の初期実装要件には含めない。
+
+将来のconfigurationおよびapplication stateの永続化では、TOML formatを使用する。
+TOML fileはcurrent working directoryではなく、実行中のexecutable fileと同一directoryへ
+自動生成する。fileが存在しない場合はbuilt-in defaultを使用し、必要な時点で自動生成する。
+
+保存対象には、少なくともOptionsで設定する値および最後に使用したfile open directoryを
+含める予定とする。RTKLIBの設定fileとのformat互換性は要件としない。
+
+TOML file名、lightとfullでfileを共有するか、schema version、atomic write、unknown keyの
+扱い、保存失敗時の詳細動作、保存タイミング、同時起動時の競合処理および
+session/workspace stateの保存範囲は未確定とする。executable directoryへ書き込めない場合の
+詳細なerror処理も本要件では規定しない。
 
 ## 3. 利用ワークフロー
 
@@ -155,7 +168,9 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 
 水平軌跡では、縦軸と横軸に共通の表示縮尺を適用し、等縮尺を維持する。表示縮尺の単位は`m/px`とする。
 
-通常のズームでは表示範囲の中心を固定する。所定のmodifier keyを使用した場合はカーソル位置を固定してズームし、別のmodifier keyを使用した場合は表示縮尺を維持したままウィンドウ寸法を変更する。
+modifier keyを使用しない通常のズームではpointer位置に対応する座標または時刻を固定する。
+Optionsで指定されたmodifier keyを使用した場合は表示範囲の中心を固定してズームする。
+別のmodifier keyを使用した場合は表示縮尺を維持したままウィンドウ寸法を変更する。
 
 時系列では、各位置成分の縦軸表示範囲を独立して操作できる。時刻軸は、表示中の全時系列プロットで共有する。
 
@@ -312,6 +327,8 @@ tolerance checkが無効である場合は、比較sample以前の最新基準ep
 
 品質分類の定義および入力値との対応付けは、`data-specification.md`で定義する。
 
+品質`0`から`6`までのfilter buttonの状態表示は、DR-IDENT-003に従う。
+
 ### 4.7 鉛直位置成分
 
 #### FR-VERTICAL-001 鉛直成分の選択
@@ -334,18 +351,22 @@ tolerance checkが無効である場合は、比較sample以前の最新基準ep
 
 利用者は、表示対象データ全体へ表示範囲を合わせる操作を明示的に実行できる。
 
+OptionsでFit ratioを変更しただけでは現在の表示範囲を変更せず、変更後の値は次回のFit操作から使用する。
+
 #### FR-FIT-003 水平軌跡の自動調整
 
 水平軌跡の自動調整では、描画領域のピクセル寸法を固定する。
 
-表示対象データのEast方向およびNorth方向の最小値から最大値までが、各方向の描画領域長の90%以内に収まる表示縮尺を設定する。
+表示対象データのEast方向およびNorth方向の最小値から最大値までが、それぞれ対応する
+描画領域長の`trajectory_fit_ratio`以内に収まる共通の表示縮尺を設定する。
 
-East方向のデータ範囲を`dE`、North方向のデータ範囲を`dN`、横方向の描画領域長を`pE`、縦方向の描画領域長を`pN`、表示縮尺を`r`とすると、次の値とする。
+East方向のデータ範囲を`dE`、North方向のデータ範囲を`dN`、East方向の描画領域長を
+`pE`、North方向の描画領域長を`pN`、表示縮尺を`r`とすると、次の値とする。
 
 ```text
 r = max(
-    dE / (0.9 × pE),
-    dN / (0.9 × pN)
+    dE / (trajectory_fit_ratio * pE),
+    dN / (trajectory_fit_ratio * pN)
 )
 ```
 
@@ -370,7 +391,13 @@ r = 1 m / min(pE, pN)
 
 #### FR-FIT-005 時系列の自動調整
 
-時系列の自動調整では、表示対象データの最小値および最大値を、そのまま対応する軸の最小値および最大値として使用し、余白を追加しない。
+時系列の自動調整では、共通時刻軸および各subplotの縦軸について、表示対象dataの範囲を
+`time_series_fit_ratio`で除した範囲を使用する。data範囲に対する追加分は、data範囲の
+両側へ均等に配置する。
+
+```text
+display_range = data_range / time_series_fit_ratio
+```
 
 表示対象sampleが1件だけである場合、または全sampleの値が同一である場合は、その値を中心として各subplotの縦軸表示範囲を1 mとする。
 
@@ -462,14 +489,16 @@ r = ΔmE / pE = ΔmN / pN
 
 #### FR-HRANGE-007 ホイールズーム
 
-通常のマウスホイール操作では、表示範囲の中心を固定して表示縮尺を変更する。
+modifier keyを使用しない通常のマウスホイール操作では、pointer位置に対応する座標を固定して表示縮尺を変更する。
 
-`Ctrl`を押しながら操作した場合は、カーソル位置に対応する座標を固定して表示縮尺を変更する。
+Optionsで指定されたmodifier keyを押しながら操作した場合は、表示範囲の中心を固定して表示縮尺を変更する。
+
+このmodifier keyの意味は、水平軌跡の描画領域ならびにEast軸およびNorth軸へ共通して適用する。
 
 `Alt`を押しながら操作した場合は、表示縮尺を維持したままウィンドウ寸法を縦横同時に
 変更する。この操作には描画領域の寸法制約を適用する。
 
-中心固定および`Ctrl`によるカーソル固定zoomでは、ホイール1段当たりの表示範囲を
+pointer固定およびmodifier keyによる中心固定zoomでは、ホイール1段当たりの表示範囲を
 `1 / 1.2`倍または`1.2`倍とする。`Alt`による寸法変更では、ホイール1段当たりのwindow
 幅および高さを`1.1`倍または`1 / 1.1`倍とする。
 
@@ -512,13 +541,13 @@ r = ΔmE / pE = ΔmN / pN
 
 各時系列subplotの描画領域上でマウスホイールを操作した場合は、カーソルが存在するsubplotの縦軸表示範囲だけを変更する。
 
-通常操作では縦軸範囲の中点を固定し、`Ctrl`を押した場合はカーソル位置に対応する値を固定する。
+modifier keyを使用しない通常操作ではpointer位置に対応する値を固定し、Optionsで指定されたmodifier keyを押した場合は縦軸範囲の中点を固定する。
 
 #### FR-TRANGE-006 時刻軸のホイール操作
 
 最下部の時刻軸上でマウスホイールを操作した場合は、全subplotで共有する時刻軸表示範囲を変更する。
 
-通常操作では時刻範囲の中点を固定し、`Ctrl`を押した場合はカーソル位置に対応する時刻を固定する。
+modifier keyを使用しない通常操作ではpointer位置に対応する時刻を固定し、Optionsで指定されたmodifier keyを押した場合は時刻範囲の中点を固定する。
 
 #### FR-TRANGE-007 寸法制約
 
@@ -572,18 +601,23 @@ buttonおよび入力操作はdialog内の値だけを更新し、利用者が`O
 
 #### FR-ENU-001 基準位置の選択
 
-共通ENU座標系の基準位置は、以下から選択できるものとする。
+共通ENU座標系の基準位置方式は、独立したmodal dialogを開くbuttonではなく、
+toolbar上のpull-downから以下の表示名で選択する。
 
-- 共通時刻範囲内にあるスロット1の先頭sample
-- 共通時刻範囲内にあるスロット1の末尾sample
-- 共通時刻範囲内にあるスロット1のECEF座標平均
-- 利用者指定位置
+- `Slot 1 start`
+- `Slot 1 end`
+- `Slot 1 ECEF average`
+- `User specified`
 
 品質`0`のsampleも、先頭、末尾および平均の算出対象へ含める。
 
+`Slot 1 start`、`Slot 1 end`および`Slot 1 ECEF average`は、
+pull-downで選択した時点で適用する。
+
 #### FR-ENU-002 利用者指定位置
 
-利用者指定位置は、入力欄上の選択によりLLHまたはECEFで指定できるものとする。
+`User specified`を選択している場合だけ、pull-downに隣接する`Edit...`操作を表示または
+有効化する。`Edit...`では利用者指定位置をLLHまたはECEFで設定できるものとする。
 
 #### FR-ENU-003 再計算
 
@@ -676,6 +710,30 @@ dialogにはファイル時刻から取得した日付を入力欄へ反映す�
 
 plot instanceの追加によって、同一の正規化処理、ENU変換または基準epoch対応付けをinstanceごとに重複実行しない。
 
+### 4.20 Options
+
+#### FR-OPTION-001 Fit ratio
+
+Optionsでは、2D trajectoryの`trajectory_fit_ratio`およびtime seriesの
+`time_series_fit_ratio`を個別に設定できるものとする。各値は次の範囲とする。
+
+```text
+0 < fit_ratio <= 1
+```
+
+両方のbuilt-in defaultは`1.0`とする。
+
+#### FR-OPTION-002 point size
+
+Optionsに保存されるdefault point sizeのbuilt-in defaultは`2 px`とする。
+toolbar等で変更するcurrent sessionのpoint sizeは、Optionsに保存されるdefault point sizeと
+区別する。
+
+#### FR-OPTION-003 zoom modifier
+
+pointer位置ではなく表示範囲の中心を固定するmouse wheel zoomのmodifier keyは、
+Optionsで設定可能とする。built-in defaultのmodifier keyは`Ctrl`とする。
+
 ## 5. 表示要件
 
 本節では、機能要件で定義したデータおよび操作を画面上で識別し、操作するための表示要件を定義する。
@@ -754,6 +812,9 @@ plot instanceの追加によって、同一の正規化処理、ENU変換また�
 - 線および点
 
 点の大きさは、位置または時刻の表示縮尺に依存しないピクセル単位で指定する。
+描画開始時のcurrent sessionのpoint sizeには、Optionsに保存されたdefault point sizeを
+使用する。toolbar等によるpoint sizeの変更はcurrent sessionの値だけを変更し、
+Optionsに保存されるdefault point sizeを変更しない。
 
 #### DR-PLOT-002 sample間の接続
 
@@ -797,6 +858,21 @@ sampleの色は、測位解品質を表す。
 
 ファイルスロットの識別には色を使用しない。
 
+#### DR-IDENT-003 品質filter buttonの状態色
+
+`Q0`から`Q6`までのquality filter buttonは、有効状態ではpointerの有無に関係なく対応する
+quality colorを表示し、無効状態ではpointerの有無に関係なくdisabled colorを表示する。
+無効状態をhoverしてもquality colorへ変更しない。
+
+hover時は、現在の有効・無効状態を示す色の明度だけを変更する。hoverによって有効状態と
+無効状態の識別が失われてはならない。
+
+mouse button押下中だけに適用する独立したactive colorまたはclick effectは設けない。
+click成立後は、新しい有効・無効状態の表示へ直接切り替える。buttonの位置および寸法は
+状態によって変化させない。
+
+具体的なdisabled color値およびhover時の明度変更量は、本要件では規定しない。
+
 ### 5.5 描画順序
 
 #### DR-ORDER-001 スロット間の描画順序
@@ -827,9 +903,31 @@ trajectoryは`E-W (m)`および`N-S (m)`、時系列は`TIME (GPST)`と位置成
 
 #### DR-AXIS-002 時刻表記
 
-時系列の時刻軸には絶対GPSTを表示する。
+時系列の時刻軸には絶対GPSTを表示する。time-series axis tickの生成規則および表示書式は
+`data-specification.md`第17節に従う。
 
-具体的なtick間隔および表示書式は`data-specification.md`第17節に従う。
+time-series axis tick以外でabsolute GPSTを単一値として表示または入力する場合は、
+以下の固定formatを使用する。
+
+```text
+YYYY-MM-DD hh:mm:ss.sss
+```
+
+表示例を次に示す。
+
+```text
+2026-07-19 21:04:05.123
+```
+
+このformatは少なくともcommon time range dialog、Ranges内のtime-series start/end、
+file summaryのfirst/last time、およびその他のabsolute GPSTを単一値として表示または
+入力する箇所へ適用する。
+
+この表記はGPSTのcalendar representationであり、UTCではない。UTC offsetまたは`Z`を
+付加せず、leap second offsetを適用しない。field label、column headerまたは隣接表示により、
+表示値または入力値がGPSTであることを識別可能にする。
+
+time-series axis tickには、この固定formatを適用しない。
 
 #### DR-AXIS-003 tickおよびグリッド
 
@@ -880,10 +978,12 @@ km → m → mm → km
 
 1スロットにつき1行を使用し、各行には少なくとも以下を表示する。
 
-- データの開始時刻
-- データの終了時刻
+- データの開始時刻（GPST）
+- データの終了時刻（GPST）
 - 品質分類ごとのepoch数
 - 品質分類ごとの割合
+
+開始時刻および終了時刻は、DR-AXIS-002で定義するtick以外のabsolute GPST固定formatで表示する。
 
 #### DR-SUMMARY-002 表示行数
 
@@ -906,6 +1006,8 @@ checkboxが有効な場合は入力値を使用し、無効な場合は対応す
 dialogには`Intersection`および`OK`の操作を設ける。`Intersection`は両入力欄へintersectionを反映し、両checkboxを有効にする。`Union`の操作は設けず、両checkboxを無効にすることでunionへ戻す。
 
 `OK`によって実効時刻範囲を適用する。
+
+startおよびendの表示および入力には、DR-AXIS-002で定義するtick以外のabsolute GPST固定formatを使用する。
 
 ### 5.9 通知および警告
 
@@ -931,6 +1033,17 @@ caution indicatorは、通知履歴のClear操作によって消去する。
 
 部分読み込み、時刻逆行および時刻重複等、処理を継続できる警告は非modal通知として通知履歴へ追加する。
 
+#### DR-NOTIFY-004 modal dialogのCancel
+
+`Cancel`操作を持つmodal dialogでは、`Esc`key押下を`Cancel`実行と同じ処理として扱う。
+最前面のmodal dialogだけを閉じ、未確定の入力値をapplication stateへ適用せず、
+dialogを開く前のstateを維持する。
+
+dialog固有のtemporary inputおよびvalidation stateは破棄する。1回の`Esc`key pressを
+背後のdialogへ伝播させない。
+
+`Cancel`を持たず、変更が即時適用されるpanelまたはdialogは本要件の対象外とする。
+
 ### 5.10 rtktrace fullのwindow表示
 
 #### DR-FULL-001 File/Slots area
@@ -951,6 +1064,6 @@ File/Slots areaは他のplot areaから独立して表示し、利用者が表�
 
 ### 5.11 RTKPLOT実装確認済み事項
 
-測位解品質ごとの既定色、品質順、軸ラベル、tick生成、絶対GPST表示書式、および
+測位解品質ごとの既定色、品質順、軸ラベル、tick生成、time-series axis tickの絶対GPST表示書式、および
 grid描画規則は、RTKLIBのRTKPLOT実装を確認し、`data-specification.md`第9節および
 第17節へ定義済みである。

@@ -159,11 +159,14 @@ trajectoryおよび3段time-seriesを含む1 frameの時間を継続的に測定
 - file open
 - visibilityおよびquality filter
 - common time range dialog
-- ENU基準dialog
+- ENU基準toolbar pull-downおよび`User specified`の`Edit...`操作
+- Fit ratio、default point sizeおよびzoom modifierのOptions
+- tick以外のabsolute GPST固定format
 - Hz override
 - Recorded/Expected status
 - diagnostic history
 - modal confirmation
+- modal dialogの`Esc`による`Cancel`
 
 ### 完了条件
 
@@ -183,17 +186,24 @@ trajectory・時系列の数値range/scale入力を実装済みである。数�
 scale単位切替に対応し、時系列縦軸rangeの一回適用とtrajectoryの矢印キーpanも提供する。
 summaryは5 slot分の行を確保し、6 slot以上をscroll表示する。Expected値を算出できない行は
 その状態を明示する。時系列はEast、Northおよび鉛直成分を個別に表示選択できる。
-trajectoryと時系列は通常ホイールの中心固定zoom、
-`Ctrl`ホイールのカーソル固定zoomに対応し、時系列ではhover中の縦軸または最下部の
-共有時刻軸だけを変更する。追加読み込み、visibility、並べ替えおよび削除ではplot rangeを
+時系列のwheel zoomではhover中の縦軸または最下部の共有時刻軸だけを変更する。
+追加読み込み、visibility、並べ替えおよび削除ではplot rangeを
 維持する。4 file × 10,000 sampleのapplication-level headless testでは、全共有pipelineと
 light固定layoutの1 frameを継続的に計測する。window/panel resize時のtrajectory scale維持と
 `Alt`ホイールによるwindow寸法変更も実装済みである。各軸のmin/max/描画px長をplot上部へ
 表示し、min/max上のホイール操作を対象軸別range APIへ接続した。水平軌跡は表示縮尺優先と
 軸優先を切り替え、scale入力時は描画領域または軸rangeを固定対象として選択できる。window
 寸法が制約へ達した場合は選択された固定対象を保ち、指定rangeを維持できないことを通知する。
-上記の完了条件を満たしている
-ため、Phase 4は完了とする。
+旧仕様に対して上記の完了条件を満たした時点で、Phase 4は完了としていた。今回の仕様更新に
+対する実装および再検証として、以下を追跡する。
+
+- 2D trajectoryおよびtime seriesで個別に設定するFit ratioと、両方のbuilt-in default `1.0`
+- Optionsに保存するdefault point size `2 px`と、toolbar等で変更するcurrent session値の分離
+- quality filter buttonの有効・無効・hover・click成立後の状態色
+- modifierなしのpointer固定zoomと、Options指定modifierによる中心固定zoom
+- tick以外のabsolute GPST表示および入力に対する`YYYY-MM-DD hh:mm:ss.sss`固定format
+- toolbar pull-downによるENU reference method選択と、`User specified`専用の`Edit...`操作
+- `Cancel`を持つmodal dialogにおける`Esc`処理
 
 ## 7. Phase 5: Light validation and shared-boundary cleanup
 
@@ -283,3 +293,23 @@ floating plot lifecycleはこのstate API上へ実装する。
 - 追加plot種別
 
 本phaseの項目は、基本full applicationの完了条件には含めない。docking、multi-viewportおよびcustom GPU rendererを採用するかは未確定であり、custom rendererはbaselineの測定結果に基づいてのみ検討する。
+
+## 10. Phase未定の将来タスク
+
+### configurationおよびapplication stateの永続化
+
+configurationおよびapplication stateの永続化は、`rtktrace light`初期実装の完了条件には
+含めず、将来タスクとして追跡する。
+
+### 内容
+
+- configurationおよびapplication stateをTOML formatで保存する。
+- TOML fileをcurrent working directoryではなく、実行中のexecutable fileと同一directoryへ自動生成する。
+- fileが存在しない場合はbuilt-in defaultを使用し、必要な時点で自動生成する。
+- 保存対象には、少なくともOptionsで設定する値および最後に使用したfile open directoryを含める予定とする。
+- RTKLIBの設定fileとのformat互換性は要件としない。
+
+TOML file名、lightとfullでfileを共有するか、schema version、atomic write、unknown keyの
+扱い、保存失敗時の詳細動作、保存タイミング、同時起動時の競合処理および
+session/workspace stateの保存範囲は未確定とする。executable directoryへ書き込めない場合の
+詳細なerror処理も、このphaseでは新たに決定しない。
