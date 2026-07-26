@@ -491,16 +491,18 @@ r = ΔmE / pE = ΔmN / pN
 
 modifier keyを使用しない通常のマウスホイール操作では、pointer位置に対応する座標を固定して表示縮尺を変更する。
 
-Optionsで指定されたmodifier keyを押しながら操作した場合は、表示範囲の中心を固定して表示縮尺を変更する。
+Optionsでcenter-fixed zoom用に指定されたmodifier keyを押しながら操作した場合は、
+表示範囲の中心を固定して表示縮尺を変更する。
 
 このmodifier keyの意味は、水平軌跡の描画領域ならびにEast軸およびNorth軸へ共通して適用する。
 
-`Alt`を押しながら操作した場合は、表示縮尺を維持したままウィンドウ寸法を縦横同時に
-変更する。この操作には描画領域の寸法制約を適用する。
+Optionsでwindow resize用に指定された別のmodifier keyを押しながら操作した場合は、
+表示縮尺を維持したままウィンドウ寸法を縦横同時に変更する。この操作には描画領域の
+寸法制約を適用する。
 
 pointer固定およびmodifier keyによる中心固定zoomでは、ホイール1段当たりの表示範囲を
-`1 / 1.2`倍または`1.2`倍とする。`Alt`による寸法変更では、ホイール1段当たりのwindow
-幅および高さを`1.1`倍または`1 / 1.1`倍とする。
+`1 / 1.2`倍または`1.2`倍とする。window resize用modifierによる寸法変更では、
+ホイール1段当たりのwindow幅および高さを`1.1`倍または`1 / 1.1`倍とする。
 
 #### FR-HRANGE-008 軸上の操作
 
@@ -618,6 +620,8 @@ pull-downで選択した時点で適用する。
 
 `User specified`を選択している場合だけ、pull-downに隣接する`Edit...`操作を表示または
 有効化する。`Edit...`では利用者指定位置をLLHまたはECEFで設定できるものとする。
+設定済みの利用者指定位置は、他の基準位置方式へ切り替えた後も保持し、再度
+`User specified`を選択した場合に再利用する。
 
 #### FR-ENU-003 再計算
 
@@ -729,10 +733,16 @@ Optionsに保存されるdefault point sizeのbuilt-in defaultは`2 px`とする
 toolbar等で変更するcurrent sessionのpoint sizeは、Optionsに保存されるdefault point sizeと
 区別する。
 
-#### FR-OPTION-003 zoom modifier
+#### FR-OPTION-003 wheel modifier
 
 pointer位置ではなく表示範囲の中心を固定するmouse wheel zoomのmodifier keyは、
 Optionsで設定可能とする。built-in defaultのmodifier keyは`Ctrl`とする。
+
+表示縮尺を維持してwindow寸法を変更するmouse wheel操作のmodifier keyもOptionsで
+設定可能とし、built-in defaultは`Alt`とする。
+
+両modifier keyは`Ctrl`、`Shift`または`Alt`から個別に選択し、互いに異なるkeyを
+指定する。`Meta`は選択肢に含めない。複数modifier keyの同時押下は操作として扱わない。
 
 ## 5. 表示要件
 
@@ -926,6 +936,10 @@ file summaryのfirst/last time、およびその他のabsolute GPSTを単一値�
 この表記はGPSTのcalendar representationであり、UTCではない。UTC offsetまたは`Z`を
 付加せず、leap second offsetを適用しない。field label、column headerまたは隣接表示により、
 表示値または入力値がGPSTであることを識別可能にする。
+
+表示時は最も近いmillisecondへ丸め、必要な場合は次の秒、日、月または年へ繰り上げる。
+dialogで表示済みの値を利用者が編集せずに確定した場合は、元のsub-millisecond精度を
+保持する。利用者が編集した場合は、入力formatが表すmillisecond精度の値として適用する。
 
 time-series axis tickには、この固定formatを適用しない。
 

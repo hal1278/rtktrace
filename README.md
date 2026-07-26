@@ -7,26 +7,23 @@ The application targets are:
 - **rtktrace light** — a fixed, compact interface for quickly opening and inspecting positioning results
 - **rtktrace full** — a workspace-style interface that can create an arbitrary number of independent floating plot areas
 
-The current implementation target is **rtktrace light**. After the shared data-processing and plotting components have been validated through light, **rtktrace full** will be implemented as an extension using the same shared components.
+The current implementation target is **rtktrace full**. The shared data-processing and plotting components have been validated through light, and full is being implemented as an extension using the same shared components.
 
 The project goal is to provide the subset of RTKPLOT-like functionality required for inspecting positioning trajectories and solution quality, without reproducing the complete RTKPLOT feature set.
 
 ## Project status
 
-Phase 1 shared-data implementation is complete. The repository currently includes the
-normalized data model, UTC/GPST conversion, WGS 84 LLH/ECEF conversion, common time ranges,
-sample-rate estimation, Recorded/Expected statistics, and POS/NMEA parsers with diagnostics.
-Phase 2 shared coordinate and relative processing is complete, including ENU reference
-selection, ECEF/ENU conversion, revisioned caches, slot 1 matching, and relative data.
-Phase 3 plotting work is underway with shared Normal/Relative data views, quality filtering,
-equal-scale trajectory fitting, and time-series axis fitting.
+The shared data, coordinate, relative-processing, plotting, and `rtktrace light` phases are
+complete. The repository includes POS/NMEA workflows, revisioned ENU and relative caches,
+Normal/Relative trajectory and time-series plotting, the fixed light application, and
+backend-free regression tests.
 
 No stable application interface, file-format compatibility guarantee, or release is currently available.
 
-The current executable remains a GUI smoke target only. It creates an SDL3/OpenGL window,
-initializes Dear ImGui and ImPlot, and displays a fixed four-point sample plot. The shared data
-components are not yet connected to file loading or the application-specific `rtktrace light`
-layout described below.
+Phase 6 work currently provides the backend-free full application state and a full GUI runtime
+boundary. Plot instances have monotonic IDs and independent plot components while sharing one
+session and quality filter. The production `rtktrace-full` executable and its floating-window
+composition are not yet available.
 
 ## Current implementation scope
 
@@ -148,7 +145,9 @@ Run all sandbox build checks with:
 nix flake check
 ```
 
-The GUI smoke executable is installed as `bin/rtktrace-light` for Linux and `bin/rtktrace-light.exe` for Windows. Its OpenGL 3.3 core-profile request is a prototype choice, not a permanent product minimum.
+The light executable is installed as `bin/rtktrace-light` for Linux and
+`bin/rtktrace-light.exe` for Windows. Its OpenGL 3.3 core-profile request is a prototype choice,
+not a permanent product minimum.
 
 ## License
 

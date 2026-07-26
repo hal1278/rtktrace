@@ -209,12 +209,17 @@ int main()
             && default_options.default_point_size_px == 2.0F
             && default_options.zoom_center_modifier == ImGuiMod_Ctrl
             && default_options.window_resize_modifier == ImGuiMod_Alt
+            && default_options.slot_drawing_order == SlotDrawingOrder::LargerSlotInFront
+            && default_options.quality_drawing_order == QualityDrawingOrder::BetterQualityInFront
             && initial_options.trajectory_fit_ratio == 1.0
             && initial_options.time_series_fit_ratio == 1.0
             && initial_options.zoom_center_modifier == ImGuiMod_Ctrl
             && initial_options.window_resize_modifier == ImGuiMod_Alt
+            && initial_options.batch.slot_order == SlotDrawingOrder::LargerSlotInFront
+            && initial_options.batch.quality_order == QualityDrawingOrder::BetterQualityInFront
             && initial_options.marker_size_px == 2.0F,
-        "light Options use the documented fit-ratio, point-size, and modifier defaults");
+        "light Options use the documented fit-ratio, point-size, modifier, and drawing-order "
+        "defaults");
 
     detail::LightOptionsState changed_options = default_options;
     changed_options.trajectory_fit_ratio = 0.75;
@@ -227,6 +232,14 @@ int main()
             && current_session.time_series_fit_ratio == 0.5
             && current_session.marker_size_px == 4.0F,
         "applying Options fit ratios leaves the toolbar current-session point size unchanged")
+        && options_ok;
+
+    changed_options.slot_drawing_order = SlotDrawingOrder::SmallerSlotInFront;
+    changed_options.quality_drawing_order = QualityDrawingOrder::LowerQualityInFront;
+    options_ok = check(detail::apply_light_options(current_session, changed_options)
+            && current_session.batch.slot_order == SlotDrawingOrder::SmallerSlotInFront
+            && current_session.batch.quality_order == QualityDrawingOrder::LowerQualityInFront,
+        "light Options apply user-selected slot and quality drawing orders")
         && options_ok;
 
     const ImPlotComponentOptions before_invalid_options = current_session;

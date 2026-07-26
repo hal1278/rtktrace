@@ -29,6 +29,8 @@ struct LightOptionsState {
     float default_point_size_px{2.0F};
     ImGuiKeyChord zoom_center_modifier{ImGuiMod_Ctrl};
     ImGuiKeyChord window_resize_modifier{ImGuiMod_Alt};
+    SlotDrawingOrder slot_drawing_order{SlotDrawingOrder::LargerSlotInFront};
+    QualityDrawingOrder quality_drawing_order{QualityDrawingOrder::BetterQualityInFront};
 };
 
 [[nodiscard]] bool valid_fit_ratio(double ratio) noexcept;
@@ -222,6 +224,8 @@ private:
     float options_default_point_size_px_{2.0F};
     int options_zoom_center_modifier_index_{0};
     int options_window_resize_modifier_index_{2};
+    int options_slot_drawing_order_index_{0};
+    int options_quality_drawing_order_index_{0};
 
     bool time_dialog_open_requested_{false};
     bool time_dialog_initialized_{false};

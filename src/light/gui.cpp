@@ -209,6 +209,8 @@ ImPlotComponentOptions detail::initial_plot_options(const LightOptionsState& opt
         plot_options.zoom_center_modifier = options.zoom_center_modifier;
         plot_options.window_resize_modifier = options.window_resize_modifier;
     }
+    plot_options.batch.slot_order = options.slot_drawing_order;
+    plot_options.batch.quality_order = options.quality_drawing_order;
     return plot_options;
 }
 
@@ -225,6 +227,8 @@ bool detail::apply_light_options(
     plot_options.time_series_fit_ratio = options.time_series_fit_ratio;
     plot_options.zoom_center_modifier = options.zoom_center_modifier;
     plot_options.window_resize_modifier = options.window_resize_modifier;
+    plot_options.batch.slot_order = options.slot_drawing_order;
+    plot_options.batch.quality_order = options.quality_drawing_order;
     return true;
 }
 
@@ -1214,6 +1218,8 @@ void LightGui::render_options_dialog()
         options_zoom_center_modifier_index_ = modifier_choice_index(options_.zoom_center_modifier);
         options_window_resize_modifier_index_ =
             modifier_choice_index(options_.window_resize_modifier);
+        options_slot_drawing_order_index_ = static_cast<int>(options_.slot_drawing_order);
+        options_quality_drawing_order_index_ = static_cast<int>(options_.quality_drawing_order);
         options_dialog_initialized_ = true;
     }
 
@@ -1249,18 +1255,32 @@ void LightGui::render_options_dialog()
             "Center-fixed zoom and window resize must use different modifiers.");
     }
 
+    ImGui::SeparatorText("Drawing order");
+    ImGui::Combo("Slots", &options_slot_drawing_order_index_,
+        "Larger slot in front\0Smaller slot in front\0");
+    ImGui::Combo("Quality", &options_quality_drawing_order_index_,
+        "Better quality in front\0Lower quality in front\0");
+    const SlotDrawingOrder slot_drawing_order =
+        static_cast<SlotDrawingOrder>(options_slot_drawing_order_index_);
+    const QualityDrawingOrder quality_drawing_order =
+        static_cast<QualityDrawingOrder>(options_quality_drawing_order_index_);
+
     ImGui::BeginDisabled(!ratios_valid || !default_point_size_valid || !modifiers_valid);
     if (ImGui::Button("Apply")) {
         const bool fit_ratios_changed = options_.trajectory_fit_ratio != options_trajectory_fit_ratio_
             || options_.time_series_fit_ratio != options_time_series_fit_ratio_;
         const bool modifiers_changed = options_.zoom_center_modifier != zoom_center_modifier
             || options_.window_resize_modifier != window_resize_modifier;
+        const bool drawing_order_changed = options_.slot_drawing_order != slot_drawing_order
+            || options_.quality_drawing_order != quality_drawing_order;
         options_.trajectory_fit_ratio = options_trajectory_fit_ratio_;
         options_.time_series_fit_ratio = options_time_series_fit_ratio_;
         options_.default_point_size_px = options_default_point_size_px_;
         options_.zoom_center_modifier = zoom_center_modifier;
         options_.window_resize_modifier = window_resize_modifier;
-        if ((fit_ratios_changed || modifiers_changed)
+        options_.slot_drawing_order = slot_drawing_order;
+        options_.quality_drawing_order = quality_drawing_order;
+        if ((fit_ratios_changed || modifiers_changed || drawing_order_changed)
             && detail::apply_light_options(plot_options_, options_)) {
             ++plot_settings_revision_;
         }

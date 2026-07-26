@@ -171,6 +171,14 @@ plot_gui_library = static_library(
   install : false,
 )
 
+full_gui_runtime_library = static_library(
+  'rtktrace-full-gui-runtime',
+  'src/full/gui_runtime.cpp',
+  include_directories : gui_include_directories,
+  dependencies : full_state_dep,
+  install : false,
+)
+
 executable(
   'rtktrace-light',
   [
@@ -306,6 +314,17 @@ full_application_state_test = executable(
 )
 
 test('rtktrace-full-application-state', full_application_state_test)
+
+full_gui_runtime_test = executable(
+  'rtktrace-full-gui-runtime-test',
+  'tests/full_gui_runtime.cpp',
+  include_directories : gui_include_directories,
+  dependencies : [full_state_dep, sdl3_dep, opengl_dep],
+  link_with : [full_gui_runtime_library, plot_gui_library, gui_dependencies],
+  install : false,
+)
+
+test('rtktrace-full-gui-runtime', full_gui_runtime_test, timeout : 30)
 
 statistics_test = executable(
   'rtktrace-statistics-test',

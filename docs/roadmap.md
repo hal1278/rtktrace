@@ -160,7 +160,7 @@ trajectoryおよび3段time-seriesを含む1 frameの時間を継続的に測定
 - visibilityおよびquality filter
 - common time range dialog
 - ENU基準toolbar pull-downおよび`User specified`の`Edit...`操作
-- Fit ratio、default point sizeおよびzoom modifierのOptions
+- Fit ratio、default point size、center-fixed zoomおよびwindow resize modifierのOptions
 - tick以外のabsolute GPST固定format
 - Hz override
 - Recorded/Expected status
@@ -190,20 +190,15 @@ summaryは5 slot分の行を確保し、6 slot以上をscroll表示する。Expe
 追加読み込み、visibility、並べ替えおよび削除ではplot rangeを
 維持する。4 file × 10,000 sampleのapplication-level headless testでは、全共有pipelineと
 light固定layoutの1 frameを継続的に計測する。window/panel resize時のtrajectory scale維持と
-`Alt`ホイールによるwindow寸法変更も実装済みである。各軸のmin/max/描画px長をplot上部へ
+Options指定modifierによるホイールwindow寸法変更も実装済みである。各軸のmin/max/描画px長をplot上部へ
 表示し、min/max上のホイール操作を対象軸別range APIへ接続した。水平軌跡は表示縮尺優先と
 軸優先を切り替え、scale入力時は描画領域または軸rangeを固定対象として選択できる。window
 寸法が制約へ達した場合は選択された固定対象を保ち、指定rangeを維持できないことを通知する。
-旧仕様に対して上記の完了条件を満たした時点で、Phase 4は完了としていた。今回の仕様更新に
-対する実装および再検証として、以下を追跡する。
-
-- 2D trajectoryおよびtime seriesで個別に設定するFit ratioと、両方のbuilt-in default `1.0`
-- Optionsに保存するdefault point size `2 px`と、toolbar等で変更するcurrent session値の分離
-- quality filter buttonの有効・無効・hover・click成立後の状態色
-- modifierなしのpointer固定zoomと、Options指定modifierによる中心固定zoom
-- tick以外のabsolute GPST表示および入力に対する`YYYY-MM-DD hh:mm:ss.sss`固定format
-- toolbar pull-downによるENU reference method選択と、`User specified`専用の`Edit...`操作
-- `Cancel`を持つmodal dialogにおける`Esc`処理
+仕様更新後のFit ratio、default point sizeとcurrent session値の分離、quality filter buttonの
+状態色、pointer固定および中心固定zoom、重複しないwindow resize modifier、tick以外の
+absolute GPST固定format、toolbar pull-downによるENU reference method選択、ならびにmodal
+dialogの`Esc`処理を実装し、headless testで再検証済みである。slot間およびquality間の描画順も
+Optionsから切り替え可能とした。これによりPhase 4は現行仕様に対して完了とする。
 
 ## 7. Phase 5: Light validation and shared-boundary cleanup
 
@@ -276,6 +271,11 @@ Phase 6のfoundationとして、backend非依存の`FullApplicationState`と
 `PlotWindowId`、instance作成、検索、title変更、表示・非表示、削除、共有quality filter
 revision、および単一`PlotSessionState` ownershipをunit testで検証する。GUI compositionと
 floating plot lifecycleはこのstate API上へ実装する。
+
+次のcomposition境界として、`PlotWindowId`ごとに独立した`ImPlotComponent`を所有する
+full GUI runtimeを追加した。visibleなinstanceだけをsession、quality filterおよびOptionsの
+revision差分時にprepareし、非表示中はprepareとrenderを抑止する。再表示時は保持したview
+stateを再fitせず最新の共有dataへ遅延更新し、削除時は対応するruntimeを破棄する。
 
 ## 9. Phase 7: Full extensions
 
