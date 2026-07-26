@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 
 #include "rtktrace/model/sample.hpp"
@@ -34,5 +35,7 @@ struct GpsCivilTime {
 
 [[nodiscard]] std::optional<GpsTime> utc_civil_to_gps_time(UtcCivilTime utc) noexcept;
 [[nodiscard]] std::optional<GpsTime> gps_civil_to_gps_time(GpsCivilTime gps) noexcept;
+[[nodiscard]] std::optional<std::string> format_absolute_gps_time(GpsTime gps);
+[[nodiscard]] std::optional<GpsTime> parse_absolute_gps_time(std::string_view text) noexcept;
 
 } // namespace rtktrace

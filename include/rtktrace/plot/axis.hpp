@@ -41,10 +41,12 @@ enum class PositionComponent : std::uint8_t {
 };
 
 [[nodiscard]] std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
-    const PlotDataView& data, const QualityFilter& filter, PlotAreaSize area) noexcept;
+    const PlotDataView& data, const QualityFilter& filter, PlotAreaSize area,
+    double fit_ratio = 1.0) noexcept;
 [[nodiscard]] std::optional<NumericRange> auto_fit_position_component(
-    const PlotDataView& data, const QualityFilter& filter, PositionComponent component) noexcept;
+    const PlotDataView& data, const QualityFilter& filter, PositionComponent component,
+    double fit_ratio = 1.0) noexcept;
 [[nodiscard]] std::optional<TimeRange> auto_fit_time_axis(
-    const PlotDataView& data, const QualityFilter& filter) noexcept;
+    const PlotDataView& data, const QualityFilter& filter, double fit_ratio = 1.0) noexcept;
 
 } // namespace rtktrace

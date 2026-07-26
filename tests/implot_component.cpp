@@ -75,6 +75,16 @@ int main()
     io.Fonts->AddFontDefault();
     io.Fonts->Build();
 
+    const ImPlotComponentOptions modifier_defaults;
+    check(modifier_defaults.zoom_center_modifier == ImGuiMod_Ctrl
+            && modifier_defaults.window_resize_modifier == ImGuiMod_Alt
+            && modifier_matches_exactly(ImGuiMod_Ctrl, modifier_defaults.zoom_center_modifier)
+            && !modifier_matches_exactly(
+                ImGuiMod_Ctrl | ImGuiMod_Shift, modifier_defaults.zoom_center_modifier)
+            && !modifier_matches_exactly(
+                ImGuiMod_Ctrl, modifier_defaults.window_resize_modifier),
+        "wheel modifier matching accepts only the configured exact single modifier");
+
     ImPlotComponent component;
     const auto prepare_start = std::chrono::steady_clock::now();
     component.prepare(data, QualityFilter{});
@@ -102,6 +112,37 @@ int main()
         "normal time-series rendering produces linked East, North, and vertical panels");
     check(component.time_series_panel_count() == 3,
         "default time-series selection prepares three position panels");
+
+    ImPlotComponent fitted_component;
+    fitted_component.prepare(data, QualityFilter{});
+    for (int frame = 0; frame < 3; ++frame) {
+        ImGui::NewFrame();
+        ImGui::SetNextWindowPos(ImVec2{0.0F, 0.0F});
+        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGui::Begin(
+            "fitted trajectory", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+        fitted_component.render_trajectory("Trajectory", PlotAreaSize{1500.0, 400.0});
+        ImGui::End();
+        ImGui::Render();
+    }
+    const TrajectoryPlotMetrics fitted_metrics = *fitted_component.trajectory_metrics();
+    constexpr double east_minimum = 0.0;
+    constexpr double east_maximum = 9.999;
+    constexpr double north_minimum = 0.25;
+    constexpr double north_maximum = 5.9995;
+    const double east_fit_ratio =
+        (east_maximum - east_minimum) / fitted_metrics.east.length();
+    const double north_fit_ratio =
+        (north_maximum - north_minimum) / fitted_metrics.north.length();
+    constexpr double fit_tolerance = 1.0e-6;
+    check(fitted_metrics.east.minimum <= east_minimum + fit_tolerance
+            && fitted_metrics.east.maximum >= east_maximum - fit_tolerance
+            && fitted_metrics.north.minimum <= north_minimum + fit_tolerance
+            && fitted_metrics.north.maximum >= north_maximum - fit_tolerance
+            && east_fit_ratio <= 1.0 + fit_tolerance
+            && north_fit_ratio <= 1.0 + fit_tolerance
+            && std::abs(std::max(east_fit_ratio, north_fit_ratio) - 1.0) < fit_tolerance,
+        "trajectory fit rebases to measured axes without clipping and preserves its fit ratio");
 
     const double requested_scale = component.trajectory_metrics()->meters_per_pixel * 2.0;
     const std::optional<TimeRange> rendered_time = component.time_series_time_range();

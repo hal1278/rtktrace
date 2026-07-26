@@ -11,6 +11,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "rtktrace/analysis/gps_time.hpp"
 #include "rtktrace/model/notification.hpp"
 #include "rtktrace/plot/implot_component.hpp"
 #include "rtktrace/session_state.hpp"
@@ -21,6 +22,35 @@ inline constexpr int light_minimum_window_width = 800;
 inline constexpr int light_minimum_window_height = 600;
 
 namespace detail {
+
+struct LightOptionsState {
+    double trajectory_fit_ratio{1.0};
+    double time_series_fit_ratio{1.0};
+    float default_point_size_px{2.0F};
+    ImGuiKeyChord zoom_center_modifier{ImGuiMod_Ctrl};
+    ImGuiKeyChord window_resize_modifier{ImGuiMod_Alt};
+};
+
+[[nodiscard]] bool valid_fit_ratio(double ratio) noexcept;
+[[nodiscard]] bool valid_modifier_choice(ImGuiKeyChord modifier) noexcept;
+[[nodiscard]] bool valid_distinct_modifier_choices(
+    ImGuiKeyChord zoom_center_modifier, ImGuiKeyChord window_resize_modifier) noexcept;
+[[nodiscard]] ImPlotComponentOptions initial_plot_options(const LightOptionsState& options) noexcept;
+[[nodiscard]] bool apply_light_options(
+    ImPlotComponentOptions& plot_options, const LightOptionsState& options) noexcept;
+[[nodiscard]] EnuReferenceConfiguration enu_configuration_for_method(
+    const EnuReferenceConfiguration& current, EnuReferenceMethod method) noexcept;
+
+struct AbsoluteGpsTimeEdit {
+    std::array<char, 24> text{};
+    std::optional<GpsTime> original;
+    bool edited{false};
+};
+
+[[nodiscard]] bool initialize_absolute_gps_time_edit(
+    AbsoluteGpsTimeEdit& edit, GpsTime value);
+[[nodiscard]] std::optional<GpsTime> resolve_absolute_gps_time_edit(
+    const AbsoluteGpsTimeEdit& edit) noexcept;
 
 struct TrajectoryAxisResizeProgress {
     double response{1.0};
@@ -62,6 +92,7 @@ struct TrajectoryWindowResize {
 
 class LightGui {
 public:
+    LightGui();
     void enqueue_file(std::filesystem::path path);
     [[nodiscard]] bool add_loaded_file(LoadedFile file);
     void open_file_dialog(SDL_Window* window);
@@ -137,6 +168,8 @@ private:
     [[nodiscard]] float summary_height() const noexcept;
     void render_notification_window();
     void render_file_workflow_modals();
+    [[nodiscard]] bool consume_escape_cancel();
+    void render_options_dialog();
     void render_time_range_dialog();
     void render_enu_dialog();
     void render_match_dialog();
@@ -144,6 +177,7 @@ private:
 
     PlotSessionState state_;
     QualityFilter quality_filter_;
+    detail::LightOptionsState options_;
     ImPlotComponentOptions plot_options_;
     ImPlotComponent normal_plot_;
     ImPlotComponent relative_plot_;
@@ -176,20 +210,29 @@ private:
     int synchronized_maximum_height_{0};
     SDL_DisplayID maximum_sync_failure_display_{0};
     bool unknown_display_notification_sent_{false};
+    bool escape_cancel_consumed_{false};
     bool format_popup_requested_{false};
     bool large_file_popup_requested_{false};
     bool nmea_popup_requested_{false};
+
+    bool options_dialog_open_requested_{false};
+    bool options_dialog_initialized_{false};
+    double options_trajectory_fit_ratio_{1.0};
+    double options_time_series_fit_ratio_{1.0};
+    float options_default_point_size_px_{2.0F};
+    int options_zoom_center_modifier_index_{0};
+    int options_window_resize_modifier_index_{2};
 
     bool time_dialog_open_requested_{false};
     bool time_dialog_initialized_{false};
     bool time_start_enabled_{false};
     bool time_end_enabled_{false};
-    double time_start_seconds_{0.0};
-    double time_end_seconds_{0.0};
+    detail::AbsoluteGpsTimeEdit time_start_edit_;
+    detail::AbsoluteGpsTimeEdit time_end_edit_;
 
     bool enu_dialog_open_requested_{false};
     bool enu_dialog_initialized_{false};
-    int enu_method_index_{0};
+    bool enu_user_specified_pending_{false};
     int enu_coordinate_kind_{0};
     double enu_values_[3]{0.0, 0.0, 0.0};
 
@@ -204,8 +247,8 @@ private:
     double trajectory_range_backup_[4]{-1.0, 1.0, -1.0, 1.0};
     double trajectory_scale_value_{1.0};
     double trajectory_scale_backup_{1.0};
-    double plot_time_values_[2]{0.0, 1.0};
-    double plot_time_backup_[2]{0.0, 1.0};
+    std::array<detail::AbsoluteGpsTimeEdit, 2> plot_time_edits_;
+    std::array<detail::AbsoluteGpsTimeEdit, 2> plot_time_backups_;
     std::array<double, 5> plot_position_minimum_{};
     std::array<double, 5> plot_position_maximum_{};
     std::array<double, 5> plot_position_minimum_backup_{};

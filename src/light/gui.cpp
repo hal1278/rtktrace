@@ -33,11 +33,19 @@ constexpr std::uint8_t maximum_trajectory_settle_attempts = 2;
 constexpr std::uint8_t maximum_trajectory_geometry_failures = 3;
 constexpr std::array position_unit_labels{"km", "m", "mm"};
 constexpr std::array position_unit_scale_m{1000.0, 1.0, 0.001};
+constexpr std::array modifier_choices{ImGuiMod_Ctrl, ImGuiMod_Shift, ImGuiMod_Alt};
 
 [[nodiscard]] ImVec4 rgba(Rgba8 value) noexcept
 {
     constexpr float scale = 1.0F / 255.0F;
     return ImVec4{value.red * scale, value.green * scale, value.blue * scale, value.alpha * scale};
+}
+
+[[nodiscard]] ImVec4 darker_hover_color(ImVec4 value) noexcept
+{
+    constexpr float hover_brightness = 0.85F;
+    return ImVec4{value.x * hover_brightness, value.y * hover_brightness,
+        value.z * hover_brightness, value.w};
 }
 
 [[nodiscard]] std::string slot_label(std::size_t slot, bool reference)
@@ -69,11 +77,6 @@ constexpr std::array position_unit_scale_m{1000.0, 1.0, 0.001};
         return std::nullopt;
     }
     return GpsTime{static_cast<std::int64_t>(std::llround(nanoseconds))};
-}
-
-[[nodiscard]] double gps_seconds(GpsTime time) noexcept
-{
-    return static_cast<double>(time.nanoseconds_since_gps_epoch) / nanoseconds_per_second;
 }
 
 [[nodiscard]] bool valid_numeric_range(double minimum, double maximum) noexcept
@@ -111,6 +114,26 @@ struct NumericInputResult {
     return NumericInputResult{entered, deactivated_after_edit};
 }
 
+[[nodiscard]] NumericInputResult input_absolute_gps_time(
+    const char* label, detail::AbsoluteGpsTimeEdit& edit, bool range_is_valid)
+{
+    if (!range_is_valid) {
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4{0.45F, 0.08F, 0.08F, 1.0F});
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4{0.58F, 0.10F, 0.10F, 1.0F});
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4{0.68F, 0.12F, 0.12F, 1.0F});
+    }
+    const bool entered = ImGui::InputText(
+        label, edit.text.data(), edit.text.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+    if (ImGui::IsItemEdited()) {
+        edit.edited = true;
+    }
+    const bool deactivated_after_edit = ImGui::IsItemDeactivatedAfterEdit();
+    if (!range_is_valid) {
+        ImGui::PopStyleColor(3);
+    }
+    return NumericInputResult{entered, deactivated_after_edit};
+}
+
 [[nodiscard]] double displayed_position(double meters, int unit_index) noexcept
 {
     return meters / position_unit_scale_m[static_cast<std::size_t>(unit_index)];
@@ -132,7 +155,111 @@ void rescale_displayed_positions(
     }
 }
 
+[[nodiscard]] ImGuiKeyChord modifier_choice_at(int index) noexcept
+{
+    const int clamped = std::clamp(index, 0, static_cast<int>(modifier_choices.size()) - 1);
+    return modifier_choices[static_cast<std::size_t>(clamped)];
+}
+
+[[nodiscard]] int modifier_choice_index(ImGuiKeyChord modifier) noexcept
+{
+    for (std::size_t index = 0; index < modifier_choices.size(); ++index) {
+        if (modifier_choices[index] == modifier) {
+            return static_cast<int>(index);
+        }
+    }
+    return 0;
+}
+
 } // namespace
+
+bool detail::valid_fit_ratio(double ratio) noexcept
+{
+    return std::isfinite(ratio) && ratio > 0.0 && ratio <= 1.0;
+}
+
+bool detail::valid_modifier_choice(ImGuiKeyChord modifier) noexcept
+{
+    return std::find(modifier_choices.begin(), modifier_choices.end(), modifier)
+        != modifier_choices.end();
+}
+
+bool detail::valid_distinct_modifier_choices(
+    ImGuiKeyChord zoom_center_modifier, ImGuiKeyChord window_resize_modifier) noexcept
+{
+    return valid_modifier_choice(zoom_center_modifier)
+        && valid_modifier_choice(window_resize_modifier)
+        && zoom_center_modifier != window_resize_modifier;
+}
+
+ImPlotComponentOptions detail::initial_plot_options(const LightOptionsState& options) noexcept
+{
+    ImPlotComponentOptions plot_options;
+    if (valid_fit_ratio(options.trajectory_fit_ratio)) {
+        plot_options.trajectory_fit_ratio = options.trajectory_fit_ratio;
+    }
+    if (valid_fit_ratio(options.time_series_fit_ratio)) {
+        plot_options.time_series_fit_ratio = options.time_series_fit_ratio;
+    }
+    if (std::isfinite(options.default_point_size_px) && options.default_point_size_px >= 1.0F) {
+        plot_options.marker_size_px = options.default_point_size_px;
+    }
+    if (valid_distinct_modifier_choices(
+            options.zoom_center_modifier, options.window_resize_modifier)) {
+        plot_options.zoom_center_modifier = options.zoom_center_modifier;
+        plot_options.window_resize_modifier = options.window_resize_modifier;
+    }
+    return plot_options;
+}
+
+bool detail::apply_light_options(
+    ImPlotComponentOptions& plot_options, const LightOptionsState& options) noexcept
+{
+    if (!valid_fit_ratio(options.trajectory_fit_ratio)
+        || !valid_fit_ratio(options.time_series_fit_ratio)
+        || !valid_distinct_modifier_choices(
+            options.zoom_center_modifier, options.window_resize_modifier)) {
+        return false;
+    }
+    plot_options.trajectory_fit_ratio = options.trajectory_fit_ratio;
+    plot_options.time_series_fit_ratio = options.time_series_fit_ratio;
+    plot_options.zoom_center_modifier = options.zoom_center_modifier;
+    plot_options.window_resize_modifier = options.window_resize_modifier;
+    return true;
+}
+
+EnuReferenceConfiguration detail::enu_configuration_for_method(
+    const EnuReferenceConfiguration& current, EnuReferenceMethod method) noexcept
+{
+    EnuReferenceConfiguration next = current;
+    next.method = method;
+    return next;
+}
+
+bool detail::initialize_absolute_gps_time_edit(AbsoluteGpsTimeEdit& edit, GpsTime value)
+{
+    const std::optional<std::string> formatted = format_absolute_gps_time(value);
+    if (!formatted.has_value() || formatted->size() + 1 > edit.text.size()) {
+        edit = {};
+        return false;
+    }
+    edit.text.fill('\0');
+    std::copy(formatted->begin(), formatted->end(), edit.text.begin());
+    edit.original = value;
+    edit.edited = false;
+    return true;
+}
+
+std::optional<GpsTime> detail::resolve_absolute_gps_time_edit(
+    const AbsoluteGpsTimeEdit& edit) noexcept
+{
+    if (!edit.edited) {
+        return edit.original;
+    }
+    const auto end = std::find(edit.text.begin(), edit.text.end(), '\0');
+    return parse_absolute_gps_time(
+        std::string_view{edit.text.data(), static_cast<std::size_t>(end - edit.text.begin())});
+}
 
 detail::TrajectoryWindowResize detail::trajectory_window_resize(int width, int height,
     int maximum_width, int maximum_height, const TrajectoryPlotMetrics& metrics,
@@ -266,6 +393,8 @@ std::optional<TrajectoryResizeRequest> detail::feasible_axis_range_request(int w
     consider(request.north.length() / std::max(metrics.north_axis_length_px, 1.0));
     return best.has_value() ? std::optional<TrajectoryResizeRequest>{best->request} : std::nullopt;
 }
+
+LightGui::LightGui() : plot_options_(detail::initial_plot_options(options_)) {}
 
 void LightGui::enqueue_file(std::filesystem::path path)
 {
@@ -509,14 +638,45 @@ void LightGui::render_toolbar(SDL_Window* window)
         relative_plot_.request_fit();
     }
     ImGui::SameLine();
+    if (ImGui::Button("Options")) {
+        options_dialog_open_requested_ = true;
+        options_dialog_initialized_ = false;
+    }
+    ImGui::SameLine();
     if (ImGui::Button("Time Range")) {
         time_dialog_open_requested_ = true;
         time_dialog_initialized_ = false;
     }
     ImGui::SameLine();
-    if (ImGui::Button("ENU Reference")) {
-        enu_dialog_open_requested_ = true;
-        enu_dialog_initialized_ = false;
+    const EnuReferenceConfiguration& enu_configuration = state_.enu_configuration();
+    int enu_method_index = enu_user_specified_pending_
+        ? static_cast<int>(EnuReferenceMethod::UserSpecified)
+        : static_cast<int>(enu_configuration.method);
+    ImGui::SetNextItemWidth(165.0F);
+    if (ImGui::Combo("ENU reference", &enu_method_index,
+            "Slot 1 start\0Slot 1 end\0Slot 1 ECEF average\0User specified\0")) {
+        const EnuReferenceMethod selected_method =
+            static_cast<EnuReferenceMethod>(enu_method_index);
+        if (selected_method == EnuReferenceMethod::UserSpecified
+            && !enu_configuration.user_position.has_value()) {
+            enu_user_specified_pending_ = true;
+            enu_dialog_open_requested_ = true;
+            enu_dialog_initialized_ = false;
+        } else if (state_.set_enu_reference_configuration(
+                       detail::enu_configuration_for_method(enu_configuration, selected_method))) {
+            enu_user_specified_pending_ = false;
+            mark_plot_data_changed(false);
+        } else {
+            notify(NotificationLevel::Warning, "ENU reference is unavailable");
+        }
+    }
+    if (enu_user_specified_pending_
+        || state_.enu_configuration().method == EnuReferenceMethod::UserSpecified) {
+        ImGui::SameLine();
+        if (ImGui::Button("Edit...")) {
+            enu_dialog_open_requested_ = true;
+            enu_dialog_initialized_ = false;
+        }
     }
     ImGui::SameLine();
     if (ImGui::Button("Reference Match")) {
@@ -588,15 +748,18 @@ void LightGui::render_toolbar(SDL_Window* window)
     for (std::size_t quality = 0; quality < solution_quality_count; ++quality) {
         ImGui::SameLine();
         const ImVec4 quality_color = rgba(rtkplot_file1_quality_colors[quality]);
-        ImGui::PushStyleColor(ImGuiCol_Button,
-            quality_filter_.visible[quality] ? quality_color : ImVec4{0.2F, 0.2F, 0.2F, 1.0F});
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, quality_color);
+        const ImVec4 state_color = quality_filter_.visible[quality]
+            ? quality_color
+            : ImVec4{0.2F, 0.2F, 0.2F, 1.0F};
+        ImGui::PushStyleColor(ImGuiCol_Button, state_color);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, darker_hover_color(state_color));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, state_color);
         const std::string label = "Q" + std::to_string(quality);
         if (ImGui::SmallButton(label.c_str())) {
             quality_filter_.visible[quality] = !quality_filter_.visible[quality];
             ++plot_settings_revision_;
         }
-        ImGui::PopStyleColor(2);
+        ImGui::PopStyleColor(3);
     }
 }
 
@@ -852,10 +1015,15 @@ void LightGui::render_summary()
             : std::nullopt;
         const std::size_t denominator =
             statistics_mode_ == StatisticsMode::Recorded ? recorded : expected.value_or(0);
-        ImGui::Text("%zu %s  %.3f .. %.3f GPST  N=%zu", index + 1,
+        const std::optional<std::string> first = item.first_sample_time.has_value()
+            ? format_absolute_gps_time(*item.first_sample_time)
+            : std::nullopt;
+        const std::optional<std::string> last = item.last_sample_time.has_value()
+            ? format_absolute_gps_time(*item.last_sample_time)
+            : std::nullopt;
+        ImGui::Text("%zu %s  %s .. %s GPST  N=%zu", index + 1,
             state_.files()[index].source_path.filename().string().c_str(),
-            item.first_sample_time.has_value() ? gps_seconds(*item.first_sample_time) : 0.0,
-            item.last_sample_time.has_value() ? gps_seconds(*item.last_sample_time) : 0.0,
+            first.value_or("unavailable").c_str(), last.value_or("unavailable").c_str(),
             denominator);
         if (statistics_mode_ == StatisticsMode::Expected && !expected.has_value()) {
             ImGui::SameLine();
@@ -933,6 +1101,14 @@ void LightGui::render_file_workflow_modals()
         format_popup_requested_ = false;
     }
     if (ImGui::BeginPopupModal("Choose input format", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (consume_escape_cancel()) {
+            notify(NotificationLevel::Info,
+                "Cancelled format selection for " + modal_load_->path.filename().string());
+            modal_load_.reset();
+            ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            return;
+        }
         ImGui::Text("Format for %s", modal_load_->path.filename().string().c_str());
         if (ImGui::Button("POS")) {
             PendingLoad load = std::move(*modal_load_);
@@ -964,6 +1140,14 @@ void LightGui::render_file_workflow_modals()
         nmea_popup_requested_ = false;
     }
     if (ImGui::BeginPopupModal("NMEA input decision", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (consume_escape_cancel()) {
+            notify(NotificationLevel::Info,
+                "Cancelled NMEA load for " + nmea_decision_->path.filename().string());
+            nmea_decision_.reset();
+            ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            return;
+        }
         PendingLoad& load = *nmea_decision_;
         ImGui::TextUnformatted(load.path.filename().string().c_str());
         if (load.needs_missing_geoid_decision) {
@@ -997,6 +1181,99 @@ void LightGui::render_file_workflow_modals()
         }
         ImGui::EndPopup();
     }
+}
+
+bool LightGui::consume_escape_cancel()
+{
+    if (escape_cancel_consumed_ || !ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+        return false;
+    }
+    escape_cancel_consumed_ = true;
+    return true;
+}
+
+void LightGui::render_options_dialog()
+{
+    if (options_dialog_open_requested_) {
+        ImGui::OpenPopup("Options");
+        options_dialog_open_requested_ = false;
+    }
+    if (!ImGui::BeginPopupModal("Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+    if (consume_escape_cancel()) {
+        ImGui::CloseCurrentPopup();
+        options_dialog_initialized_ = false;
+        ImGui::EndPopup();
+        return;
+    }
+    if (!options_dialog_initialized_) {
+        options_trajectory_fit_ratio_ = options_.trajectory_fit_ratio;
+        options_time_series_fit_ratio_ = options_.time_series_fit_ratio;
+        options_default_point_size_px_ = options_.default_point_size_px;
+        options_zoom_center_modifier_index_ = modifier_choice_index(options_.zoom_center_modifier);
+        options_window_resize_modifier_index_ =
+            modifier_choice_index(options_.window_resize_modifier);
+        options_dialog_initialized_ = true;
+    }
+
+    ImGui::SeparatorText("Fit ratio");
+    ImGui::InputDouble("Trajectory", &options_trajectory_fit_ratio_, 0.01, 0.1, "%.3f");
+    ImGui::InputDouble("Time series", &options_time_series_fit_ratio_, 0.01, 0.1, "%.3f");
+    const bool ratios_valid = detail::valid_fit_ratio(options_trajectory_fit_ratio_)
+        && detail::valid_fit_ratio(options_time_series_fit_ratio_);
+    if (!ratios_valid) {
+        ImGui::TextColored(
+            ImVec4{1.0F, 0.35F, 0.35F, 1.0F}, "Fit ratios must be greater than 0 and at most 1.");
+    }
+
+    ImGui::SeparatorText("Point size");
+    ImGui::SliderFloat(
+        "Default point size", &options_default_point_size_px_, 1.0F, 10.0F, "%.0f px");
+    ImGui::TextDisabled("Used for a new session only; the toolbar controls this session.");
+    const bool default_point_size_valid = std::isfinite(options_default_point_size_px_)
+        && options_default_point_size_px_ >= 1.0F && options_default_point_size_px_ <= 10.0F;
+
+    ImGui::SeparatorText("Mouse-wheel modifiers");
+    ImGui::Combo("Center-fixed zoom", &options_zoom_center_modifier_index_,
+        "Ctrl\0Shift\0Alt\0");
+    ImGui::Combo("Window resize", &options_window_resize_modifier_index_, "Ctrl\0Shift\0Alt\0");
+    const ImGuiKeyChord zoom_center_modifier =
+        modifier_choice_at(options_zoom_center_modifier_index_);
+    const ImGuiKeyChord window_resize_modifier =
+        modifier_choice_at(options_window_resize_modifier_index_);
+    const bool modifiers_valid = detail::valid_distinct_modifier_choices(
+        zoom_center_modifier, window_resize_modifier);
+    if (!modifiers_valid) {
+        ImGui::TextColored(ImVec4{1.0F, 0.35F, 0.35F, 1.0F},
+            "Center-fixed zoom and window resize must use different modifiers.");
+    }
+
+    ImGui::BeginDisabled(!ratios_valid || !default_point_size_valid || !modifiers_valid);
+    if (ImGui::Button("Apply")) {
+        const bool fit_ratios_changed = options_.trajectory_fit_ratio != options_trajectory_fit_ratio_
+            || options_.time_series_fit_ratio != options_time_series_fit_ratio_;
+        const bool modifiers_changed = options_.zoom_center_modifier != zoom_center_modifier
+            || options_.window_resize_modifier != window_resize_modifier;
+        options_.trajectory_fit_ratio = options_trajectory_fit_ratio_;
+        options_.time_series_fit_ratio = options_time_series_fit_ratio_;
+        options_.default_point_size_px = options_default_point_size_px_;
+        options_.zoom_center_modifier = zoom_center_modifier;
+        options_.window_resize_modifier = window_resize_modifier;
+        if ((fit_ratios_changed || modifiers_changed)
+            && detail::apply_light_options(plot_options_, options_)) {
+            ++plot_settings_revision_;
+        }
+        ImGui::CloseCurrentPopup();
+        options_dialog_initialized_ = false;
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+        ImGui::CloseCurrentPopup();
+        options_dialog_initialized_ = false;
+    }
+    ImGui::EndPopup();
 }
 
 void LightGui::apply_window_resize_request(SDL_Window* window)
@@ -1321,47 +1598,60 @@ void LightGui::render_time_range_dialog()
     if (!ImGui::BeginPopupModal("Common time range", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
+    if (consume_escape_cancel()) {
+        ImGui::CloseCurrentPopup();
+        time_dialog_initialized_ = false;
+        ImGui::EndPopup();
+        return;
+    }
     if (!time_dialog_initialized_) {
         const CommonTimeRange& configured = state_.configured_time_range();
         const std::optional<TimeRange> effective = state_.effective_range();
         time_start_enabled_ = configured.start_enabled;
         time_end_enabled_ = configured.end_enabled;
-        time_start_seconds_ = configured.entered_start.has_value()
-            ? gps_seconds(*configured.entered_start)
-            : effective.has_value() ? gps_seconds(effective->start)
-                                    : 0.0;
-        time_end_seconds_ = configured.entered_end.has_value()
-            ? gps_seconds(*configured.entered_end)
-            : effective.has_value() ? gps_seconds(effective->end)
-                                    : 0.0;
+        static_cast<void>(detail::initialize_absolute_gps_time_edit(time_start_edit_,
+            configured.entered_start.value_or(
+                effective.has_value() ? effective->start : GpsTime{0})));
+        static_cast<void>(detail::initialize_absolute_gps_time_edit(time_end_edit_,
+            configured.entered_end.value_or(effective.has_value() ? effective->end : GpsTime{0})));
         time_dialog_initialized_ = true;
     }
+    std::optional<GpsTime> start = detail::resolve_absolute_gps_time_edit(time_start_edit_);
+    std::optional<GpsTime> end = detail::resolve_absolute_gps_time_edit(time_end_edit_);
     ImGui::Checkbox("Start", &time_start_enabled_);
     ImGui::SameLine();
     ImGui::BeginDisabled(!time_start_enabled_);
-    ImGui::InputDouble("##start-gpst", &time_start_seconds_, 1.0, 60.0, "%.9f GPST s");
+    ImGui::SetNextItemWidth(210.0F);
+    static_cast<void>(
+        input_absolute_gps_time("##start-gpst", time_start_edit_, start.has_value()));
     ImGui::EndDisabled();
     ImGui::Checkbox("End", &time_end_enabled_);
     ImGui::SameLine();
     ImGui::BeginDisabled(!time_end_enabled_);
-    ImGui::InputDouble("##end-gpst", &time_end_seconds_, 1.0, 60.0, "%.9f GPST s");
+    ImGui::SetNextItemWidth(210.0F);
+    static_cast<void>(input_absolute_gps_time("##end-gpst", time_end_edit_, end.has_value()));
     ImGui::EndDisabled();
+    ImGui::TextDisabled("GPST: YYYY-MM-DD hh:mm:ss.sss");
     if (ImGui::Button("Use intersection")) {
         const std::optional<TimeRange> intersection = intersection_time_range(state_.files());
         if (intersection.has_value()) {
-            time_start_seconds_ = gps_seconds(intersection->start);
-            time_end_seconds_ = gps_seconds(intersection->end);
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(time_start_edit_, intersection->start));
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(time_end_edit_, intersection->end));
             time_start_enabled_ = time_end_enabled_ = true;
         } else {
             notify(NotificationLevel::Warning, "No common intersection");
         }
     }
     if (ImGui::Button("OK")) {
+        start = detail::resolve_absolute_gps_time_edit(time_start_edit_);
+        end = detail::resolve_absolute_gps_time_edit(time_end_edit_);
         CommonTimeRange range;
         range.start_enabled = time_start_enabled_;
         range.end_enabled = time_end_enabled_;
-        range.entered_start = seconds_to_gps_time(time_start_seconds_);
-        range.entered_end = seconds_to_gps_time(time_end_seconds_);
+        range.entered_start = start;
+        range.entered_end = end;
         if (state_.set_common_time_range(range)) {
             mark_plot_data_changed(false);
             ImGui::CloseCurrentPopup();
@@ -1381,15 +1671,22 @@ void LightGui::render_time_range_dialog()
 void LightGui::render_enu_dialog()
 {
     if (enu_dialog_open_requested_) {
-        ImGui::OpenPopup("ENU reference");
+        ImGui::OpenPopup("Edit ENU reference");
         enu_dialog_open_requested_ = false;
     }
-    if (!ImGui::BeginPopupModal("ENU reference", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!ImGui::BeginPopupModal(
+            "Edit ENU reference", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+    if (consume_escape_cancel()) {
+        ImGui::CloseCurrentPopup();
+        enu_dialog_initialized_ = false;
+        enu_user_specified_pending_ = false;
+        ImGui::EndPopup();
         return;
     }
     if (!enu_dialog_initialized_) {
         const EnuReferenceConfiguration& configuration = state_.enu_configuration();
-        enu_method_index_ = static_cast<int>(configuration.method);
         if (configuration.user_position.has_value()) {
             if (const UserSpecifiedLlh* llh =
                     std::get_if<UserSpecifiedLlh>(&*configuration.user_position)) {
@@ -1403,33 +1700,33 @@ void LightGui::render_enu_dialog()
                 enu_values_[1] = ecef->y_m;
                 enu_values_[2] = ecef->z_m;
             }
+        } else {
+            enu_coordinate_kind_ = 0;
+            enu_values_[0] = 0.0;
+            enu_values_[1] = 0.0;
+            enu_values_[2] = 0.0;
         }
         enu_dialog_initialized_ = true;
     }
-    ImGui::Combo("Method", &enu_method_index_,
-        "Slot 1 start\0Slot 1 end\0Slot 1 ECEF average\0User specified\0");
-    if (enu_method_index_ == static_cast<int>(EnuReferenceMethod::UserSpecified)) {
-        ImGui::Combo("Coordinates", &enu_coordinate_kind_, "LLH\0ECEF\0");
-        ImGui::InputDouble(
-            enu_coordinate_kind_ == 0 ? "Latitude" : "X", &enu_values_[0], 0.0, 0.0, "%.10g");
-        ImGui::InputDouble(
-            enu_coordinate_kind_ == 0 ? "Longitude" : "Y", &enu_values_[1], 0.0, 0.0, "%.10g");
-        ImGui::InputDouble(
-            enu_coordinate_kind_ == 0 ? "Height" : "Z", &enu_values_[2], 0.0, 0.0, "%.10g");
-    }
-    if (ImGui::Button("OK")) {
-        EnuReferenceConfiguration configuration;
-        configuration.method = static_cast<EnuReferenceMethod>(enu_method_index_);
-        if (configuration.method == EnuReferenceMethod::UserSpecified) {
-            configuration.user_position = enu_coordinate_kind_ == 0
-                ? UserSpecifiedEnuPosition{UserSpecifiedLlh{
-                      enu_values_[0], enu_values_[1], enu_values_[2]}}
-                : UserSpecifiedEnuPosition{Ecef{enu_values_[0], enu_values_[1], enu_values_[2]}};
-        }
+    ImGui::Combo("Coordinates", &enu_coordinate_kind_, "LLH\0ECEF\0");
+    ImGui::InputDouble(
+        enu_coordinate_kind_ == 0 ? "Latitude" : "X", &enu_values_[0], 0.0, 0.0, "%.10g");
+    ImGui::InputDouble(
+        enu_coordinate_kind_ == 0 ? "Longitude" : "Y", &enu_values_[1], 0.0, 0.0, "%.10g");
+    ImGui::InputDouble(
+        enu_coordinate_kind_ == 0 ? "Height" : "Z", &enu_values_[2], 0.0, 0.0, "%.10g");
+    if (ImGui::Button("Apply")) {
+        EnuReferenceConfiguration configuration = detail::enu_configuration_for_method(
+            state_.enu_configuration(), EnuReferenceMethod::UserSpecified);
+        configuration.user_position = enu_coordinate_kind_ == 0
+            ? UserSpecifiedEnuPosition{UserSpecifiedLlh{
+                  enu_values_[0], enu_values_[1], enu_values_[2]}}
+            : UserSpecifiedEnuPosition{Ecef{enu_values_[0], enu_values_[1], enu_values_[2]}};
         if (state_.set_enu_reference_configuration(configuration)) {
             mark_plot_data_changed(false);
             ImGui::CloseCurrentPopup();
             enu_dialog_initialized_ = false;
+            enu_user_specified_pending_ = false;
         } else {
             notify(NotificationLevel::Warning, "ENU reference is unavailable");
         }
@@ -1438,6 +1735,7 @@ void LightGui::render_enu_dialog()
     if (ImGui::Button("Cancel")) {
         ImGui::CloseCurrentPopup();
         enu_dialog_initialized_ = false;
+        enu_user_specified_pending_ = false;
     }
     ImGui::EndPopup();
 }
@@ -1449,6 +1747,12 @@ void LightGui::render_match_dialog()
         match_dialog_open_requested_ = false;
     }
     if (!ImGui::BeginPopupModal("Reference matching", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+    if (consume_escape_cancel()) {
+        ImGui::CloseCurrentPopup();
+        match_dialog_initialized_ = false;
+        ImGui::EndPopup();
         return;
     }
     if (!match_dialog_initialized_) {
@@ -1509,8 +1813,15 @@ void LightGui::render_plot_range_dialog()
                 displayed_position(metrics.meters_per_pixel, plot_scale_unit_index_);
         }
         if (const std::optional<TimeRange> time = component.time_series_time_range()) {
-            plot_time_values_[0] = gps_seconds(time->start);
-            plot_time_values_[1] = gps_seconds(time->end);
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(plot_time_edits_[0], time->start));
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(plot_time_edits_[1], time->end));
+        } else {
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(plot_time_edits_[0], GpsTime{0}));
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(plot_time_edits_[1], GpsTime{0}));
         }
         plot_position_present_.fill(false);
         for (const TimeSeriesPanelMetrics& metrics : component.time_series_metrics()) {
@@ -1527,8 +1838,7 @@ void LightGui::render_plot_range_dialog()
             trajectory_range_backup_[index] = trajectory_range_values_[index];
         }
         trajectory_scale_backup_ = trajectory_scale_value_;
-        plot_time_backup_[0] = plot_time_values_[0];
-        plot_time_backup_[1] = plot_time_values_[1];
+        plot_time_backups_ = plot_time_edits_;
         plot_position_minimum_backup_ = plot_position_minimum_;
         plot_position_maximum_backup_ = plot_position_maximum_;
         plot_range_copy_source_ = -1;
@@ -1652,22 +1962,24 @@ void LightGui::render_plot_range_dialog()
     ImGui::EndDisabled();
 
     ImGui::SeparatorText("Time series");
-    std::optional<GpsTime> start = seconds_to_gps_time(plot_time_values_[0]);
-    std::optional<GpsTime> end = seconds_to_gps_time(plot_time_values_[1]);
+    std::optional<GpsTime> start =
+        detail::resolve_absolute_gps_time_edit(plot_time_edits_[0]);
+    std::optional<GpsTime> end = detail::resolve_absolute_gps_time_edit(plot_time_edits_[1]);
     const bool time_valid = start.has_value() && end.has_value() && *start <= *end;
+    ImGui::SetNextItemWidth(210.0F);
     const NumericInputResult time_start =
-        input_range_value("GPST start (s)", &plot_time_values_[0], time_valid, "%.9f");
+        input_absolute_gps_time("GPST start", plot_time_edits_[0], time_valid);
+    ImGui::SetNextItemWidth(210.0F);
     const NumericInputResult time_end =
-        input_range_value("GPST end (s)", &plot_time_values_[1], time_valid, "%.9f");
-    start = seconds_to_gps_time(plot_time_values_[0]);
-    end = seconds_to_gps_time(plot_time_values_[1]);
+        input_absolute_gps_time("GPST end", plot_time_edits_[1], time_valid);
+    start = detail::resolve_absolute_gps_time_edit(plot_time_edits_[0]);
+    end = detail::resolve_absolute_gps_time_edit(plot_time_edits_[1]);
     bool entered_time_valid = start.has_value() && end.has_value() && *start <= *end;
     if (!entered_time_valid
         && (time_start.deactivated_after_edit || time_end.deactivated_after_edit)) {
-        plot_time_values_[0] = plot_time_backup_[0];
-        plot_time_values_[1] = plot_time_backup_[1];
-        start = seconds_to_gps_time(plot_time_values_[0]);
-        end = seconds_to_gps_time(plot_time_values_[1]);
+        plot_time_edits_ = plot_time_backups_;
+        start = detail::resolve_absolute_gps_time_edit(plot_time_edits_[0]);
+        end = detail::resolve_absolute_gps_time_edit(plot_time_edits_[1]);
         entered_time_valid = true;
     }
     const bool time_entered = time_start.entered || time_end.entered;
@@ -1675,8 +1987,11 @@ void LightGui::render_plot_range_dialog()
     const bool apply_time = ImGui::Button("Apply time range") || time_entered;
     if (entered_time_valid && apply_time) {
         if (component.set_time_series_time_range(TimeRange{*start, *end})) {
-            plot_time_backup_[0] = plot_time_values_[0];
-            plot_time_backup_[1] = plot_time_values_[1];
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(plot_time_edits_[0], *start));
+            static_cast<void>(
+                detail::initialize_absolute_gps_time_edit(plot_time_edits_[1], *end));
+            plot_time_backups_ = plot_time_edits_;
         } else {
             notify(NotificationLevel::Warning, "Invalid time-series time range");
         }
@@ -1791,6 +2106,7 @@ void LightGui::render_plot_range_dialog()
 
 void LightGui::render(SDL_Window* window)
 {
+    escape_cancel_consumed_ = false;
     drain_dialog_paths();
     process_load_queue();
     prepare_plots_if_needed();
@@ -1822,6 +2138,7 @@ void LightGui::render(SDL_Window* window)
     }
 
     render_file_workflow_modals();
+    render_options_dialog();
     render_time_range_dialog();
     render_enu_dialog();
     render_match_dialog();

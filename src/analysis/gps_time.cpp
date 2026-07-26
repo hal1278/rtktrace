@@ -1,8 +1,11 @@
 #include "rtktrace/analysis/gps_time.hpp"
 
 #include <array>
+#include <charconv>
 #include <chrono>
+#include <cstdio>
 #include <limits>
+#include <string>
 
 namespace rtktrace {
 namespace {
@@ -39,6 +42,17 @@ constexpr std::array leap_second_transitions{
 constexpr std::chrono::year_month_day gps_epoch_date = 1980y / std::chrono::January / 6;
 constexpr std::int64_t seconds_per_day = 86'400;
 constexpr std::int64_t nanoseconds_per_second = 1'000'000'000;
+constexpr std::int64_t nanoseconds_per_millisecond = 1'000'000;
+
+[[nodiscard]] bool decimal_at(std::string_view text, std::size_t offset, std::size_t length,
+    unsigned& value) noexcept
+{
+    value = 0;
+    const char* first = text.data() + offset;
+    const char* last = first + length;
+    const std::from_chars_result result = std::from_chars(first, last, value);
+    return result.ec == std::errc{} && result.ptr == last;
+}
 
 [[nodiscard]] std::optional<int> gps_utc_offset_seconds(
     std::chrono::sys_days date, bool is_leap_second) noexcept
@@ -153,6 +167,70 @@ std::optional<GpsTime> gps_civil_to_gps_time(GpsCivilTime gps) noexcept
     }
     return GpsTime{
         gps_seconds * nanoseconds_per_second + static_cast<std::int64_t>(gps.nanosecond)};
+}
+
+std::optional<std::string> format_absolute_gps_time(GpsTime gps)
+{
+    std::int64_t seconds = gps.nanoseconds_since_gps_epoch / nanoseconds_per_second;
+    std::int64_t nanosecond = gps.nanoseconds_since_gps_epoch % nanoseconds_per_second;
+    if (nanosecond < 0) {
+        nanosecond += nanoseconds_per_second;
+        --seconds;
+    }
+    std::int64_t millisecond =
+        (nanosecond + nanoseconds_per_millisecond / 2) / nanoseconds_per_millisecond;
+    if (millisecond == 1'000) {
+        millisecond = 0;
+        ++seconds;
+    }
+
+    std::int64_t days_since_gps_epoch = seconds / seconds_per_day;
+    std::int64_t seconds_of_day = seconds % seconds_per_day;
+    if (seconds_of_day < 0) {
+        seconds_of_day += seconds_per_day;
+        --days_since_gps_epoch;
+    }
+    const std::chrono::year_month_day date{
+        std::chrono::sys_days{gps_epoch_date} + std::chrono::days{days_since_gps_epoch}};
+    const int year = static_cast<int>(date.year());
+    if (!date.ok() || year < 0 || year > 9'999) {
+        return std::nullopt;
+    }
+    const unsigned hour = static_cast<unsigned>(seconds_of_day / 3'600);
+    const unsigned minute = static_cast<unsigned>((seconds_of_day % 3'600) / 60);
+    const unsigned second = static_cast<unsigned>(seconds_of_day % 60);
+    std::array<char, 24> text{};
+    const int written = std::snprintf(text.data(), text.size(),
+        "%04d-%02u-%02u %02u:%02u:%02u.%03lld", year, static_cast<unsigned>(date.month()),
+        static_cast<unsigned>(date.day()), hour, minute, second,
+        static_cast<long long>(millisecond));
+    if (written != 23) {
+        return std::nullopt;
+    }
+    return std::string{text.data(), static_cast<std::size_t>(written)};
+}
+
+std::optional<GpsTime> parse_absolute_gps_time(std::string_view text) noexcept
+{
+    if (text.size() != 23 || text[4] != '-' || text[7] != '-' || text[10] != ' '
+        || text[13] != ':' || text[16] != ':' || text[19] != '.') {
+        return std::nullopt;
+    }
+    unsigned year = 0;
+    unsigned month = 0;
+    unsigned day = 0;
+    unsigned hour = 0;
+    unsigned minute = 0;
+    unsigned second = 0;
+    unsigned millisecond = 0;
+    if (!decimal_at(text, 0, 4, year) || !decimal_at(text, 5, 2, month)
+        || !decimal_at(text, 8, 2, day) || !decimal_at(text, 11, 2, hour)
+        || !decimal_at(text, 14, 2, minute) || !decimal_at(text, 17, 2, second)
+        || !decimal_at(text, 20, 3, millisecond)) {
+        return std::nullopt;
+    }
+    return gps_civil_to_gps_time(GpsCivilTime{static_cast<int>(year), month, day, hour, minute,
+        second, millisecond * static_cast<std::uint32_t>(nanoseconds_per_millisecond)});
 }
 
 } // namespace rtktrace

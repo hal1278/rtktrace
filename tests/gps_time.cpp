@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdint>
 #include <iostream>
+#include <string>
 #include <string_view>
 
 #include "rtktrace/analysis/gps_time.hpp"
@@ -150,6 +151,67 @@ void test_gps_civil_time()
         "GPST civil time does not contain UTC leap seconds");
 }
 
+void test_absolute_gps_time_format()
+{
+    using rtktrace::format_absolute_gps_time;
+    using rtktrace::gps_civil_to_gps_time;
+    using rtktrace::GpsCivilTime;
+
+    check(format_absolute_gps_time(rtktrace::GpsTime{0})
+            == std::optional<std::string>{"1980-01-06 00:00:00.000"},
+        "absolute GPST format represents the GPS epoch without an offset suffix");
+
+    const auto civil = gps_civil_to_gps_time(GpsCivilTime{2017, 1, 1, 0, 0, 0, 0});
+    check(civil.has_value()
+            && format_absolute_gps_time(*civil)
+                == std::optional<std::string>{"2017-01-01 00:00:00.000"},
+        "absolute GPST format uses the GPST calendar directly");
+
+    const auto utc = rtktrace::utc_civil_to_gps_time(
+        rtktrace::UtcCivilTime{2017, 1, 1, 0, 0, 0, 0});
+    check(utc.has_value()
+            && format_absolute_gps_time(*utc)
+                == std::optional<std::string>{"2017-01-01 00:00:18.000"},
+        "absolute GPST format does not subtract the GPS-UTC leap-second offset");
+
+    const auto before_midnight =
+        gps_civil_to_gps_time(GpsCivilTime{2024, 2, 29, 23, 59, 59, 999'499'999});
+    const auto carry_midnight =
+        gps_civil_to_gps_time(GpsCivilTime{2024, 2, 29, 23, 59, 59, 999'500'000});
+    check(before_midnight.has_value()
+            && format_absolute_gps_time(*before_midnight)
+                == std::optional<std::string>{"2024-02-29 23:59:59.999"},
+        "absolute GPST format rounds below half a millisecond down");
+    check(carry_midnight.has_value()
+            && format_absolute_gps_time(*carry_midnight)
+                == std::optional<std::string>{"2024-03-01 00:00:00.000"},
+        "absolute GPST format carries nearest-millisecond rounding across a day");
+}
+
+void test_absolute_gps_time_parse()
+{
+    using rtktrace::gps_civil_to_gps_time;
+    using rtktrace::GpsCivilTime;
+    using rtktrace::parse_absolute_gps_time;
+
+    const auto expected =
+        gps_civil_to_gps_time(GpsCivilTime{2024, 2, 29, 12, 34, 56, 789'000'000});
+    check(parse_absolute_gps_time("2024-02-29 12:34:56.789") == expected,
+        "absolute GPST parser accepts the exact millisecond grammar");
+    check(!parse_absolute_gps_time("2023-02-29 12:34:56.789").has_value(),
+        "absolute GPST parser rejects an invalid civil date");
+    check(!parse_absolute_gps_time("2024-02-29T12:34:56.789").has_value()
+            && !parse_absolute_gps_time("2024-02-29 12:34:56.78").has_value(),
+        "absolute GPST parser rejects alternate separators and fractional precision");
+    check(!parse_absolute_gps_time("2024-02-29 12:34:56.789Z").has_value()
+            && !parse_absolute_gps_time("2024-02-29 12:34:56.789+00:00").has_value(),
+        "absolute GPST parser rejects UTC and numeric offset suffixes");
+    check(!parse_absolute_gps_time("2024-02-29 12:34:60.000").has_value(),
+        "absolute GPST parser rejects UTC leap-second notation");
+    check(!parse_absolute_gps_time("1979-12-31 23:59:59.999").has_value(),
+        "absolute GPST parser rejects civil values before the GPS epoch");
+}
+
 } // namespace
 
 int main()
@@ -159,6 +221,8 @@ int main()
     test_leap_second_continuity();
     test_invalid_utc();
     test_gps_civil_time();
+    test_absolute_gps_time_format();
+    test_absolute_gps_time_parse();
 
     if (failures != 0) {
         std::cerr << failures << " GPS-time test(s) failed\n";

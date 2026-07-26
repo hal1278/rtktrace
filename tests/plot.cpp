@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -136,30 +137,48 @@ void test_auto_fit_trajectory_and_components()
         auto_fit_trajectory(data, filter, PlotAreaSize{100.0, 200.0});
     check(trajectory.has_value(), "trajectory auto-fit accepts visible data");
     if (trajectory.has_value()) {
-        check(near(trajectory->meters_per_pixel, 0.1),
-            "trajectory auto-fit reserves ten percent margin");
-        check(near(trajectory->east.minimum, -0.5) && near(trajectory->east.maximum, 9.5)
-                && near(trajectory->north.minimum, -1.0) && near(trajectory->north.maximum, 19.0),
+        check(near(trajectory->meters_per_pixel, 0.09),
+            "trajectory auto-fit defaults to a fit ratio of one");
+        check(near(trajectory->east.minimum, 0.0) && near(trajectory->east.maximum, 9.0)
+                && near(trajectory->north.minimum, 0.0) && near(trajectory->north.maximum, 18.0),
             "trajectory auto-fit centers equal-scale axis ranges");
         check(near(trajectory->east.length() / 100.0, trajectory->north.length() / 200.0),
             "trajectory axes share one meter-per-pixel scale");
     }
+    const std::optional<TrajectoryAxisRanges> half_fit =
+        auto_fit_trajectory(data, filter, PlotAreaSize{100.0, 200.0}, 0.5);
+    check(half_fit.has_value() && near(half_fit->meters_per_pixel, 0.18)
+            && near(half_fit->east.minimum, -4.5) && near(half_fit->east.maximum, 13.5)
+            && near(half_fit->north.minimum, -9.0) && near(half_fit->north.maximum, 27.0),
+        "trajectory fit ratio expands both equal-scale ranges symmetrically");
 
     const std::optional<NumericRange> east =
         auto_fit_position_component(data, filter, PositionComponent::East);
     const std::optional<NumericRange> up =
         auto_fit_position_component(data, filter, PositionComponent::Up);
     check(east.has_value() && near(east->minimum, 0.0) && near(east->maximum, 9.0),
-        "time-series auto-fit adds no margin to varying position data");
+        "time-series auto-fit defaults to a fit ratio of one");
+    const std::optional<NumericRange> east_half =
+        auto_fit_position_component(data, filter, PositionComponent::East, 0.5);
+    check(east_half.has_value() && near(east_half->minimum, -4.5)
+            && near(east_half->maximum, 13.5),
+        "time-series position fit ratio expands a varying range symmetrically");
     check(up.has_value() && near(up->minimum, 6.5) && near(up->maximum, 7.5),
         "constant time-series component receives a one-meter range");
+    const std::optional<NumericRange> up_half =
+        auto_fit_position_component(data, filter, PositionComponent::Up, 0.5);
+    check(up_half.has_value() && near(up_half->minimum, 6.5) && near(up_half->maximum, 7.5),
+        "constant time-series component preserves its one-meter fallback for every fit ratio");
     check(!auto_fit_position_component(data, filter, PositionComponent::ReferenceRelativeDistance3d)
               .has_value(),
         "normal data has no reference-relative distance component");
 
     const std::optional<TimeRange> time = auto_fit_time_axis(data, filter);
     check(time == TimeRange{GpsTime{0}, GpsTime{2'000'000'000}},
-        "time auto-fit uses exact varying sample bounds");
+        "time auto-fit defaults to a fit ratio of one");
+    const std::optional<TimeRange> time_half = auto_fit_time_axis(data, filter, 0.5);
+    check(time_half == TimeRange{GpsTime{-1'000'000'000}, GpsTime{3'000'000'000}},
+        "time fit ratio expands a varying range symmetrically");
 
     filter.visible[static_cast<std::size_t>(SolutionQuality::Float)] = false;
     const std::optional<TrajectoryAxisRanges> single =
@@ -167,10 +186,19 @@ void test_auto_fit_trajectory_and_components()
     check(single.has_value() && near(single->meters_per_pixel, 0.01)
             && near(single->east.length(), 1.0) && near(single->north.length(), 2.0),
         "single-point trajectory assigns one meter to the shorter plot dimension");
+    const std::optional<TrajectoryAxisRanges> single_half =
+        auto_fit_trajectory(data, filter, PlotAreaSize{100.0, 200.0}, 0.5);
+    check(single_half.has_value() && near(single_half->meters_per_pixel, 0.01)
+            && near(single_half->east.length(), 1.0) && near(single_half->north.length(), 2.0),
+        "single-point trajectory preserves its existing fallback for every fit ratio");
     const std::optional<TimeRange> single_time = auto_fit_time_axis(data, filter);
     check(single_time.has_value()
             && single_time->end - single_time->start == degenerate_time_axis_range_ns,
         "single time receives a one-minute axis range");
+    const std::optional<TimeRange> single_time_half = auto_fit_time_axis(data, filter, 0.5);
+    check(single_time_half.has_value()
+            && single_time_half->end - single_time_half->start == degenerate_time_axis_range_ns,
+        "single time preserves its one-minute fallback for every fit ratio");
 }
 
 void test_minimum_ranges_and_visibility()
@@ -190,13 +218,37 @@ void test_minimum_ranges_and_visibility()
     check(trajectory.has_value() && near(trajectory->east.length(), 0.001)
             && near(trajectory->north.length(), 0.002),
         "trajectory auto-fit enforces one-millimeter shorter-axis minimum");
+    const std::optional<TrajectoryAxisRanges> trajectory_half =
+        auto_fit_trajectory(data, filter, PlotAreaSize{100.0, 200.0}, 0.5);
+    check(trajectory_half.has_value() && near(trajectory_half->east.length(), 0.001)
+            && near(trajectory_half->north.length(), 0.002),
+        "trajectory minimum range remains the fitting fallback for smaller fit ratios");
     const std::optional<NumericRange> east =
         auto_fit_position_component(data, filter, PositionComponent::East);
     check(east.has_value() && near(east->length(), minimum_position_axis_range_m),
         "time-series position component enforces one-millimeter minimum");
+    const std::optional<NumericRange> east_half =
+        auto_fit_position_component(data, filter, PositionComponent::East, 0.5);
+    check(east_half.has_value() && near(east_half->length(), minimum_position_axis_range_m),
+        "time-series position minimum remains the fitting fallback for smaller fit ratios");
     const std::optional<TimeRange> time = auto_fit_time_axis(data, filter);
     check(time.has_value() && time->end - time->start == minimum_time_axis_range_ns,
         "time axis enforces one-millisecond minimum");
+    const std::optional<TimeRange> time_half = auto_fit_time_axis(data, filter, 0.5);
+    check(time_half.has_value() && time_half->end - time_half->start == minimum_time_axis_range_ns,
+        "time minimum range remains the fitting fallback for smaller fit ratios");
+
+    const std::vector non_divisible_times{
+        sample_at(0, 0.0, 0.0, 0.0, 0.0, SolutionQuality::Fixed),
+        sample_at(1'000'001, 0.0, 0.0, 0.0, 0.0, SolutionQuality::Fixed),
+    };
+    const PlotDataView non_divisible_data{PlotDataKind::Normal,
+        {PlotSeriesView{1, true, std::span<const NormalizedSample>{non_divisible_times}}}};
+    const std::optional<TimeRange> non_divisible_time =
+        auto_fit_time_axis(non_divisible_data, filter, 0.75);
+    check(non_divisible_time.has_value()
+            && non_divisible_time->end - non_divisible_time->start == 1'333'335,
+        "time fit rounds fractional target nanoseconds upward");
 
     PlotDataView hidden = data;
     hidden.series[0].file_visible = false;
@@ -204,6 +256,16 @@ void test_minimum_ranges_and_visibility()
         "hidden files are excluded from auto-fit");
     check(!auto_fit_trajectory(data, filter, PlotAreaSize{0.0, 200.0}).has_value(),
         "invalid plot area cannot produce trajectory ranges");
+    check(!auto_fit_trajectory(data, filter, PlotAreaSize{100.0, 200.0}, 0.0).has_value()
+            && !auto_fit_position_component(data, filter, PositionComponent::East, 1.1).has_value()
+            && !auto_fit_time_axis(data, filter, -0.5).has_value()
+            && !auto_fit_trajectory(data, filter, PlotAreaSize{100.0, 200.0},
+                   std::numeric_limits<double>::quiet_NaN())
+                    .has_value()
+            && !auto_fit_position_component(data, filter, PositionComponent::East,
+                   std::numeric_limits<double>::infinity())
+                    .has_value(),
+        "fit ratios outside zero-exclusive through one-inclusive are rejected");
 }
 
 void test_plot_batch_style_and_drawing_order()

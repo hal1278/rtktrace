@@ -97,10 +97,12 @@ void include_value(std::optional<Bounds>& bounds, double value) noexcept
 } // namespace
 
 std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
-    const PlotDataView& data, const QualityFilter& filter, PlotAreaSize area) noexcept
+    const PlotDataView& data, const QualityFilter& filter, PlotAreaSize area,
+    double fit_ratio) noexcept
 {
     if (!std::isfinite(area.width_px) || !std::isfinite(area.height_px) || area.width_px <= 0.0
-        || area.height_px <= 0.0) {
+        || area.height_px <= 0.0 || !std::isfinite(fit_ratio) || fit_ratio <= 0.0
+        || fit_ratio > 1.0) {
         return std::nullopt;
     }
     std::optional<Bounds> east;
@@ -123,8 +125,8 @@ std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
     if (east_data_range == 0.0 && north_data_range == 0.0) {
         meters_per_pixel = 1.0 / shorter_pixels;
     } else {
-        meters_per_pixel = std::max(
-            east_data_range / (0.9 * area.width_px), north_data_range / (0.9 * area.height_px));
+        meters_per_pixel = std::max(east_data_range / (fit_ratio * area.width_px),
+            north_data_range / (fit_ratio * area.height_px));
         meters_per_pixel =
             std::max(meters_per_pixel, minimum_position_axis_range_m / shorter_pixels);
     }
@@ -146,8 +148,12 @@ std::optional<TrajectoryAxisRanges> auto_fit_trajectory(
 }
 
 std::optional<NumericRange> auto_fit_position_component(
-    const PlotDataView& data, const QualityFilter& filter, PositionComponent component) noexcept
+    const PlotDataView& data, const QualityFilter& filter, PositionComponent component,
+    double fit_ratio) noexcept
 {
+    if (!std::isfinite(fit_ratio) || fit_ratio <= 0.0 || fit_ratio > 1.0) {
+        return std::nullopt;
+    }
     std::optional<Bounds> bounds;
     for_each_visible_sample(data, filter, [&](const PlotSampleValue& sample) {
         const std::optional<double> value = component_value(sample, component);
@@ -158,17 +164,21 @@ std::optional<NumericRange> auto_fit_position_component(
     if (!bounds.has_value()) {
         return std::nullopt;
     }
-    const double length = bounds->maximum - bounds->minimum;
-    if (length >= minimum_position_axis_range_m) {
-        return NumericRange{bounds->minimum, bounds->maximum};
+    const double data_length = bounds->maximum - bounds->minimum;
+    if (data_length == 0.0) {
+        return centered_numeric_range(bounds->minimum, bounds->maximum, 1.0);
     }
-    const double target_length = length == 0.0 ? 1.0 : minimum_position_axis_range_m;
+    const double target_length =
+        std::max(data_length / fit_ratio, minimum_position_axis_range_m);
     return centered_numeric_range(bounds->minimum, bounds->maximum, target_length);
 }
 
 std::optional<TimeRange> auto_fit_time_axis(
-    const PlotDataView& data, const QualityFilter& filter) noexcept
+    const PlotDataView& data, const QualityFilter& filter, double fit_ratio) noexcept
 {
+    if (!std::isfinite(fit_ratio) || fit_ratio <= 0.0 || fit_ratio > 1.0) {
+        return std::nullopt;
+    }
     std::optional<GpsTime> minimum;
     std::optional<GpsTime> maximum;
     for_each_visible_sample(data, filter, [&](const PlotSampleValue& sample) {
@@ -183,10 +193,15 @@ std::optional<TimeRange> auto_fit_time_axis(
     if (length == 0.0L) {
         return centered_time_range(*minimum, *maximum, degenerate_time_axis_range_ns);
     }
-    if (length < minimum_time_axis_range_ns) {
-        return centered_time_range(*minimum, *maximum, minimum_time_axis_range_ns);
+    const long double fitted_length = length / fit_ratio;
+    if (fitted_length
+        > static_cast<long double>(std::numeric_limits<std::int64_t>::max())) {
+        return std::nullopt;
     }
-    return TimeRange{*minimum, *maximum};
+    const std::int64_t target_length_ns =
+        std::max(static_cast<std::int64_t>(std::ceil(fitted_length)),
+            minimum_time_axis_range_ns);
+    return centered_time_range(*minimum, *maximum, target_length_ns);
 }
 
 } // namespace rtktrace

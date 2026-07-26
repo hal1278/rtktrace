@@ -202,6 +202,109 @@ int main()
             "axis-range constraint selects a feasible common scale without changing either range")
         && resize_helpers_ok;
 
+    detail::LightOptionsState default_options;
+    ImPlotComponentOptions initial_options = detail::initial_plot_options(default_options);
+    bool options_ok = check(default_options.trajectory_fit_ratio == 1.0
+            && default_options.time_series_fit_ratio == 1.0
+            && default_options.default_point_size_px == 2.0F
+            && default_options.zoom_center_modifier == ImGuiMod_Ctrl
+            && default_options.window_resize_modifier == ImGuiMod_Alt
+            && initial_options.trajectory_fit_ratio == 1.0
+            && initial_options.time_series_fit_ratio == 1.0
+            && initial_options.zoom_center_modifier == ImGuiMod_Ctrl
+            && initial_options.window_resize_modifier == ImGuiMod_Alt
+            && initial_options.marker_size_px == 2.0F,
+        "light Options use the documented fit-ratio, point-size, and modifier defaults");
+
+    detail::LightOptionsState changed_options = default_options;
+    changed_options.trajectory_fit_ratio = 0.75;
+    changed_options.time_series_fit_ratio = 0.5;
+    changed_options.default_point_size_px = 6.0F;
+    ImPlotComponentOptions current_session = initial_options;
+    current_session.marker_size_px = 4.0F;
+    options_ok = check(detail::apply_light_options(current_session, changed_options)
+            && current_session.trajectory_fit_ratio == 0.75
+            && current_session.time_series_fit_ratio == 0.5
+            && current_session.marker_size_px == 4.0F,
+        "applying Options fit ratios leaves the toolbar current-session point size unchanged")
+        && options_ok;
+
+    const ImPlotComponentOptions before_invalid_options = current_session;
+    changed_options.trajectory_fit_ratio = 0.0;
+    options_ok = check(!detail::valid_fit_ratio(0.0) && !detail::valid_fit_ratio(1.1)
+            && detail::valid_fit_ratio(1.0) && !detail::apply_light_options(current_session, changed_options)
+            && current_session.trajectory_fit_ratio == before_invalid_options.trajectory_fit_ratio
+            && current_session.time_series_fit_ratio == before_invalid_options.time_series_fit_ratio,
+        "light Options reject fit ratios outside the zero-exclusive through one-inclusive range")
+        && options_ok;
+
+    detail::LightOptionsState modifier_options = default_options;
+    modifier_options.zoom_center_modifier = ImGuiMod_Shift;
+    modifier_options.window_resize_modifier = ImGuiMod_Ctrl;
+    options_ok = check(detail::valid_distinct_modifier_choices(
+                           modifier_options.zoom_center_modifier,
+                           modifier_options.window_resize_modifier)
+            && detail::apply_light_options(current_session, modifier_options)
+            && current_session.zoom_center_modifier == ImGuiMod_Shift
+            && current_session.window_resize_modifier == ImGuiMod_Ctrl,
+        "light Options apply distinct center-zoom and window-resize modifiers")
+        && options_ok;
+
+    const ImPlotComponentOptions before_duplicate_modifiers = current_session;
+    modifier_options.window_resize_modifier = ImGuiMod_Shift;
+    options_ok = check(!detail::valid_modifier_choice(ImGuiMod_Super)
+            && !detail::valid_distinct_modifier_choices(
+                modifier_options.zoom_center_modifier, modifier_options.window_resize_modifier)
+            && !detail::apply_light_options(current_session, modifier_options)
+            && current_session.zoom_center_modifier
+                == before_duplicate_modifiers.zoom_center_modifier
+            && current_session.window_resize_modifier
+                == before_duplicate_modifiers.window_resize_modifier,
+        "light Options reject duplicate or unsupported modifier choices")
+        && options_ok;
+
+    EnuReferenceConfiguration user_enu_configuration;
+    user_enu_configuration.method = EnuReferenceMethod::UserSpecified;
+    user_enu_configuration.user_position =
+        UserSpecifiedLlh{35.0, 139.0, 42.0};
+    const EnuReferenceConfiguration slot_enu_configuration = detail::enu_configuration_for_method(
+        user_enu_configuration, EnuReferenceMethod::Slot1EcefAverage);
+    const UserSpecifiedLlh* preserved_user_position = slot_enu_configuration.user_position.has_value()
+        ? std::get_if<UserSpecifiedLlh>(&*slot_enu_configuration.user_position)
+        : nullptr;
+    const EnuReferenceConfiguration restored_user_enu_configuration =
+        detail::enu_configuration_for_method(
+            slot_enu_configuration, EnuReferenceMethod::UserSpecified);
+    const UserSpecifiedLlh* restored_user_position =
+        restored_user_enu_configuration.user_position.has_value()
+        ? std::get_if<UserSpecifiedLlh>(&*restored_user_enu_configuration.user_position)
+        : nullptr;
+    options_ok = check(slot_enu_configuration.method == EnuReferenceMethod::Slot1EcefAverage
+            && preserved_user_position != nullptr && preserved_user_position->latitude_deg == 35.0
+            && preserved_user_position->longitude_deg == 139.0
+            && restored_user_enu_configuration.method == EnuReferenceMethod::UserSpecified
+            && restored_user_position != nullptr && restored_user_position->latitude_deg == 35.0
+            && restored_user_position->longitude_deg == 139.0,
+        "ENU pull-down method changes preserve a stored user-specified position for reuse")
+        && options_ok;
+
+    const GpsTime original_edit_time{1'400'000'000'000'123'456LL};
+    detail::AbsoluteGpsTimeEdit time_edit;
+    bool time_edit_ok =
+        check(detail::initialize_absolute_gps_time_edit(time_edit, original_edit_time)
+                && !time_edit.edited && time_edit.original == original_edit_time
+                && detail::resolve_absolute_gps_time_edit(time_edit) == original_edit_time,
+            "an unchanged absolute-GPST field preserves its original sub-millisecond value");
+    const std::optional<GpsTime> rounded_text_value =
+        parse_absolute_gps_time(std::string_view{time_edit.text.data()});
+    time_edit.edited = true;
+    time_edit_ok =
+        check(rounded_text_value.has_value()
+                && detail::resolve_absolute_gps_time_edit(time_edit) == rounded_text_value
+                && *rounded_text_value != original_edit_time,
+            "an edited absolute-GPST field parses its displayed millisecond text")
+        && time_edit_ok;
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImPlot::CreateContext();
@@ -236,5 +339,5 @@ int main()
 
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
-    return loaded && resize_helpers_ok ? 0 : 1;
+    return loaded && resize_helpers_ok && options_ok && time_edit_ok ? 0 : 1;
 }

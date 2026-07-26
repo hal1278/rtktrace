@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "imgui.h"
 #include "rtktrace/plot/batch.hpp"
 
 namespace rtktrace {
@@ -26,6 +27,12 @@ enum class TrajectoryAxis : std::uint8_t {
     North,
 };
 
+[[nodiscard]] constexpr bool modifier_matches_exactly(
+    ImGuiKeyChord active, ImGuiKeyChord configured) noexcept
+{
+    return active == configured;
+}
+
 struct ImPlotComponentOptions {
     PlotBatchOptions batch;
     PositionComponent vertical_component{PositionComponent::Up};
@@ -36,7 +43,11 @@ struct ImPlotComponentOptions {
     TrajectoryRangePriority trajectory_range_priority{TrajectoryRangePriority::DisplayScale};
     TrajectoryScaleFixedTarget trajectory_scale_fixed_target{
         TrajectoryScaleFixedTarget::DrawingArea};
-    float marker_size_px{3.0F};
+    double trajectory_fit_ratio{1.0};
+    double time_series_fit_ratio{1.0};
+    ImGuiKeyChord zoom_center_modifier{ImGuiMod_Ctrl};
+    ImGuiKeyChord window_resize_modifier{ImGuiMod_Alt};
+    float marker_size_px{2.0F};
 };
 
 struct TrajectoryPlotMetrics {
