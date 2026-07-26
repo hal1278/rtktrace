@@ -79,6 +79,7 @@ lightとfullは同一application内の表示modeではなく、別のapplication
 - 各plot areaを独立したfloating areaとして配置する機能
 - plot areaごとの表示、非表示、再表示および削除
 - plot areaごとの軸範囲、描画領域長、表示縮尺、zoom/pan状態および表示成分
+- File/Slots、Shared Controlsおよびplot areaを一元管理するWindow Manager
 - 全plot areaで共有するファイル、スロット、品質filter、共通時刻範囲、ENU基準およびrelative data
 
 `rtktrace full`の実装は、`rtktrace light`の初期実装完了後に行う。
@@ -193,6 +194,10 @@ Optionsで指定されたmodifier keyを使用した場合は表示範囲の中�
 各plot areaは独立したfloating areaとして配置し、個別に表示、非表示、再表示または削除できる。各instanceの軸範囲、描画領域長、表示縮尺、zoom/pan状態および表示成分は、他のinstanceから独立して保持する。
 
 File/Slots areaおよび全plot areaは同じ読み込み済みファイル、スロット順、品質filter、共通時刻範囲、ENU基準およびrelative dataを共有する。
+
+Window Managerは、File/Slots、Shared Controlsおよび全plot windowの表示状態を一元管理する。
+File/SlotsおよびShared Controlsは表示または非表示だけを切り替え、削除しない。plot windowは
+Window Managerから生成、表示、非表示、再表示または削除する。
 
 ## 4. 機能要件
 
@@ -681,6 +686,10 @@ dialogにはファイル時刻から取得した日付を入力欄へ反映す�
 
 `rtktrace full`は、読み込み済みファイルおよびスロットを操作するFile/Slots areaを持つ。File/Slots areaは表示および非表示を切り替えられるものとする。
 
+File/Slots areaには`Open...`操作、slot一覧、file visibility、slot順変更、file削除、Hz表示と
+override、およびfile summaryを配置する。main menuの`File > Open...`とFile/Slots areaの
+`Open...`は、同じfile open処理を実行する。
+
 #### FR-FULL-002 plot areaの種類
 
 `rtktrace full`は、以下の4種類のplot areaを生成できるものとする。
@@ -696,23 +705,57 @@ dialogにはファイル時刻から取得した日付を入力欄へ反映す�
 
 各種類のplot areaを任意個生成できるものとする。実装上の最大instance数を設定することは許容し、具体的な上限は性能検証に基づいて定める。
 
+起動時はNormal 2D instanceを1個生成する。追加instanceはWindow Managerから生成する。
+新規instanceは既存instanceを複製せず、現在のOptionsから独立した初期stateを作成し、
+初回表示時にdataへFitする。初期実装ではinstanceの`Duplicate`操作を設けない。
+
 #### FR-FULL-004 floating area
 
 各plot instanceはapplication内の独立したfloating areaとして表示し、利用者が移動および寸法変更できるものとする。
+
+起動時は、File/Slotsを左、Window Managerを中央上、Shared Controlsを中央下、初期Normal 2Dを
+右へ、互いに重ならないよう配置する。配置はmain windowの利用可能領域に対して相対的に
+算出し、各windowの初回表示時だけ適用する。
+
+追加plotは右側のplot領域内で`24 px`ずつずらしてcascade配置する。viewport端へ達した場合は
+cascade位置を先頭へ戻し、新規instanceの配置によって既存windowを移動しない。
 
 #### FR-FULL-005 lifecycle
 
 各plot instanceは個別に表示、非表示、再表示および削除できるものとする。非表示状態ではinstanceおよびそのview stateを保持する。
 
+plot windowの`X`は非表示を実行し、instanceを削除しない。非表示instanceは同じ
+`PlotWindowId`、title、view stateおよびfloating位置・寸法を保持して再表示する。
+
+削除はWindow Managerの明示的な`Delete`操作だけから実行する。削除前に対象instanceのtitle、
+typeおよびIDを示すconfirmation modalを表示し、`Delete`確定時にinstanceと固有stateを破棄する。
+`Cancel`または`Esc`では削除しない。削除した`PlotWindowId`は再利用しない。
+
 #### FR-FULL-006 instance固有状態
 
 各plot instanceは、軸範囲、描画領域長、表示縮尺、zoom/pan状態、auto-fit状態、描画形式および表示成分を独立して保持する。
+
+current point sizeもplot instanceごとに保持し、各plot windowのtoolbarから変更する。他の
+instanceのcurrent point sizeには影響させない。非表示・再表示では保持し、削除時に破棄する。
+描画形式がlineのみの場合はpoint sizeを描画へ使用しないが、instanceの値は保持する。
+
+各plot window上部には、`Fit`、描画形式、current point sizeおよび`Ranges...`を含むcompact
+toolbarを配置する。2Dではrangeと`m/px`、Time SeriesではE/N/V、Up/Height、共通時刻軸および
+各縦軸rangeのinstance固有操作を提供する。
 
 #### FR-FULL-007 共通状態
 
 読み込み済みファイル、スロット順、ファイル表示状態、品質filter、共通時刻範囲、ENU基準、基準epoch対応tolerance checkの有効状態および最大時刻差、正規化データならびにrelative dataは、すべてのplot instanceで共有する。
 
 plot instanceの追加によって、同一の正規化処理、ENU変換または基準epoch対応付けをinstanceごとに重複実行しない。
+
+Fit ratio、zoom modifier、window resize modifierおよびdrawing orderは全instanceで共有する。
+Fit ratio変更時は現在の表示範囲を変更せず、各instanceの次回Fitから使用する。modifier変更は
+現在の表示範囲を変更せず全instanceへ即時反映する。drawing order変更は全instanceを
+再prepareするが再Fitしない。
+
+Optionsのdefault point size変更は既存instanceのcurrent point sizeを変更せず、変更後に生成する
+instanceの初期current point sizeへ使用する。
 
 ### 4.20 Options
 
@@ -825,6 +868,9 @@ Optionsで設定可能とする。built-in defaultのmodifier keyは`Ctrl`とす
 描画開始時のcurrent sessionのpoint sizeには、Optionsに保存されたdefault point sizeを
 使用する。toolbar等によるpoint sizeの変更はcurrent sessionの値だけを変更し、
 Optionsに保存されるdefault point sizeを変更しない。
+
+`rtktrace full`では各plot instanceが個別のcurrent point sizeを持つ。新規instanceは生成時点の
+Options default point sizeで初期化し、一方のinstanceでの変更を他のinstanceへ反映しない。
 
 #### DR-PLOT-002 sample間の接続
 
@@ -1062,11 +1108,22 @@ dialog固有のtemporary inputおよびvalidation stateは破棄する。1回の
 
 #### DR-FULL-001 File/Slots area
 
-File/Slots areaは他のplot areaから独立して表示し、利用者が表示または非表示を切り替えられるものとする。
+File/Slots areaは他のplot areaから独立したfloating windowとして表示し、利用者が表示または
+非表示を切り替えられるものとする。起動時は表示状態とする。`X`では非表示にし、
+Window Managerから再表示する。
 
 #### DR-FULL-002 plot instanceの識別
 
-同じ種類のplot areaを複数表示した場合も、各instanceをwindow titleまたはinstance番号によって識別できるものとする。
+同じ種類のplot areaを複数表示した場合も、各instanceをwindow titleおよびinstance番号によって
+識別できるものとする。
+
+default titleは`<PlotType> <PlotWindowId>`とし、PlotTypeには`Normal 2D`、
+`Normal Time Series`、`Relative 2D`または`Relative Time Series`を使用する。
+
+Window Managerからtitleを編集できるものとする。Enterで確定し、空文字は無効とする。
+`Esc`または未確定のままfocusを外した場合は直前のtitleへ戻す。titleを変更してもtypeおよび
+IDは変更しない。同じtitleを複数instanceへ設定することを許容し、plot window titleには
+編集後titleと`[#ID]`を表示する。
 
 #### DR-FULL-003 独立した描画領域
 
@@ -1075,6 +1132,53 @@ File/Slots areaは他のplot areaから独立して表示し、利用者が表�
 #### DR-FULL-004 非表示instance
 
 非表示のplot instanceは描画処理の対象外とする。再表示した場合は、非表示前のview stateを復元する。
+
+session、quality filterまたはOptionsが非表示中に変更された場合は、再表示時に最新の共有stateへ
+遅延更新する。この更新によって保持中のview stateを再Fitしない。
+
+#### DR-FULL-005 main windowおよびmenu
+
+`rtktrace full`のnative main windowは初期寸法を`1280 × 720 px`、最小寸法を
+`800 × 600 px`とし、現在のdisplayのusable boundsを最大寸法とする。利用者によるresizeを
+許可する。
+
+main window内のfloating windowはDear ImGuiの同一viewport内へ配置する。初期実装では
+dockingおよびmulti-viewportを使用しない。
+
+main menuは以下で構成する。
+
+- `File > Open...`
+- `File > Exit`
+- `Window > Window Manager`
+
+Window Manager以外のwindow管理項目およびplot生成項目をmain menuへ重複して設けない。
+
+#### DR-FULL-006 Window Manager
+
+Window Managerは独立したfloating windowとし、起動時は表示状態とする。Window Managerの
+`X`はWindow Managerを非表示にし、`Window > Window Manager`から再表示する。
+
+Window Managerは次の2区分で構成する。
+
+- `Application Windows`: File/SlotsおよびShared Controlsの表示・非表示
+- `Plot Windows`: 4種類のplot生成、全instanceのtitle、type、IDおよび表示状態、表示・非表示、
+  title編集ならびに削除
+
+File/SlotsおよびShared Controlsには削除操作を設けない。
+
+#### DR-FULL-007 Shared Controls
+
+Shared Controlsは独立したfloating windowとし、起動時は表示状態とする。`X`では非表示にし、
+Window Managerから再表示する。
+
+Shared Controlsにはtabを設けず、次の項目を常時識別できるcompactな構成とする。
+
+- `Q0`から`Q6`までのquality filter
+- common time range dialogを開く操作
+- ENU reference methodのpull-downおよび`User specified`の`Edit...`
+- reference matching dialogを開く操作
+- Options dialogを開く操作
+- caution indicatorおよびnotification historyを開く操作
 
 ### 5.11 RTKPLOT実装確認済み事項
 

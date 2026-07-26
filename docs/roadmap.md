@@ -257,6 +257,11 @@ light固有layoutをshared sessionまたはplot componentから除去できて�
 - window一覧
 - 非表示windowの描画抑止
 - shared ENUおよびrelative cache
+- 起動時に表示するFile/Slots、Window Manager、Shared ControlsおよびNormal 2D
+- 全floating windowを一元管理するWindow Manager
+- instance固有のcompact plot toolbar
+- shared application操作を集約するShared Controls
+- main menuからのWindow Manager再表示
 
 ### 完了条件
 
@@ -276,6 +281,12 @@ floating plot lifecycleはこのstate API上へ実装する。
 full GUI runtimeを追加した。visibleなinstanceだけをsession、quality filterおよびOptionsの
 revision差分時にprepareし、非表示中はprepareとrenderを抑止する。再表示時は保持したview
 stateを再fitせず最新の共有dataへ遅延更新し、削除時は対応するruntimeを破棄する。
+
+production GUI compositionでは、File/Slotsを左、Window Managerを中央上、Shared Controlsを
+中央下、初期Normal 2Dを右へ配置する。Window Managerはapplication windowの表示状態とplot
+instanceの全lifecycleを管理し、plot windowのcloseは非表示、削除はconfirmation modalを伴う
+明示操作とする。各plot windowはinstance固有toolbarを持ち、Shared Controlsはquality filter、
+common time range、ENU reference、reference matching、Optionsおよびnotification操作を持つ。
 
 ## 9. Phase 7: Full extensions
 

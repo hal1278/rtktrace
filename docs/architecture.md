@@ -40,7 +40,9 @@ fullは以下の4種類のplot instanceを任意個保持する。
 - Relative 2D
 - Relative Time Series
 
-各instanceは独立したfloating area、view stateおよびlifecycleを持つ。File/Slots areaおよびplot instanceは共通データmodelを参照する。
+各instanceは独立したfloating area、view stateおよびlifecycleを持つ。File/Slots、
+Window Manager、Shared Controlsおよびplot instanceは同一のDear ImGui viewport内に
+floating windowとして配置し、共通データmodelを参照する。
 
 ### 3.3 別targetとしての実装
 
@@ -220,6 +222,8 @@ fullだけが以下を保持する。
 - visible state
 - pending deletion
 - floating areaの位置および寸法
+- File/Slots、Window ManagerおよびShared Controlsのvisible state
+- 新規plotのcascade配置state
 
 これらを共有coreへ含めない。
 
@@ -325,7 +329,9 @@ fullは概念上、以下を保持する。
 ```text
 FullApplicationState
   PlotSessionState
-  file/slot area state
+  File/Slots window state
+  Window Manager state
+  Shared Controls state
   plot instances [0..n]
 ```
 
@@ -366,6 +372,37 @@ find_plot(PlotWindowId) -> PlotInstance
 を変更せず、session revisionまたは共有quality filter revisionが変化した場合だけdata viewを
 再prepareする。非表示instanceはrenderおよびprepareを行わず、再表示時に保持中のview stateと
 最新session revisionを比較する。
+
+fullの初期window compositionは次とする。
+
+```text
+native main window (1280 x 720, minimum 800 x 600)
+  main menu
+  left: File/Slots
+  center top: Window Manager
+  center bottom: Shared Controls
+  right: initial Normal 2D plot
+```
+
+File/Slots、Window ManagerおよびShared Controlsは起動時に表示する。初期Normal 2Dを1個
+生成し、追加plotは右側のplot領域へ`24 px`間隔でcascade配置する。viewport端に達した場合は
+先頭位置へ戻し、既存windowを自動移動しない。
+
+Window Managerは全floating windowの管理境界とする。File/SlotsおよびShared Controlsは
+visible stateだけを管理し、plot instanceについてはcreate、title変更、visible変更および
+deleteを管理する。Window Manager自身の再表示経路だけをmain menuへ置く。
+
+各plot instanceのcurrent point size、draw mode、time-series表示成分および鉛直成分は
+instance固有とする。Fit ratio、wheel modifier、drawing orderおよびquality filterは共有する。
+shared Options変更時は、default point sizeを既存instanceへ上書きせず、Fit ratio変更によって
+現在rangeを変更または再Fitしない。
+
+File/Slotsはfile workflow、slot操作、Hzおよびsummaryを所有する。Shared Controlsはquality
+filter、common time range、ENU reference、reference matching、Optionsおよびnotificationへの
+操作を所有する。各plot windowはinstance固有toolbarと描画領域を所有する。
+
+plot windowのclose buttonはvisible stateをfalseへ変更する。deleteはWindow Managerから
+confirmation modalを経て実行し、runtimeとinstance固有stateを破棄する。
 
 ## 11. Implementation stack and rendering backend
 
